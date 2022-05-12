@@ -15,7 +15,7 @@ composed of two parts: the public key which, as the name suggest can be distribu
 - The interactive nodes only accept (GSI-)ssh connections from known, white-listed IP, ranges.
 - type `accinfo` on terminal to get general infos.
 
-## Local/Remote development using SSH
+## Local development using SSH
 
 - For MAC users: after having installed macFUSE (it allows you to extend macOS's native file handling capabilities via third-party file systems) and SSHFS (it's used to mount a remote directory by using SSH alone), see https://osxfuse.github.io/, you can use the following command to mount REMOTE_PATH (folder on cluster) to LOCAL_PATH (your local machine):
 ```
@@ -23,6 +23,10 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 ```
 - Now you can see the contents of REMOTE_PATH on your LOCAL_PATH, and using them to run scripts *locally*.
 - To unmount use `diskutil umount force LOCAL_PATH`.
+
+## Remote development locally using SSH
+
+- The [Visual Studio Code Remote - SSH extension](https://code.visualstudio.com/docs/remote/ssh) allows you to open a remote folder on any remote machine. Once connected to a server, you can interact with files and folders anywhere on the remote filesystem. The local system requirement is to have a supported OpenSSH compatible SSH client, while the remote system requirement is to have a running SSH server on RHEL 7+ (in Snellius case).
 
 ## Creating and running jobs
 
