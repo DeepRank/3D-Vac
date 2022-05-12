@@ -8,14 +8,21 @@
 - To login via the terminal from a white-listed IP: `ssh user@snellius.surf.nl`. Secure Shell is an encrypted network protocol for transferring data across insecure networks, and is widely used to connect to clusters. An SSH Key uses asymmetric cryptography to authenticate your identity. SSH keys are
 composed of two parts: the public key which, as the name suggest can be distributed publicly, and the private key which must remain private.
 - If you encounter the need to display graphical interfaces from the remote system on your local screen, X11 port forwarding/tunneling facilitates this seamlessly and securely. If you use `ssh -X remotemachine` the remote machine is treated as an untrusted client. So your local client sends a command to the remote machine and receives the graphical output. If your command violates some security settings you'll receive an error instead. But if you use `ssh -Y remotemachine` the remote machine is treated as a trusted client. You can check the options ForwardX11 and ForwardX11Trusted in your `/etc/ssh/ssh_config` file (after login to Snellius).
-- From abroad or not white-listed-IP, there is a separate login server: doornode.surfsara.nl (thus using `ssh user@doornode.surfsara.nl`). Use your usual login and password, and select 'Snellius'. Please note that you cannot copy files or use X11 when using the door node.
+- From abroad or not white-listed-IP, there is a separate login server: doornode.surfsara.nl (thus using `ssh user@doornode.surfsara.nl`). Use your usual login and password, and select 'Snellius'. Please note that you cannot copy files or use X11 when using the door node. See also [here](https://servicedesk.surfsara.nl/wiki/pages/viewpage.action?pageId=30660265) for more info.
 - You can find the blocked ip-address when logging in to Snellius using `ssh -v [login]@snellius.surf.nl`.
 - To disconnect type either `logout` or `exit` in the terminal window, and then enter. 
 - To go to shared 3dVac folder: `cd /projects/0/einf2380/`.
 - The interactive nodes only accept (GSI-)ssh connections from known, white-listed IP, ranges.
 - type `accinfo` on terminal to get general infos.
 
-### How to connect to the Snellius system from abroad: see [here](https://servicedesk.surfsara.nl/wiki/pages/viewpage.action?pageId=30660265)
+## Local/Remote development using SSH
+
+- For MAC users: after having installed macFUSE (it allows you to extend macOS's native file handling capabilities via third-party file systems) and SSHFS (it's used to mount a remote directory by using SSH alone), see https://osxfuse.github.io/, you can use the following command to mount REMOTE_PATH (folder on cluster) to LOCAL_PATH (your local machine):
+```
+sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_permissions,noappledouble,negative_vncache,volname=VOL_NAME
+```
+- Now you can see the contents of REMOTE_PATH on your LOCAL_PATH, and using them to run scripts *locally*.
+- To unmount use `diskutil umount force LOCAL_PATH`.
 
 ## Creating and running jobs
 
