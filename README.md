@@ -7,7 +7,6 @@ I used [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-dat
 
 ```
 ├── LICENSE
-├── Makefile           <- Makefile with commands like `make data` or `make train`
 ├── README.md          <- The top-level README for developers using this project.
 ├── data
 │   ├── external       <- Data from third party sources.
@@ -15,7 +14,7 @@ I used [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-dat
 │   ├── processed      <- The final, canonical data sets for modeling.
 │   └── raw            <- The original, immutable data dump.
 │
-├── docs               <- A default Sphinx project; see sphinx-doc.org for details
+├── docs               <- For useful documentation
 │
 ├── models             <- Trained and serialized models, model predictions, or model summaries
 │
@@ -31,7 +30,6 @@ I used [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-dat
 ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
 │                         generated with `pip freeze > requirements.txt`
 │
-├── setup.py           <- Make this project pip installable with `pip install -e`
 ├── src                <- Source code for use in this project.
 │   ├── __init__.py    <- Makes src a Python module
 │   │
@@ -49,5 +47,4 @@ I used [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-dat
 │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
 │       └── visualize.py
 │
-└── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 ```
