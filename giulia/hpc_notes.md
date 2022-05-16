@@ -44,10 +44,12 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 
 - A job script generally consists of the following parts.
   1. Specification of the job requirements for the batch system (number of nodes, expected runtime, etc).
-  2. Loading of modules needed to run your application. *not always required*
-  3. Preparing input data (e.g. copying input data to from your home to scratch, preprocessing). *not always required*
-  4. Running your application.
-  5. Aggregating output data (e.g. post-processing, copying data from scratch to your home). *not always required*
+  2. Loading of modules needed to run your application. To see which modules are available, use `modul avail` or to find all possible modules and extensions `module spider`. To load a module, use `
+module load module_name`. [Here](https://servicedesk.surf.nl/wiki/display/WIKI/Software+on+Snellius+and+Lisa) you can find modules' names.
+  3. Preparing input data (e.g. copying input data to from your home to scratch, preprocessing). The scratch disk provides temporary storage that is much faster than the home file system. In case you have 1 or 2 tiny input files, it may be acceptable to read these directly from the home file system. If you have many files and/or very large files, however, this will put too high a load on the home file system - and slow down your job considerably. 
+The solution is to copy your input data to the local scratch disk of each node before starting your application. See [here](https://servicedesk.surf.nl/wiki/display/WIKI/Copy+input+data+to+scratch) for more details. 
+  4. [Executing your program](https://servicedesk.surf.nl/wiki/display/WIKI/Executing+your+program).
+  5. Aggregating output data (e.g. post-processing, copying data from scratch to your home). After your job finishes, if you have used the local scratch disk don't forget to [copy your results back to your home directory](https://servicedesk.surf.nl/wiki/display/WIKI/Copy+output+data+from+scratch), otherwise they will be lost.
 
 ### Script example
 
@@ -97,38 +99,45 @@ In particular ...
 
 `$HOME/my_serial_program` runs a single instance of a serial (i.e. non-parallel) program, taking a single input file as an argument. 
 
-### Loading modules
-
-- `module avail` to see which modules are available.
-- `module spider` to find all possible modules and extensions. 
-- `module load [module_name]` to load a module. 
-- Default modules are disabled on Snellius and Lisa. You need to specify the full version of the module you want to load (e.g: Python/3.9.5-GCCcore-10.3.0).
-
 ### Final job script
 
 ```
 #!/bin/bash
 #Set job requirements
-#SBATCH -n 16
-#SBATCH -t 5:00
- 
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=16
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=fat
+#SBATCH --time=01:00:00
+
 #Loading modules
-module load 2021
 module load Python/3.9.5-GCCcore-10.3.0
- 
-#Copy input file to scratch
-cp $HOME/big_input_file "$TMPDIR"
- 
+#MPI case (multi-node job)
+module load mpicopy
+module load OpenMPI/4.1.1-GCC-10.3.0
+mpicopy $HOME/input_dir
+
+#Copy dir with input files
+cp -r $HOME/input_dir "$TMPDIR"
+
 #Create output directory on scratch
 mkdir "$TMPDIR"/output_dir
- 
-#Execute a Python program located in $HOME, that takes an input file and output directory as arguments.
-python $HOME/my_program.py "$TMPDIR"/big_input_file "$TMPDIR"/output_dir
- 
+
+#Execute a Python program located in $HOME, that takes an input directory and an output directory as arguments.
+srun python $HOME/my_program.py "$TMPDIR"/input_dir "$TMPDIR"/output_dir
+#MPI case
+mpiexec my_program "$TMPDIR"/input_dir "$TMPDIR"/output_dir
+
 #Copy output directory from scratch to home
 cp -r "$TMPDIR"/output_dir $HOME
 ```
 
-Note that The **scratch disk** provides temporary storage that is much faster than the home file system. This is particularly important if, for example, you launch 16 processes on a single node, that each need to read in files (or worse, you launch an MPI program over 10 nodes, with 16 processes per node). Your input files will be read 16 (or, in the MPI case: 160) times. In case you have 1 or 2 tiny input files, it may be acceptable to read these directly from the home file system. If you have many files and/or very large files, however, this will put too high a load on the home file system - and slow down your job considerably.
+### Submitting a job
 
-The solution is to copy your input data to the local scratch disk of each node before starting your application. Then, each of the 16 processes on that node can read the input data from the local scratch disk. For the single-node example, you reduce the number of file reads from the home file system from 16 to 1 (i.e. only the copy operation).
+- To submit the job described in my_job.sh, use `sbatch my_job.sh`.
+- Upon submission, the system will report the job ID that has been assigned to the job.
+- If you want to cancel a job in the queue, use `scancel [jobid]`.
+- In the batch system, the job output is written to a text file: `slurm-[jobid].out`. Make sure to check this file after your job has finished to see if it ran correctly.
+- After you have submitted a job, it ends up in the job queue. You can inspect the queue with `squeue -u [username]` or `squeue -j [jobid]`.
+- For some applications, you want to submit the same job script repeatedly. In these situations, you can submit an [array job](https://servicedesk.surf.nl/wiki/display/WIKI/Array+jobs).
+- you can use `srun` to start an interactive job or an MPI program (more about it [here](https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+jobs)).
