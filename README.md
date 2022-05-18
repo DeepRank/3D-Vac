@@ -11,17 +11,17 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ├── README.md           <- The top-level README for developers using this project.
 │
 ├── data
-│.  │
+│   │
 │   ├── hdf5
 │   │   ├── cnn         <- hdf5 files generated with old version of deeprank, for cnns training
 │   │   └── gnn         <- hdf5 files generated with new version of deeprank, for gnns training
-│.  │
+│   │
 │   ├── 3d_models       <- aligned 3d models, output of pandora
-│.  │
+│   │
 │   ├── external
 │   │   ├── processed   <- csv files ready for the modelling
 │   │   └── unprocessed <- BA and EL text data (csv)
-│.  │
+│   │
 │   └── pssm
 │       ├── mapped
 │       ├── unmapped
