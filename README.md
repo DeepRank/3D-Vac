@@ -69,3 +69,8 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │       └── visualize.py
 └──
 ```
+
+## Workflow
+Follow these steps to replicate the work
+### Generate features
+1. Run `src/features/generate_feature_graph.py`
