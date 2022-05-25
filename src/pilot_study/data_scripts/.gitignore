@@ -1,0 +1,6 @@
+ali.fasta
+targets.fasta
+modelling/move_back_models.py
+check_populated_pssm_mapped.py
+BA_76242
+*.pkl

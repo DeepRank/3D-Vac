@@ -1,0 +1,220 @@
+
+# Start creating HDF5 database: ./hdf5/003_test.hdf5
+
+# Start creating HDF5 database: ./hdf5/001_test.hdf5
+
+# Start creating HDF5 database: ./hdf5/000_test.hdf5
+
+# Start creating HDF5 database: ./hdf5/002_test.hdf5
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00010001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00020001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00030001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00040001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00080001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00060001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00050001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00070001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00120001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00100001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00090001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00110001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00160001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00140001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00130001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00150001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00200001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00180001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00170001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-A_BL00190001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00040001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00020001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00010001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00030001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00080001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00060001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00050001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00070001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00120001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00100001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00090001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00110001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00160001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00140001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00130001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00150001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00200001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00180001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00170001.pdb
+
+Processing PDB file: ./pdb/mixed/HLA-B_BL00190001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00030001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00010001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00090001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00020001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00070001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00050001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00040001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00060001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00110001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00090001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00080001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00100001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00150001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00130001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00120001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00140001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00190001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00170001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00160001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00180001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00030001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00010001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget156.BL00200001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00020001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00070001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00050001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00040001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00060001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00110001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00090001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00080001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00100001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00150001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00130001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00120001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00190001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00140001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00170001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00160001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00030001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00180001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00010001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget9351.BL00200001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00070001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00020001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00050001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00040001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00120001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00060001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00100001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00080001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00160001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00110001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00140001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00130001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00200001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00150001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00180001.pdb
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00170001.pdb
+
+# Successfully created database: ./hdf5/003_test.hdf5
+
+
+Processing PDB file: ./pdb/mixed/MyTarget51.BL00190001.pdb
+
+# Successfully created database: ./hdf5/001_test.hdf5
+
+
+# Successfully created database: ./hdf5/000_test.hdf5
+
+
+# Successfully created database: ./hdf5/002_test.hdf5
+
