@@ -14,7 +14,7 @@ Collection of scripts
 2)1_3D_modelling
 4)2_3D_models_align
 5)3_precalculate_features (PSSM, one-hot)
-6)4_HDF5_generation
+6)4_train_models
 
 plots
 binding_data
