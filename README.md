@@ -45,8 +45,9 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │
 ├── .gitignore
 │
-├── src                 <- Source code for use in this project.
-│   ├── __init__.py     <- Makes src a Python module
+├──src                 <- Source code for use in this project.
+│   |   
+|   ├── __init__.py     <- Makes src a Python module
 │   │
 │   ├── data            <- Scripts to download or generate data
 │   │   ├── make_dataset.py
@@ -61,6 +62,8 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │   │   ├── predict_model.py
 │   │   ├── train_model.py
 │   │   └── utils.py
+|   |
+|   ├── pilot_study     <- Structure available in the README of the folder
 │   │
 │   ├── tools
 │   │   └── other_utils.py
