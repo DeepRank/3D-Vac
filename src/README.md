@@ -1,22 +1,2 @@
-# 3d-epipred
-3D Epitope prediction scripts
-
-## Content
-
-### Scripts
-Collection of scripts
-
-### Steps
-```
-1)0_seq_data_analysis
- |_ build_csv: scripts to make the csv 
- |_ analyze datasets: charts and data summary + cluster peptides
-2)1_3D_modelling
-4)2_3D_models_align
-5)3_precalculate_features (PSSM, one-hot)
-6)4_train_models
-
-plots
-binding_data
-blast_db_generator
-```
+# 3D-Vac pipeline
+Workflow to generate 3D structures of p:MHC complex from the allele name and peptide sequence using PANDORA software. Generates residue level custom features such as PSSM, map atomic features to a grid or graph using DeepRank's CNN or GNN.
