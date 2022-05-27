@@ -23,7 +23,7 @@ arg_parser = argparse.ArgumentParser(
 
 arg_parser.add_argument("--csv-file", "-f",
     help="Absolute path of the csv file",
-    default="../binding_data/BA_pMHCI.csv"
+    default="../../../data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--peptide-column", "-p",
     type=int,

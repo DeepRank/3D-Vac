@@ -29,8 +29,8 @@ for folder in model_dirs:
 print('Already modelled LENGHT: %i' %len(already_modelled))
 print('ALL CASES LENGHT after: %i' %len(all_cases))
 
-# #3. Write new input file without cases already modelled.
-# with open('/home/lepikhovd/binding_data/to_model.csv', 'w') as outfile:
-#     for key in all_cases:
-#         outfile.write(all_cases[key])
+#3. Write new input file without cases already modelled.
+with open('/home/lepikhovd/3D-Vac/data/binding_data/to_model.csv', 'w') as outfile:
+    for key in all_cases:
+        outfile.write(all_cases[key])
 

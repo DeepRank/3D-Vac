@@ -9,7 +9,7 @@ arg_parser = argparse.ArgumentParser(description="Script used to rename the init
     id format: prefix + number (position in the csv file)");
 arg_parser.add_argument("--file-path", "-f",
     help="path of the csv file",
-    default= "/home/lepikhovd/3d-epipred/binding_data/quantitative_mhcI.csv",
+    default= "/home/lepikhovd/3D-Vac/data/binding_data/quantitative_mhcI.csv",
     # required=True
 )
 arg_parser.add_argument("--prefix", "-p",

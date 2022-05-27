@@ -15,7 +15,7 @@ arg_parser = argparse.ArgumentParser(description="Cluster peptides from a .csv f
 arg_parser.add_argument(
     "--file","-f",
     help="path to the .csv file",
-    default="/home/lepikhovd/binding_data/BA_pMHCI.csv"
+    default="/home/lepikhovd/3D-Vac/data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--threshold", "-t",
     help="Number of clusters",

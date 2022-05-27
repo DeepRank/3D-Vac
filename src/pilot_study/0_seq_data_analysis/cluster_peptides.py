@@ -18,7 +18,7 @@ arg_parser = argparse.ArgumentParser(description=" \
 arg_parser.add_argument(
     "--file","-f",
     help="Path to the .csv file.",
-    default="/home/lepikhovd/binding_data/BA_pMHCI.csv"
+    default="/home/lepikhovd/3D-Vac/data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--clusters", "-c",
     help="Maximum number of clusters. A threshold will be calculated to reach the closest number of clusters.",

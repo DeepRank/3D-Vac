@@ -27,7 +27,7 @@ print('Database repathed')
 #Create targets
 t1 = time.time()
 wrap = Wrapper.Wrapper()
-csv_file = "/home/lepikhovd/binding_data/to_model.csv"
+csv_file = "/home/lepikhovd/3D-Vac/data/binding_data/to_model.csv"
 wrap.create_targets(csv_file, db, 
                     MHC_class='I', header=False, delimiter=',', IDs_col=0, 
                     peptides_col=2, allele_col=1, benchmark=False, verbose=False,

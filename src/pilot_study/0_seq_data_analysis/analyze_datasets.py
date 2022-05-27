@@ -22,7 +22,7 @@ if run_all:
     
     
     cell_to_alleles = {}
-    with open('../binding_data/pMHCII/allelelist.txt') as infile:
+    with open('../../binding_data/pMHCII/allelelist.txt') as infile:
         for line in infile:
             cell_to_alleles[line.split(' ')[0]] = line.split(' ')[1].replace('\n', '').split(',')
     

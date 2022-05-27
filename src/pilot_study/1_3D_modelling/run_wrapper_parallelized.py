@@ -11,7 +11,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-csv_path = "/home/lepikhovd/binding_data/to_model.csv"
+csv_path = "/home/lepikhovd/3D-Vac/data/binding_data/to_model.csv"
 csv_file = open(csv_path, "r")
 
 running_time = int(sys.argv[1])

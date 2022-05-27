@@ -15,7 +15,7 @@ arg_parser = argparse.ArgumentParser(
 arg_parser.add_argument(
     "--source-csv", "-f", 
     help="Path to the file if different from the default.", 
-    default="/home/lepikhovd/3d-epipred/binding_data/quantitative_mhcI.csv"
+    default="/home/lepikhovd/3D-Vac/data/binding_data/quantitative_mhcI.csv"
 )
 arg_parser.add_argument(
     "--destination-path", "-d", 
