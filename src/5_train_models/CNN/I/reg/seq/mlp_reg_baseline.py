@@ -7,6 +7,8 @@ from torch.utils.data import Dataset
 from torch.utils.data import Subset
 import copy
 import blosum
+import sys
+sys.path.append("../../")
 from models import MlpRegBaseline
 import random
 # import multiprocessing as mp
