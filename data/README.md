@@ -1,3 +1,5 @@
+Structure of data in the repo: TBD
+
 Structure of the data on Snellius (at `/projects/0/einf2380/data/pMHCI/`):
 
 ```
