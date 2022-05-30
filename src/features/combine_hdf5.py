@@ -1,3 +1,5 @@
+# This script is meant for combinining different hdf5 files into one
+
 import glob
 import h5py
 import os 
@@ -18,7 +20,7 @@ def add_hdf5(input_hdf5, key, output_hdf5):
 		raise TypeError(type(input_hdf5[key]))
 
 # combines all hdf5 from a folder into a single hdf5 file
-def folder2hdf5(folder_location, output_file_name='combined.hdf5'):
+def folder2hdf5(folder_location, output_file_name):
 	# find all hdf5 files in folder
 	hdf5_files = glob.glob('%s/*.hdf5' % folder_location)
 	# Create an output hdf5 file
@@ -31,5 +33,4 @@ def folder2hdf5(folder_location, output_file_name='combined.hdf5'):
 		os.remove(input_hdf5path)
 
 if __name__ == "__main__":
-	folder2hdf5(folder_location='hdf5output', output_file_name='combined.hdf5')
-
+	folder2hdf5(folder_location='example_output_folder', output_file_name='example_combined_file.hdf5)
