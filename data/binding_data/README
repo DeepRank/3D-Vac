@@ -1,0 +1,10 @@
+quantitative_mhcI.csv
+	- This file contains only "affinity" entries from the initial "no_additional_ms" file of MHCflurry database. Any BA values should be append to this file with correct numeration.
+	- TODO: create a append2quantitative.py to add new rows to the quantitative_mhcI.csv file.
+	- Source: MHCFlurry database, curated from 2020.
+	- Binding affinity with referenced ID on the first column.
+	- Curated from 2020.
+BA_pMHCI.csv
+	- Source: filtered for 9 mers, quantitative BA data.
+	- Unrelated to the current quantitative_mhcI.csv file.
+	- The IDs are NOT from the quantitative_mhcI.csv file!!!

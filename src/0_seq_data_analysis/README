@@ -6,7 +6,7 @@
 ├── cluster_peptides.py
 ├── __init__.py
 ├── README
-├── rename_models.py			-> generates the DB1 from MHCflurry raw dataset by adding the ID column
+├── generate_db1.py			-> generates the DB1 from MHCflurry raw dataset by adding the ID column
 ├── unparalleled_cluster_peptides.py	
 └── write_to_model_csvs.py		-> add the destination folder column to the csv for II, provides the main function for generate_db1_I
 
