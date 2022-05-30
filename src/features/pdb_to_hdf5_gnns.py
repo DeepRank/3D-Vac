@@ -1,3 +1,8 @@
+# This script uses deeprank-gnn-2 to generate the .hdf5 files containing graphs, that can be
+# used for the training and testing of the neural networks (via NeuralNet class) contained
+# in deeprank-gnn-2. It takes models' folder obtained using Pandora (.pdb files) as input
+# and returns the .hdf5 files containing features and target graphs of the pMHC complexes.
+
 from deeprank_gnn.feature import bsa, pssm, amino_acid, biopython, atomic_contact, sasa
 from deeprank_gnn.models.query import ProteinProteinInterfaceResidueQuery
 from deeprank_gnn.preprocess import PreProcessor
@@ -58,4 +63,4 @@ def makeHdf5(pilot_data_csv, pdb_models_folder, outputFolder, feature_modules = 
 	print(preprocessor.output_paths)  # print the paths of the generated files
 
 if __name__ == "__main__":
-	makeHdf5('BA_pMHCI.csv', 'pdb_models', 'test')
+	makeHdf5('BA_pMHCI.csv', 'pdb_models_folder_example', 'output_folder_example')
