@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+# script used to add the destination column for the PANDORA wrapper
 import pickle
 
 def assign_outfolder(index):
-    
+
     if index%1000 != 0:
         interval = '%i_%i' %((int(index/1000)*1000)+1, (int(index/1000)*1000)+1000)
     else:
