@@ -73,5 +73,5 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ## Workflow
 Follow these steps to replicate the work
 ### GNNs
-- Generate features graphs in the form of .hdf5 files. Run `src/features/generate_feature_graph.py`
-- Combine multiple .hdf5 files into one. Run `src/features/pbd_to_hdf5_gnns.py`
+- Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
+- Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
