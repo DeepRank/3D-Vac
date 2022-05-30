@@ -13,26 +13,26 @@ arg_parser = argparse.ArgumentParser(
     description='Build a p:MHC Binding Affinity csv file for BA only with a precise value ("=" inequallity) from MHCFlurry dataset. For NetMHCpan dataset or MHCflurry EL, use another script. \n \
     This script can be used to explore data by giving allele name and peptide length. Please provide the -d directive if you want to create a csv. This script should be used after rename_models.py.')
 arg_parser.add_argument(
-    "--source-csv", "-f", 
-    help="Path to the file if different from the default.", 
-    default="/home/lepikhovd/3d-epipred/binding_data/quantitative_mhcI.csv"
+    "--source-csv", "-f",
+    help="Path to the DB1 if different from the default.",
+    default="../../data/DB1/"
 )
 arg_parser.add_argument(
-    "--destination-path", "-d", 
-    help="Path to the destination csv. Shoule be an absolute path", 
+    "--destination-path", "-d",
+    help="Path to the destination csv with filtered entries. Shoule be an absolute path",
     default=None
     # required=True
 )
 
 arg_parser.add_argument(
-    "--peptide-length", "-P", 
+    "--peptide-length", "-P",
     help="Length of peptides.",
     default=0,
     type=int
 )
 arg_parser.add_argument(
-    "--allele-column", "-a", 
-    default=1, 
+    "--allele-column", "-a",
+    default=1,
     help="Index of the column for alleles, if different from default (1)",
     type=int
 )
@@ -46,8 +46,8 @@ arg_parser.add_argument(
     nargs="+",
 )
 arg_parser.add_argument(
-    "--peptide-column", "-p", 
-    default=2, 
+    "--peptide-column", "-p",
+    default=2,
     help="Index of the column for peptides, if different from default (2)",
     type=int
 )
@@ -126,17 +126,17 @@ if (a.destination_path):
 # ## make the human pie chart
 # tot_len = h_ba_neg + h_ba_pos + h_el_neg + h_el_pos
 
-# plt.pie([(h_el_pos + h_el_neg)/tot_len*100,(h_ba_neg+ h_ba_pos)/tot_len*100], 
+# plt.pie([(h_el_pos + h_el_neg)/tot_len*100,(h_ba_neg+ h_ba_pos)/tot_len*100],
 #     labels=['EL: %i '%(h_el_neg + h_el_pos), 'BA %i'%(h_ba_neg + h_ba_pos)], autopct='%1.1f%%')
-# plt.title('Total: ' + str(tot_len) + ' experimental values for both BA and EL \n data for mono-allelic experiments in human') 
+# plt.title('Total: ' + str(tot_len) + ' experimental values for both BA and EL \n data for mono-allelic experiments in human')
 # plt.savefig("/home/daniill/human_MHC2_plot.png")
 # plt.clf()
 # print("first plot (human) ploted")
 
-# plt.pie([h_el_pos, h_el_neg, h_ba_pos, h_ba_neg], 
+# plt.pie([h_el_pos, h_el_neg, h_ba_pos, h_ba_neg],
 #        labels = ['EL pos: %i' %h_el_pos, 'EL neg: %i' %h_el_neg,
 #         'BA pos: %i' %h_ba_pos, 'BA neg: %i' %h_ba_neg], autopct='%1.1f%%')
-# plt.title('Proportion of negative and positive entries for both \n BA and EL data for mono-allelic experiments in human') 
+# plt.title('Proportion of negative and positive entries for both \n BA and EL data for mono-allelic experiments in human')
 # plt.savefig("/home/daniill/human_pos_neg_MHC2_plot.png")
 # plt.clf()
 # print("second plot (human) plotted")
@@ -145,17 +145,17 @@ if (a.destination_path):
 
 # tot_len = ba_neg + ba_pos + el_pos + el_neg
 
-# plt.pie([(el_pos + el_neg)/tot_len*100,(ba_pos + ba_neg)/tot_len*100], 
+# plt.pie([(el_pos + el_neg)/tot_len*100,(ba_pos + ba_neg)/tot_len*100],
 #     labels=['EL: %i '%(el_neg + el_pos), 'BA %i'%(ba_pos + ba_neg)], autopct='%1.1f%%')
-# plt.title('Total: ' + str(tot_len) + ' experimental values for both BA and EL \n data for mono-allelic experiments in different species') 
+# plt.title('Total: ' + str(tot_len) + ' experimental values for both BA and EL \n data for mono-allelic experiments in different species')
 # plt.savefig("/home/daniill/all_species_MHC2_plot.png")
 # plt.clf()
 # print("first (all species) plot ploted")
 
-# plt.pie([el_pos, el_neg, ba_pos, ba_neg], 
+# plt.pie([el_pos, el_neg, ba_pos, ba_neg],
 #        labels = ['EL pos: %i' %el_pos, 'EL neg: %i' %el_neg,
 #         'BA pos: %i' %ba_pos, 'BA neg: %i' %ba_neg], autopct='%1.1f%%')
-# plt.title('Positive and negative mono-allelic entries from the BA and EL data for several species') 
+# plt.title('Positive and negative mono-allelic entries from the BA and EL data for several species')
 # plt.savefig("/home/daniill/all_species_pos_neg_MHC2_plot.png")
 # plt.clf()
 # print("second (all species) plot plotted")
