@@ -1,4 +1,4 @@
-# This script is meant for combinining different hdf5 files into one
+# This script takes as input different .hdf5 files and combines them into one .hdf5 file
 
 import glob
 import h5py
@@ -33,4 +33,4 @@ def folder2hdf5(folder_location, output_file_name):
 		os.remove(input_hdf5path)
 
 if __name__ == "__main__":
-	folder2hdf5(folder_location='example_output_folder', output_file_name='example_combined_file.hdf5)
+	folder2hdf5(folder_location='example_output_folder', output_file_name='example_file.hdf5')
