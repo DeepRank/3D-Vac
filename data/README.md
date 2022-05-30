@@ -3,10 +3,10 @@ Structure of data in the repo: TBD
 Structure of the data on Snellius (at `/projects/0/einf2380/data/pMHCI/`):
 
 ```
-models				                  -> DB2 (output of Pandora, .pdb files)
+models                          -> DB2 (output of Pandora, .pdb files)
 ├── alignment
-│   └── alignment_template.pdb	-> template for the align.py script, used to define optimized x,y,z coordinates of pdb files
-├── BA				                  -> models with a continuous value of binding affinity as a label
+│   └── alignment_template.pdb      -> template for the align.py script, used to define optimized x,y,z coordinates of pdb files
+├── BA -> models with a continuous value of binding affinity as a label
 │   ├── x_y			                -> folder containing model number x to model number y
 │   │   ├── BA_x_template	      -> folder containing structures of the model
 │   │   │   ├── 3MRC.pdb
