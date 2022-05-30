@@ -26,7 +26,7 @@ arg_parser = argparse.ArgumentParser(
 
 arg_parser.add_argument("--csv-file", "-f",
     help="Absolute path of the csv file",
-    default="/home/lepikhovd/3d-epipred/binding_data/BA_pMHCI.csv"
+    default="../../../../../../data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--peptide-column", "-p",
     type=int,
@@ -158,8 +158,10 @@ if rank == 0:
 
     # instantiate the Peptides class and split the dataset for 10 testing unique cases
     peptides_to_list = dataset.peptides.tolist() # used to retrieve the indices for train and validation without the current test
-    test_peptides_indices = range(len(dataset.peptides.tolist())) #this will be substracted each iteration and newly created datasets will not have redundant test sets
     ds_l = len(peptides_to_list)
+    test_peptides_indices = list(range(ds_l)) #this will be substracted each iteration and newly created datasets will not have redundant test sets
+    print(test_peptides_indices[-1])
+    print(test_peptides_indices[0])
     num_test_sets = int(100*test_p)
 
 
@@ -172,8 +174,8 @@ if rank == 0:
 
         ds_indices = list(range(ds_l)) # create the indices range and remove the indices of test
         for i in sorted(test_indices, reverse = True):
-            del ds_indices[peptides_to_list.index(test_peptides_indices[i])] # remove the test indice so it is not used for training and val
-            del test_peptides[i] # remove it from the test peptide copy to avoid test redundancies in following datasets
+            del ds_indices[ds_indices.index(i)] # remove the test indice so it is not used for training and val
+            del test_peptides_indices[test_peptides_indices.index(i)] # remove it from the test peptide copy to avoid test redundancies in following datasets
 
         # create the train and validation indices without the test indices in it:
         train_indices = random.sample(ds_indices, train_per_dataset)
