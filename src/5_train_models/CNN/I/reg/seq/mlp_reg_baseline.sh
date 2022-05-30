@@ -1,13 +1,15 @@
 #!/bin/bash
 #SBATCH -p thin
-#SBATCH --nodes 2
+#SBATCH --nodes 1
 #SBATCH --ntasks 10
-#SBATCH --cpus-per-task 24
+#SBATCH --cpus-per-task 10
 #SBATCH --time 01:00:00
 #SBATCH -o /projects/0/einf2380/data/training_logs/job-%J.out
 
 ## load modules
 source activate deeprank
-
+module load 2020
+module load OpenMPI/4.0.3-GCC-9.3.0
 # usage: mpiexec -n <number of jobs> python -u mlp_reg_baseline.py <arguments for the script>
-mpiexec -n 10 python -u mlp_reg_baseline.py "$@"
+
+srun python -u mlp_reg_baseline.py "$@"

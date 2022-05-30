@@ -7,9 +7,11 @@ from torch.utils.data import Dataset
 from torch.utils.data import Subset
 import copy
 import blosum
+import os.path as path
+import os
 import sys
-sys.path.append("../../")
-from models import MlpRegBaseline
+sys.path.append(path.abspath("../../../../"))
+from CNN.models import MlpRegBaseline
 import random
 # import multiprocessing as mp
 from mpi4py import MPI
@@ -25,7 +27,7 @@ arg_parser = argparse.ArgumentParser(
 
 arg_parser.add_argument("--csv-file", "-f",
     help="Absolute path of the csv file",
-    default="../binding_data/BA_pMHCI.csv"
+    default="../../../../../../data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--peptide-column", "-p",
     type=int,
@@ -75,7 +77,8 @@ a = arg_parser.parse_args()
 mpi_conn = MPI.COMM_WORLD
 rank = mpi_conn.Get_rank()
 size = mpi_conn.Get_size()
-
+print(f"number of threads used by torch on {rank} is {torch.get_num_threads()}")
+print(f"number of cpu used by torch on {rank} is {os.cpu_count()}")
 datasets = []
 
 best_model = {
@@ -92,13 +95,15 @@ aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
 # functions to transform/transform back binding affinity values
-def normalize(ds,training_max,training_min):
+def normalize(ds,training_mean,training_std):
     ds = torch.log(ds)
-    return (ds-training_min)/(training_max-training_min)
+    ds = (ds-training_mean)/training_std
+    return torch.sigmoid(ds)
 
 # define the train function
-def train_f(dataloader, model, loss_fn, optimizer,device):
+def train_f(dataloader, model, loss_fn, optimizer,device,e):
     model.train()
+    # print(f"training epoch {e} on {rank}")
     for X,y in dataloader:
         # forward propagation
         X, y = X.to(device), y.to(device)
@@ -221,11 +226,11 @@ if rank == 0:
         else:
             dataset = Peptides()
 
-            training_min = torch.log(dataset.ba_values[train_indices]).max()
-            training_max = torch.log(dataset.ba_values[train_indices]).min()
+            training_mean = torch.log(dataset.ba_values[train_indices]).mean()
+            training_std = torch.log(dataset.ba_values[train_indices]).std()
             
 
-            dataset.ba_values = normalize(dataset.ba_values, training_max, training_min)
+            dataset.ba_values = normalize(dataset.ba_values, training_mean, training_std)
             train = Subset(dataset, train_indices)
             validation = Subset(dataset, validation_indices)
             test = Subset(dataset, test_indices)
@@ -237,7 +242,8 @@ if rank == 0:
             datasets.append({
                 "train_dataloader": train_dataloader,
                 "validation_dataloader": validation_dataloader,
-                "test_subset": test
+                "test_subset": test,
+                "num": d
             })
     # CREATE MULTIPROCESSING
     #-----------------------
@@ -280,7 +286,7 @@ for e in range(epochs):
         best_model["best_epoch"] = e
 
     # train the model
-    train_f(train_dataloader, model, loss_fn, optimizer, device)
+    train_f(train_dataloader, model, loss_fn, optimizer, device,e)
 print(f"Training on {rank} finished.")
 
 # save the model:
