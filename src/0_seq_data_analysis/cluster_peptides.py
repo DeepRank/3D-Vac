@@ -183,8 +183,8 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
         plt.xlabel("Distance index")
         plt.ylabel("Distance")
         plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
-        plt.savefig(f"/home/lepikhovd/elbow_{matrix}.png")
-        print(f"Elbow figure saved in /home/lepikhovd/elbow_{matrix}.png")
+        plt.savefig(f"../../reports/figures/elbow_{matrix}.png")
+        print(f"Elbow figure saved in reports/figures/elbow_{matrix}.png")
 
     t5 = time.time()
     #Produce clusters using the given threshold
