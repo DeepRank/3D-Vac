@@ -11,6 +11,7 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
 from CNN.datasets import Peptides, load_reg_data
+from CNN.datasets import sig_norm, li_norm, custom_norm #normalization methods for ba_values
 import random
 # import multiprocessing as mp
 from mpi4py import MPI
@@ -42,6 +43,11 @@ arg_parser.add_argument("--encoder", "-e",
     help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
     choices=["blosum", "sparse"],
     default="blosum"
+)
+arg_parser.add_argument("--normalize-function", "-n",
+    help="The normalizing method used for ba_values transformation. Either sigmoid or li.",
+    choices=["sigmoid", "li", "custom"],
+    default="sigmoid"
 )
 arg_parser.add_argument("--proportions", "-P",
     help="Percentages for training, test and validation.",
@@ -89,16 +95,6 @@ best_model = {
 
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
-# functions to transform/transform back binding affinity values
-def normalize(ds,training_mean,training_std):
-    ds = torch.log(ds)
-    ds = (ds-training_mean)/training_std
-    return torch.sigmoid(ds)
-
-def renorm(ds, training_mean, training_std):
-    ds = torch.logit(ds)
-    ds = ds*training_std+training_mean
-    return torch.exp(ds)
 
 # define the train function
 def train_f(dataloader, model, loss_fn, optimizer,device,e):
@@ -185,9 +181,13 @@ if rank == 0:
             training_min = torch.log(dataset.ba_values[train_indices]).min()
             training_max = torch.log(dataset.ba_values[train_indices]).max()
             
+            if a.normalize_function == "sigmoid":
+                dataset.ba_values = sig_norm(dataset.ba_values, training_mean, training_std)
+            if a.normalize_function == "li":
+                dataset.ba_values = li_norm(dataset.ba_values, training_max, training_min)
+            if a.normalize_function == "custom":
+                dataset.ba_values = custom_norm(dataset.ba_values, training_max, training_min)
 
-            # dataset.ba_values = normalize(dataset.ba_values, training_mean, training_std)
-            dataset.ba_values = normalize(dataset.ba_values, training_mean, training_std)
             train = Subset(dataset, train_indices)
             validation = Subset(dataset, validation_indices)
 
@@ -201,10 +201,11 @@ if rank == 0:
                 "test_indices": test_indices,
                 "renorm_values": {
                     "training_max": training_max,
-                    "training_min": training_min
+                    "training_min": training_min,
+                    "training_mean": training_mean,
+                    "training_std": training_std
                 },
             })
-            dataset.ba_values = renorm(dataset.ba_values, training_mean, training_std)
     # CREATE MULTIPROCESSING
     #-----------------------
 
@@ -253,6 +254,7 @@ best_model["train_losses"] = train_losses
 best_model["validation_losses"] = validation_losses
 best_model["model"] = best_model["model"].state_dict()
 best_model["test_indices"] = split["test_indices"]
+best_model["renorm_values"] = split["renorm_values"]
 
 # GATHER THE DATA
 #--------------

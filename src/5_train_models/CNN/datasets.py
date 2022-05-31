@@ -48,3 +48,28 @@ def load_reg_data(csv_file, threshold):
                 csv_peptides.append(row[2])
                 csv_ba_values.append(float(row[3]))
     return csv_peptides, csv_ba_values
+
+# functions to transform/transform back binding affinity values
+def sig_norm(ds,training_mean,training_std):
+    ds = torch.log(ds)
+    ds = (ds-training_mean)/training_std
+    return torch.sigmoid(ds)
+
+def sig_denorm(ds, training_mean, training_std):
+    ds = torch.logit(ds)
+    ds = ds*training_std+training_mean
+    return torch.exp(ds)
+
+def li_norm(ds,training_max,training_min):
+    ds = torch.log(ds)
+    return (ds-training_min)/(training_max - training_min)
+
+def li_denorm(ds, training_max, training_min):
+    ds = ds*(training_max - training_min)+training_min
+    return torch.exp(ds)
+
+def custom_norm(ds): # custom normalization
+    return ds
+
+def custom_denorm(ds):
+    return ds
