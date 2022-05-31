@@ -1,13 +1,13 @@
-import os.path
-from Bio.Align import substitution_matrices
-from matplotlib import pyplot as plt
-import scipy.cluster.hierarchy as sch
+import argparse
 import numpy as np
+import os.path
+import pickle
+import scipy.cluster.hierarchy as sch
 import time
+from Bio.Align import substitution_matrices
 from joblib import Parallel, delayed
 from math import ceil
-import argparse
-import pickle
+import pandas as pd
 
 arg_parser = argparse.ArgumentParser(description=" \
     Cluster peptides from a .csv file. \
@@ -41,9 +41,6 @@ arg_parser.add_argument("--njobs", "-n",
 )
 a = arg_parser.parse_args()
 
-with open(a.file, "r") as csv_f:
-    rows = [line.replace("\n", "").split(",") for line in csv_f]
-    peptides = [row[2] for row in rows]
 ###############################################################
 #TODO: keep peptide ID
 
@@ -215,12 +212,12 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
     print('Clusters:', t6-t5)
     return clst_dct
 
-with open(a.file, "r") as csv_f:
-    rows = [line.replace("\n", "").split(",") for line in csv_f]
-    peptides = {row[2]:float(row[3]) for row in rows}
+
+df = pd.read_csv(a.file)
+peptides = df['peptide'].values.to_list()
 
 clusters = cluster_peptides(
-    peptides = peptides.keys(),
+    peptides=peptides,
     matrix=a.matrix,
     outplot=a.make_graphs,
     elbow= a.make_graphs,
