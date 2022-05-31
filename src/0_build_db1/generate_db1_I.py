@@ -7,7 +7,11 @@ arg_parser = argparse.ArgumentParser(
     This script can be used to explore data by giving allele name and peptide length. Please provide the -d directive if you want to create a csv. This script is used to generate the DB1. \n \
     The output csv file will have extended number of columns with the ID column (position 0) and the location of generated model in DB2 as the last column \n \
     The database can be generated using https://github.com/openvax/mhcflurry/tree/master/downloads-generation/data_curated curate.py script. \
-    For a quick sight at the expected format: https://data.mendeley.com/datasets/zx3kjzc3yx/3 -> Data_S3.csv\
+    For a quick sight at the expected format: https://data.mendeley.com/datasets/zx3kjzc3yx/3 -> Data_S3.csv.\
+    The output csv will have the same columns with the ID at the beggining and the path for the DB2 as the last one.\
+    Csv file columns: allele, peptide, ba_value, equality/inequality, measurement_type, measurement_kind etc..\
+    The measurement_type depends on the measurment_kind can be qualitative (elution, binding affinity) \
+    or quantitative (binding_affinity).\
     ')
 arg_parser.add_argument(
     "--source-csv", "-f",
