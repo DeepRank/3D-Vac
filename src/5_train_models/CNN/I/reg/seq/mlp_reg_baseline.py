@@ -10,7 +10,7 @@ import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
-from CNN.datasets import Peptides
+from CNN.datasets import Peptides, load_reg_data
 import random
 # import multiprocessing as mp
 from mpi4py import MPI
@@ -82,7 +82,6 @@ best_model = {
     "validation_rate": 100,
     "model": None,
     "best_epoch": None,
-    "name": a.model_name,
     "test_data": None
 }
 
@@ -141,27 +140,19 @@ epochs = a.epochs
 # if CUDA cores available, use them and not CPU
 device = ("cpu", "cuda")[torch.cuda.is_available()]
 
-
-# sparse encoding
-
-# blosum encoding 
-
 # DATA PREPROCESSING
 #----------------------------------------------
 if rank == 0:
     print("Loading data...")
-    dataset = Peptides(a.threshold, a.csv_file, a.encoder)
+    csv_peptides, csv_ba_values = load_reg_data(a.csv_file, a.threshold)
     print("Data loaded, splitting into unique test datasets...")
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
     # -------------------------------------------
 
-    # instantiate the Peptides class and split the dataset for 10 testing unique cases
-    peptides_to_list = dataset.peptides.tolist() # used to retrieve the indices for train and validation without the current test
-    ds_l = len(peptides_to_list)
+    ds_l = len(csv_peptides)# used to retrieve the indices for train and validation without the current test
+
     test_peptides_indices = list(range(ds_l)) #this will be substracted each iteration and newly created datasets will not have redundant test sets
-    print(test_peptides_indices[-1])
-    print(test_peptides_indices[0])
     num_test_sets = int(100*test_p)
 
 
@@ -170,6 +161,7 @@ if rank == 0:
     test_per_dataset = int(test_p*ds_l)
 
     for d in range(num_test_sets):
+        dataset = Peptides(csv_peptides, csv_ba_values, a.encoder)
         test_indices = random.sample(test_peptides_indices, test_per_dataset)
 
         ds_indices = list(range(ds_l)) # create the indices range and remove the indices of test

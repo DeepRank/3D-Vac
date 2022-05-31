@@ -24,17 +24,10 @@ class Peptides(Dataset):
         blosum_aa = "".join(blosum_aa)
         return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
 
-    def __init__(self, threshold, csv_file, encoder):
+    def __init__(self, csv_peptides,csv_ba_values, encoder):
         self.aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
-        ba_threshold = threshold
-        self.csv_peptides = []
-        self.csv_ba_values = []
-        with open(csv_file) as csv_f:
-            rows = [row.replace("\n", "").split(",") for row in csv_f]
-            for row in rows:
-                if float(row[3]) <= ba_threshold:
-                    self.csv_peptides.append(row[2])
-                    self.csv_ba_values.append(float(row[3]))
+        self.csv_peptides = csv_peptides
+        self.csv_ba_values = csv_ba_values
         self.ba_values = torch.tensor(self.csv_ba_values, dtype=torch.float64)
         if encoder == "blosum":
             self.peptides = torch.tensor([self.peptide2blosum(p) for p in self.csv_peptides])
@@ -44,3 +37,14 @@ class Peptides(Dataset):
         return self.peptides[idx], self.ba_values[idx]
     def __len__(self):
         return len(self.peptides)
+
+def load_reg_data(csv_file, threshold):
+    csv_peptides = []
+    csv_ba_values = []
+    with open(csv_file) as csv_f:
+        rows = [row.replace("\n", "").split(",") for row in csv_f]
+        for row in rows:
+            if float(row[3]) <= threshold:
+                csv_peptides.append(row[2])
+                csv_ba_values.append(float(row[3]))
+    return csv_peptides, csv_ba_values
