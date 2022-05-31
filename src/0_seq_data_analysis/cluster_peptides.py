@@ -1,5 +1,4 @@
 import os.path
-#from Bio.SubsMat import MatrixInfo
 from Bio.Align import substitution_matrices
 from matplotlib import pyplot as plt
 import scipy.cluster.hierarchy as sch
@@ -126,20 +125,8 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
     """
 
     t1 = time.time()
-    # peptides = sorted(list(set(peptides)))
-
-    # batches = split_in_indexed_batches(peptides, n_jobs)
-
-    # arrays = Parallel(n_jobs=n_jobs, verbose=1)(delayed(get_dist_array)(matrix, batch, peptides) for batch in batches)
-    # arrays = [sorted(a, key=lambda x:x[0]) for a in arrays]
-
-    # score_array = []
-    # for x in arrays:
-    #     x = [y[1] for y in x]
-    #     score_array.extend(x)
 
     score_array = get_score_matrix(peptides, n_jobs, matrix)
-
 
     t2 = time.time()
 
