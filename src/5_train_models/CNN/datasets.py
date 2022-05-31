@@ -4,16 +4,16 @@ import blosum
 
 # encoding functions:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
-def peptide2onehot(self,peptide):
+def peptide2onehot(peptide):
     AA_eye = torch.eye(20, dtype=torch.float)
-    return [AA_eye[self.aminoacids.index(res)].tolist() for res in peptide]
+    return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
 
-def peptide2blosum(self,peptide):
+def peptide2blosum(peptide):
     mat = blosum.BLOSUM(62)
     blosum_t = [[]]
     blosum_aa = ["A"]
     for aa in mat.keys():
-        if aa[0] in self.aminoacids and aa[1] in self.aminoacids:
+        if aa[0] in aminoacids and aa[1] in aminoacids:
             if len(blosum_t[-1]) < 20:
                 blosum_t[-1].append(mat[aa])
             else:
@@ -47,7 +47,7 @@ class Class_Seq_Dataset(Dataset):
         else:
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
     def __getitem__(self, idx):
-        return self.peptides[idx], self.ba_values[idx]
+        return self.peptides[idx], self.labels[idx]
     def __len__(self):
         return len(self.peptides)
 
