@@ -1,13 +1,10 @@
 ```
 .
-├── generate_db1_I.py	   		-> filters the DB1 for targets
-├── cluster_mhcii_pepts_per_allele.py	-> cluster the MHCII. All the clustering scripts will soon be merged into one
-├── cluster_mhcI_peptides.py
+├── generate_db1_I.py	   		-> filters the DB1 for targets from the unprocessed MHCflurry database
 ├── cluster_peptides.py
 ├── __init__.py
 ├── README
-├── generate_db1.py			-> generates the DB1 from MHCflurry raw dataset by adding the ID column
-├── unparalleled_cluster_peptides.py	
+├── generate_db1_I.py			-> generates the DB1 from MHCflurry raw dataset by adding the ID column
 └── write_to_model_csvs.py		-> add the destination folder column to the csv for II, provides the main function for generate_db1_I
 
 0 directories, 9 files
