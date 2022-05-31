@@ -10,7 +10,7 @@ import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
-from CNN.datasets import Peptides, load_reg_data
+from CNN.datasets import Reg_Seq_Dataset, load_reg_seq_data
 from CNN.datasets import sig_norm, li_norm, custom_norm #normalization methods for ba_values
 import random
 # import multiprocessing as mp
@@ -140,7 +140,7 @@ device = ("cpu", "cuda")[torch.cuda.is_available()]
 #----------------------------------------------
 if rank == 0:
     print("Loading data...")
-    csv_peptides, csv_ba_values = load_reg_data(a.csv_file, a.threshold)
+    csv_peptides, csv_ba_values = load_reg_seq_data(a.csv_file, a.threshold)
     print("Data loaded, splitting into unique test datasets...")
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
@@ -157,7 +157,7 @@ if rank == 0:
     test_per_dataset = int(test_p*ds_l)
 
     for d in range(num_test_sets):
-        dataset = Peptides(csv_peptides, csv_ba_values, a.encoder)
+        dataset = Reg_Seq_Dataset(csv_peptides, csv_ba_values, a.encoder)
         test_indices = random.sample(test_peptides_indices, test_per_dataset)
 
         ds_indices = list(range(ds_l)) # create the indices range and remove the indices of test
