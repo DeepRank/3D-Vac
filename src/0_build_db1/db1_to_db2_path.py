@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-# Script used to add the destination column for the PANDORA wrapper.
-# For now, this file shoud be used as a script for DB1_II and a module for DB1_I
+# Script used to add the destination column for the PANDORA wrapper. When the DB1 is used to build DB2,
+# the column is used as the destination path for the folder containing the pdb structures.
+# For now, this file shoud be used as a script for DB1_II and a module for DB1_I.
 import pickle
 
 def assign_outfolder(index):
