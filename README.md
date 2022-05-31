@@ -73,12 +73,21 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 └──
 ```
 
-[comment]: # (TODO: I have added this as a start, @danill please update so that it reflects how to actually run stuff) 
 ## How to run the pipeline for the pilot dataset:
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 ```
-python src/0_seq_analysis/generate_db1_I.py --source-csv 'path-to-source.csv' --peptide-length 10
+python src/0_build_db1/generate_db1_I.py --source-csv <name-of-source.csv>
 ```
-* Inputs: MHCFlurry dataset in 'path-to-source.csv'
-* Outputs: DB1 in 'path-to-destination.csv'
+* Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
+* Outputs: DB1 in 'path-to-destination.csv'.
+* Run `python src/0_build_db1/generate_db1_I.py --help` for more details on how to filter for specific allele and peptide length.
+
+#### 0.2: Clustering the peptides based on their sequence similarity
+```
+python src/build_db1/cluster_peptides --file <name-of-source.csv> --clusters 'number-of-clusters'
+```
+* Inputs: generated db1 in `data/external/processed`.
+* Output: a .pkl file in `data/external/processed` containing the clusters.
+* Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
+* Vizualise the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.

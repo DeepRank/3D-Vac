@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# script used to add the destination column for the PANDORA wrapper
+# Script used to add the destination column for the PANDORA wrapper.
+# For now, this file shoud be used as a script for DB1_II and a module for DB1_I
 import pickle
 
 def assign_outfolder(index):

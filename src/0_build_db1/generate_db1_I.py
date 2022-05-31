@@ -4,11 +4,15 @@ from write_to_model_csvs import assign_outfolder
 # list of arguments:
 arg_parser = argparse.ArgumentParser(
     description='Build a p:MHC Binding Affinity csv file for BA only with a precise value ("=" inequallity) from MHCFlurry dataset. For NetMHCpan dataset or MHCflurry EL, use another script. \n \
-    This script can be used to explore data by giving allele name and peptide length. Please provide the -d directive if you want to create a csv. This script is used to generate the DB1.')
+    This script can be used to explore data by giving allele name and peptide length. Please provide the -d directive if you want to create a csv. This script is used to generate the DB1. \n \
+    The output csv file will have extended number of columns with the ID column (position 0) and the location of generated model in DB2 as the last column \n \
+    The database can be generated using https://github.com/openvax/mhcflurry/tree/master/downloads-generation/data_curated curate.py script. \
+    For a quick sight at the expected format: https://data.mendeley.com/datasets/zx3kjzc3yx/3 -> Data_S3.csv\
+    ')
 arg_parser.add_argument(
     "--source-csv", "-f",
-    help="Path to the DB1 if different from the default.",
-    default="../../data/external/unprocessed/"
+    help="Name of the MHCflurry dataset csv file in data/external/unprocessed if different from the default.",
+    default="UPDATE THIS AFTER PUTTING THE FILE ON SNELLIUS WITH SYMLINK!!!!!!"
 )
 arg_parser.add_argument(
     "--output-csv", "-d",
@@ -54,7 +58,7 @@ a = arg_parser.parse_args();
 # build the authorized alleles list based on arguments provided
 rows = [];
 
-with open(a.file_path) as f:
+with open(f"../../data/external/unprocessed/{a.file_path}") as f:
     line_count = 0;
     for line in f:
         row = line.replace("\n","").split(",");

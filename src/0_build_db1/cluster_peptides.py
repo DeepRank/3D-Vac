@@ -7,17 +7,19 @@ import time
 from joblib import Parallel, delayed
 from math import ceil
 import argparse
+import pickle
 
 arg_parser = argparse.ArgumentParser(description=" \
     Cluster peptides from a .csv file. \
     Calculates evolutionary distance (with a substitution matrix) within a set of peptides. \
     Uses this distance to generate a dendogram and cluster the peptides. \
     At the end of execution, dumps the clusters into clusters.pkl file. \
+    The pkl file is made of --clusters number of lists containaing {peptide,ba_value} objects. \
     ")
 arg_parser.add_argument(
     "--file","-f",
-    help="Path to the .csv file.",
-    default="/home/lepikhovd/binding_data/BA_pMHCI.csv"
+    help="Name of the DB1 in data/external/processed",
+    required=True
 )
 arg_parser.add_argument("--clusters", "-c",
     help="Maximum number of clusters. A threshold will be calculated to reach the closest number of clusters.",
@@ -28,11 +30,6 @@ arg_parser.add_argument("--matrix", "-m",
     help="Matrix to use, default is the PAM250. Other matrices can be added",
     choices=["PAM250", "PAM30"],
     default="PAM250",
-)
-arg_parser.add_argument("--save-matrix", "-s",
-    help="If set, new pickle file for the matrix distance is generated. If not set, last generated matrix is used.",
-    action="store_true",
-    default=False
 )
 arg_parser.add_argument("--make-graphs", "-e",
     help="Creates the dendogram and the elbow graph. Default no.",
@@ -145,7 +142,7 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
     t4 = time.time()
 
     #Plot dendrogram
-    if outplot:
+    if a.make_graphs:
         plt.figure(figsize=(60, 20))
         plt.title('Peptides Hierarchical Clusterization')
         plt.xlabel('Peptides')
@@ -175,7 +172,7 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
         elif type(outplot) == bool:
             plt.show()
 
-    if elbow:
+    if a.make_graphs:
         last = result[:,2]
         Y = last[::-1]
         idxs = np.arange(1, len(last)+1)
@@ -184,7 +181,7 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
         plt.ylabel("Distance")
         plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
         plt.savefig(f"../../reports/figures/elbow_{matrix}.png")
-        print(f"Elbow figure saved in reports/figures/elbow_{matrix}.png")
+        print(f"Elbow figure saved in reports/figures/{a.file}_elbow_{matrix}.png")
 
     t5 = time.time()
     #Produce clusters using the given threshold
@@ -222,10 +219,13 @@ with open(a.file, "r") as csv_f:
     rows = [line.replace("\n", "").split(",") for line in csv_f]
     peptides = {row[2]:float(row[3]) for row in rows}
 
-cluster_peptides(
+clusters = cluster_peptides(
     peptides = peptides.keys(),
     matrix=a.matrix,
     outplot=a.make_graphs,
     elbow= a.make_graphs,
     n_jobs = a.njobs
 )
+
+pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl"))
+
