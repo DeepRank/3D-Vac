@@ -72,3 +72,13 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │       └── visualize.py
 └──
 ```
+
+[comment]: # (TODO: I have added this as a start, @danill please update so that it reflects how to actually run stuff) 
+## How to run the pipeline for the pilot dataset:
+### Step 0: Preparing the binding affinity targets
+#### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
+```
+python src/0_seq_analysis/generate_db1_I.py --source-csv 'path-to-source.csv' --peptide-length 10
+```
+* Inputs: MHCFlurry dataset in 'path-to-source.csv'
+* Outputs: DB1 in 'path-to-destination.csv'
