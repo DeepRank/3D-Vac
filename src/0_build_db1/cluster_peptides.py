@@ -176,7 +176,7 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     mtf_lst = []
     for i in set(fc):
         clst_dct[i-1] = []
-        mtf_lst.append([])
+        mtf_lst.append(['clst_%s' % (i-1)])
 
 
     for clst in clst_dct:
