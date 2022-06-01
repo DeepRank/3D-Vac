@@ -8,6 +8,7 @@ from Bio.Align import substitution_matrices
 from joblib import Parallel, delayed
 from math import ceil
 import pandas as pd
+import matplotlib.pyplot as plt
 
 arg_parser = argparse.ArgumentParser(description=" \
     Cluster peptides from a .csv file. \
@@ -37,7 +38,9 @@ arg_parser.add_argument("--make-graphs", "-e",
     default=False,
 )
 arg_parser.add_argument("--njobs", "-n",
-    help="Defines the number of jobs to launch for the matrix generation. Default 1"
+    help="Defines the number of jobs to launch for the matrix generation. Default 1",
+    default=1,
+    type=int
 )
 a = arg_parser.parse_args()
 
@@ -95,8 +98,8 @@ def get_score_matrix(peptides, n_jobs, matrix):
 
     return score_array
 
-def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
-                     matrix='PAM30', outplot = None, n_jobs=1,):
+def cluster_peptides(peptides, n_clusters, frag_len = 9,
+                     matrix='PAM30', n_jobs=1,):
     """
     Calculates evolutionary distance (with a substitution matrix) within a set of peptides.
     Uses this distances to generate a dendrogram and cluster the pepties.
@@ -152,22 +155,7 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
             labels = peptides
         )
 
-        for x in range(1, threshold):
-            fc = sch.fcluster(result, x, criterion='distance')
-            ordered_clusters = sorted(zip(fc, peptides))
-            y = max(fc)
-            #X.append(x)
-            #Y.append(y)
-            #ratios.append(y/x)
-
-        #plt.plot(X, Y, 'ro', ratios, 'b-')
-        plt.axhline(threshold, color='r')
-        #plt.xlim(5, 30)
-        #plt.ylim(0, 400)
-        if type(outplot) == str:
-            plt.savefig(outplot, dpi=200)
-        elif type(outplot) == bool:
-            plt.show()
+        plt.savefig(f"../../reports/figures/{a.file}_dendogram_{matrix}.png", dpi=200)
 
     if a.make_graphs:
         last = result[:,2]
@@ -182,7 +170,7 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
 
     t5 = time.time()
     #Produce clusters using the given threshold
-    fc = sch.fcluster(result, threshold, criterion='distance') # the number inside specifies the cutoff distance for dividing clusers
+    fc = sch.fcluster(result, n_clusters, criterion='maxclust') # the number inside specifies the cutoff distance for dividing clusers
     ordered_clusters = sorted(zip(fc, peptides))
     clst_dct = {}
     mtf_lst = []
@@ -213,16 +201,14 @@ def cluster_peptides(peptides,elbow,save_matrix, threshold, frag_len = 9,
     return clst_dct
 
 
-df = pd.read_csv(a.file)
-peptides = df['peptide'].values.to_list()
+df = pd.read_csv(f"../../data/external/processed/{a.file}", header=None)
+peptides = sorted(list(set(df.loc[:,2].values.tolist())))
 
 clusters = cluster_peptides(
     peptides=peptides,
     matrix=a.matrix,
-    outplot=a.make_graphs,
-    elbow= a.make_graphs,
-    n_jobs = a.njobs
+    n_jobs = a.njobs,
+    n_clusters = a.clusters
 )
 
-pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl"))
-
+pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
