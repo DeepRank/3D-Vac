@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import blosum
+import pickle
 
 # encoding functions:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
@@ -38,6 +39,25 @@ class Reg_Seq_Dataset(Dataset):
     def __len__(self):
         return len(self.peptides)
 
+class Clust_Class_Seq_Dataset(Dataset):
+    def __init__(self, first_cluster, last_cluster, clusters, encoder):
+        self.peptides = []
+        self.labels = []
+        for i in range(first_cluster, last_cluster+1):
+            for peptide,label in clusters[str(i)]:
+                if encoder == "sparse": 
+                    peptide = peptide2onehot(peptide)
+                if encoder == "blosum":
+                    peptide = peptide2blosum(peptide)
+                self.peptides.extend(peptide)
+                self.labels.extend(label)
+        self.labels = torch.tensor(self.labels).long()
+        self.peptides = torch.stack(self.peptides)
+        def __getitem__(self,idx):
+            return self.peptides[idx], self.labels[idx]
+        def __len__(self,idx):
+            return len(self.peptides)
+
 class Class_Seq_Dataset(Dataset):
     def __init__(self, csv_peptides,labels, encoder):
         self.csv_peptides = csv_peptides
@@ -51,6 +71,18 @@ class Class_Seq_Dataset(Dataset):
     def __len__(self):
         return len(self.peptides)
 
+def load_clust_class_seq_data(cluster_file, csv_path):
+    csv_rows = [row.split(",") for row in open(csv_path)]
+    pkl_clusters = pickle.load(open(cluster_file))
+    clusters = {}
+    for c_idx, c_peptides in enumerate(pkl_clusters.values()):
+        cluster = []
+        for peptide in c_peptides:
+            ba_values = torch.tensor([float(row[3]) for row in csv_rows if row[2] == peptide])
+            label = (0.,1.)[ba_values.mean() <= 500]
+            cluster.append((peptide,label))
+        clusters[str(c_idx)] = cluster
+    return clusters
 
 def load_reg_seq_data(csv_file, threshold):
     csv_peptides = []

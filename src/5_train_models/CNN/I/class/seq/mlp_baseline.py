@@ -9,7 +9,8 @@ import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
-from CNN.datasets import Class_Seq_Dataset, load_class_seq_data
+from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
+from CNN.datasets import Clust_Class_Seq_Dataset, load_clust_class_seq_data # class and function to generate clustered dataset
 from CNN.datasets import sig_norm, li_norm, custom_norm #normalization methods for ba_values
 import random
 # import multiprocessing as mp
@@ -25,18 +26,22 @@ arg_parser = argparse.ArgumentParser(
 )
 
 arg_parser.add_argument("--csv-file", "-f",
-    help="Absolute path of the csv file",
+    help="Absolute path of the csv file.",
     default="../../../../../../data/binding_data/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--peptide-column", "-p",
     type=int,
-    help="Column index of peptide's sequence in the csv file",
+    help="Column index of peptide's sequence in the csv file.",
     default=2
 )
 arg_parser.add_argument("--threshold", "-t",
-    help="Binding affinity threshold to define binders, default 500",
+    help="Binding affinity threshold to define binders, default 500.",
     type=float,
     default=500
+)
+arg_parser.add_argument("--cluster", "-c",
+    help="Name of the cluster .pkl file in data/external/processed.",
+    default=False,
 )
 arg_parser.add_argument("--encoder", "-e",
     help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
@@ -133,63 +138,71 @@ device = ("cpu", "cuda")[torch.cuda.is_available()]
 # DATA PREPROCESSING
 #----------------------------------------------
 if rank == 0:
-    print("Loading data...")
-    csv_peptides, csv_labels = load_class_seq_data(a.csv_file, a.threshold)
-    print("Data loaded, splitting into unique test datasets...")
+    if a.cluster == False:
+        print("Loading data...")
+        csv_peptides, csv_labels = load_class_seq_data(a.csv_file, a.threshold)
+        print("Data loaded, splitting into unique test datasets...")
 
-    # SEPARATE TRAIN VALIDATION AND TEST DATASETS
-    # -------------------------------------------
+        # SEPARATE TRAIN VALIDATION AND TEST DATASETS
+        # -------------------------------------------
 
-    ds_l = len(csv_peptides)# used to retrieve the indices for train and validation without the current test
+        ds_l = len(csv_peptides)# used to retrieve the indices for train and validation without the current test
 
-    test_peptides_indices = list(range(ds_l)) #this will be substracted each iteration and newly created datasets will not have redundant test sets
-    num_test_sets = int(100*test_p)
+        test_peptides_indices = list(range(ds_l)) #this will be substracted each iteration and newly created datasets will not have redundant test sets
+        num_test_sets = int(100*test_p)
 
-    train_per_dataset = int(train_p*ds_l)
-    validation_per_dataset = int(validation_p*ds_l)
-    test_per_dataset = int(test_p*ds_l)
+        train_per_dataset = int(train_p*ds_l)
+        validation_per_dataset = int(validation_p*ds_l)
+        test_per_dataset = int(test_p*ds_l)
 
-    for d in range(num_test_sets):
-        dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
-        test_indices = random.sample(test_peptides_indices, test_per_dataset)
+        for d in range(num_test_sets):
+            dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
+            test_indices = random.sample(test_peptides_indices, test_per_dataset)
 
-        ds_indices = list(range(ds_l)) # create the indices range and remove the indices of test
-        for i in sorted(test_indices, reverse = True):
-            del ds_indices[ds_indices.index(i)] # remove the test indice so it is not used for training and val
-            del test_peptides_indices[test_peptides_indices.index(i)] # remove it from the test peptide copy to avoid test redundancies in following datasets
+            ds_indices = list(range(ds_l)) # create the indices range and remove the indices of test
+            for i in sorted(test_indices, reverse = True):
+                del ds_indices[ds_indices.index(i)] # remove the test indice so it is not used for training and val
+                del test_peptides_indices[test_peptides_indices.index(i)] # remove it from the test peptide copy to avoid test redundancies in following datasets
 
-        # create the train and validation indices without the test indices in it:
-        train_indices = random.sample(ds_indices, train_per_dataset)
-        for i in sorted(train_indices, reverse = True):
-            del ds_indices[ds_indices.index(i)] # remove the train indices for no redundancies with validation
-        validation_indices = random.sample(ds_indices, validation_per_dataset)
-        
-        # check for redundancies:
-        if len([train for train in train_indices if train in validation_indices]) > 0:
-            print("Something went wrong, there is redundancies in the train and validation dataset")
-        else:
-            train = Subset(dataset, train_indices)
-            validation = Subset(dataset, validation_indices)
+            # create the train and validation indices without the test indices in it:
+            train_indices = random.sample(ds_indices, train_per_dataset)
+            for i in sorted(train_indices, reverse = True):
+                del ds_indices[ds_indices.index(i)] # remove the train indices for no redundancies with validation
+            validation_indices = random.sample(ds_indices, validation_per_dataset)
+            
+            # check for redundancies:
+            if len([train for train in train_indices if train in validation_indices]) > 0:
+                print("Something went wrong, there is redundancies in the train and validation dataset")
+            else:
+                train = Subset(dataset, train_indices)
+                validation = Subset(dataset, validation_indices)
 
-            # create the dataloaders iterators:
-            train_dataloader = DataLoader(train, batch_size=batch)
-            validation_dataloader = DataLoader(validation, batch_size=batch)
+                # create the dataloaders iterators:
+                train_dataloader = DataLoader(train, batch_size=batch)
+                validation_dataloader = DataLoader(validation, batch_size=batch)
 
-            datasets.append({
-                "train_dataloader": copy.deepcopy(train_dataloader),
-                "validation_dataloader": copy.deepcopy(validation_dataloader),
-                "test_indices": test_indices,
-            })
-    # CREATE MULTIPROCESSING
-    #-----------------------
+                datasets.append({
+                    "train_dataloader": copy.deepcopy(train_dataloader),
+                    "validation_dataloader": copy.deepcopy(validation_dataloader),
+                    "test_indices": test_indices,
+                })
+    else: # use clusters 
+        processed_path ="../../../../../../data/external/processed/"
+        clusters = load_clust_class_seq_data(processed_path + a.cluster, processed_path + a.csv_file) # the CSV file here is needed for the mapping of BA values to cluster's peptide to define labels
+        for i in clusters:
+            print(i)
 
-# split = mpi_conn.bcast(datasets)[rank]
-split = mpi_conn.scatter(datasets)
+# CREATE MULTIPROCESSING
+#-----------------------
+split = mpi_conn.scatter(datasets)  # master sending tasks
+
 if rank==0:
     print(f"{num_test_sets} datasets created, models dispatched, starting training...")
-# that's the whole multiprocessing code for slaves
+
+# slaves receiving work
 train_dataloader = split["train_dataloader"]
 validation_dataloader = split["validation_dataloader"]
+
 # TRAIN THE MODEL
 #----------------
 
@@ -229,7 +242,7 @@ best_model["test_indices"] = split["test_indices"]
 
 # GATHER THE DATA
 #--------------
-models = mpi_conn.gather(best_model, root=0)
+models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
 if rank == 0:
     model_path = f"trained_models/mlp_class_baseline_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}.pt"
