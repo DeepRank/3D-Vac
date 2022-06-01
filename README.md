@@ -77,7 +77,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 ```
-python src/0_build_db1/generate_db1_I.py --source-csv <name-of-source.csv>
+python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --output-csv BA_pMHCI.csv
 ```
 * Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
 * Outputs: DB1 in 'path-to-destination.csv'.
@@ -85,7 +85,7 @@ python src/0_build_db1/generate_db1_I.py --source-csv <name-of-source.csv>
 
 #### 0.2: Clustering the peptides based on their sequence similarity
 ```
-python src/build_db1/cluster_peptides --file <name-of-source.csv> --clusters 'number-of-clusters'
+python src/build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 ```
 * Inputs: generated db1 in `data/external/processed`.
 * Output: a .pkl file in `data/external/processed` containing the clusters.

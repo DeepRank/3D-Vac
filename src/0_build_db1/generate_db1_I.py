@@ -1,5 +1,5 @@
 import argparse
-from write_to_model_csvs import assign_outfolder
+from db1_to_db2_path import assign_outfolder
 
 # list of arguments:
 arg_parser = argparse.ArgumentParser(
@@ -51,7 +51,7 @@ arg_parser.add_argument(
     help="Index of the column for peptides, if different from default (2)",
     type=int
 )
-arg_parser.add_argument("--prefix", "-p",
+arg_parser.add_argument("--prefix", "-i",
     help="The prefix for the ID",
     choices=["EL", "BA"],
     required=True
