@@ -1,6 +1,8 @@
 # 3D-Vac
 Repository of the eScience Center and RadbouduMC "Personalized cancer vaccine design through 3D modelling boosted geometric learning" collaboartive project (OEC 2021).
 
+Note that the 3D pMHC models (which are input for both deeprank and deeprank-gnn-2) have been generated using [PANDORA](https://github.com/X-lab-3D/PANDORA).
+
 ## Repository structure
 
 Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/#starting-a-new-project) the following is the agreed directory structure:
@@ -45,8 +47,9 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │
 ├── .gitignore
 │
-├── src                 <- Source code for use in this project.
-│   ├── __init__.py     <- Makes src a Python module
+├──src                 <- Source code for use in this project.
+│   |   
+|   ├── __init__.py     <- Makes src a Python module
 │   │
 │   ├── data            <- Scripts to download or generate data
 │   │   ├── make_dataset.py
@@ -61,6 +64,8 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │   │   ├── predict_model.py
 │   │   ├── train_model.py
 │   │   └── utils.py
+|   |
+|   ├── pilot_study     <- Structure available in the README of the folder
 │   │
 │   ├── tools
 │   │   └── other_utils.py
@@ -70,8 +75,25 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 └──
 ```
 
-## Workflow
-Follow these steps to replicate the work
+## How to run the pipeline for the pilot dataset:
+### Step 0: Preparing the binding affinity targets
+#### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
+```
+python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --output-csv BA_pMHCI.csv
+```
+* Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
+* Outputs: DB1 in 'path-to-destination.csv'.
+* Run `python src/0_build_db1/generate_db1_I.py --help` for more details on how to filter for specific allele and peptide length.
+
+#### 0.2: Clustering the peptides based on their sequence similarity
+```
+python src/build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
+```
+* Inputs: generated db1 in `data/external/processed`.
+* Output: a .pkl file in `data/external/processed` containing the clusters.
+* Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
+* Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
