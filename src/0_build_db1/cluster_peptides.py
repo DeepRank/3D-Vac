@@ -201,8 +201,11 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     return clst_dct
 
 
-df = pd.read_csv(f"../../data/external/processed/{a.file}", header=None)
-peptides = sorted(list(set(df.loc[:,2].values.tolist())))
+df = pd.read_csv(f"../../data/external/processed/{a.file}", header=None) 
+
+# peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
+# used as labels, different length between peptides and the actual number of clusters (unique sequences) lead to an error.
+peptides = sorted(list(set(df.loc[:,2].values.tolist()))) 
 
 clusters = cluster_peptides(
     peptides=peptides,
