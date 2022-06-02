@@ -3,8 +3,8 @@
 # in deeprank-gnn-2. It takes models' folder obtained using Pandora (.pdb files) as input
 # and returns the .hdf5 files containing features and target graphs of the pMHC complexes.
 
+from deeprank_gnn.models.query import ProteinProteinInterfaceResidueQuery,  ProteinProteinInterfaceAtomicQuery
 from deeprank_gnn.feature import bsa, pssm, amino_acid, biopython, atomic_contact, sasa
-from deeprank_gnn.models.query import ProteinProteinInterfaceResidueQuery
 from deeprank_gnn.preprocess import PreProcessor
 import glob
 import time
@@ -40,8 +40,6 @@ def getPilotTargets(pdb_list, pilot_data_csv='BA_pMHCI.csv'):
 	return pdb_targets
 
 def makeHdf5(pilot_data_csv, pdb_models_folder, outputFolder, feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]):
-	# init the preprocessor
-	preprocessor = PreProcessor(feature_modules, "%s/train-data" % outputFolder)
 	# Retrieve the pdb models with the highest score and their PSSMs
 	pdbs = getBestScorePdbs(pdb_models_folder)
 	pssmM, pssmP = getPSSMs(pdbs)
@@ -52,15 +50,13 @@ def makeHdf5(pilot_data_csv, pdb_models_folder, outputFolder, feature_modules = 
 	except:pass
 	print(pdbs)
 	# Add all the pdbs to the preprocessor
-	_ = [preprocessor.add_query(ProteinProteinInterfaceResidueQuery(pdb_path='%s' % pdb, 
+	queries = [ProteinProteinInterfaceResidueQuery(pdb_path='%s' % pdb, 
 			chain_id1="M", chain_id2="P", targets = {'labels':pdb_targets[it]},
-			pssm_paths={"M": pssmM[it], "P": pssmP[it]})) 		
+			pssm_paths={"M": pssmM[it], "P": pssmP[it]}) 		
 			for it, pdb in enumerate(pdbs)]
-
-	# start and save the features as hdf5
-	preprocessor.start()  # start builfing graphs from the queries
-	preprocessor.wait()  # wait for all jobs to complete
-	print(preprocessor.output_paths)  # print the paths of the generated files
+	output_paths = preprocess(feature_modules, queries, "%s/train-data" % outputFolder)
+	# print the paths of the generated files
+	print(output_paths)
 
 if __name__ == "__main__":
 	makeHdf5('BA_pMHCI.csv', 'pdb_models_folder_example', 'output_folder_example')
