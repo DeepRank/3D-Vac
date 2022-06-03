@@ -38,9 +38,14 @@ arg_parser.add_argument("--make-graphs", "-e",
     default=False,
 )
 arg_parser.add_argument("--njobs", "-n",
-    help="Defines the number of jobs to launch for the matrix generation. Default 1",
+    help="Defines the number of jobs to launch for the matrix generation. Default 1.",
     default=1,
     type=int
+)
+arg_parser.add_argument("--update-csv", "-u",
+    help="This option allows to either add/update the `cluster` column in db1.",
+    default=False,
+    action="store_true"
 )
 a = arg_parser.parse_args()
 
@@ -200,12 +205,12 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     print('Clusters:', t6-t5)
     return clst_dct
 
-
-df = pd.read_csv(f"../../data/external/processed/{a.file}", header=None) 
+csv_path = f"../../data/external/processed/{a.file}"
+df = pd.read_csv(csv_path) 
 
 # peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
 # used as labels, different length between peptides and the actual number of clusters (unique sequences) lead to an error.
-peptides = sorted(list(set(df.loc[:,2].values.tolist()))) 
+peptides = sorted(list(set(df["peptide"].tolist()))) 
 
 clusters = cluster_peptides(
     peptides=peptides,
@@ -213,5 +218,11 @@ clusters = cluster_peptides(
     n_jobs = a.njobs,
     n_clusters = a.clusters
 )
+
+if a.update_csv: 
+    for idx,cluster in enumerate(clusters.keys()):
+        for peptide in clusters[cluster]:
+            df.loc[df["peptide"] == peptide, "cluster"] = idx
+    df.to_csv(csv_path, index=False)
 
 pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
