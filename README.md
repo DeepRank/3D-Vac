@@ -79,7 +79,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 ```
-python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --output-csv BA_pMHCI.csv
+python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --P 9 --allele HLA-A*02:01 --output-csv BA_pMHCI.csv
 ```
 * Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
 * Outputs: DB1 in 'path-to-destination.csv'.
