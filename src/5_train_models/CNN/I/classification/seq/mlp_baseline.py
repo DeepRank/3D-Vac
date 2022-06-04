@@ -16,7 +16,7 @@ import random
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used to keep class distribution identical in all test/train sets
 from sklearn.model_selection import KFold # used for normal cross validation
-import matplotlib.pyplot as plt
+from sklearn.model_selection import GroupKFold
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -42,18 +42,14 @@ arg_parser.add_argument("--threshold", "-t",
     default=500
 )
 arg_parser.add_argument("--cluster", "-c",
-    help="Used for clustered data classification. Name of the cluster .pkl file in data/external/processed.",
+    help="By providing this argument, will perform a scikit GroupKFold crossvalidation grouped by cluster, shuffled KFold otherwise.",
     default=False,
+    action="store_true"
 )
 arg_parser.add_argument("--encoder", "-e",
     help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
     choices=["blosum", "sparse"],
     default="blosum"
-)
-arg_parser.add_argument("--proportions", "-P",
-    help="Percentages for training, test and validation.",
-    nargs="+",
-    default=["70", "20", "10"],
 )
 arg_parser.add_argument("--neurons", "-N",
     help="Number of neurons per layer. Default 1000.",
@@ -124,11 +120,6 @@ def evaluate(dataloader, model):
             pred_vals = torch.cat((pred_vals, pred), 0)
     return y_vals, pred_vals
 
-# proportions
-train_p = int(a.proportions[0])/100
-validation_p = int(a.proportions[1])/100
-test_p = int(a.proportions[2])/100
-
 # hyperparamaters (all defined as arguments)
 neurons_per_layer = a.neurons
 batch = a.batch
@@ -140,11 +131,16 @@ device = ("cpu", "cuda")[torch.cuda.is_available()]
 # DATA PREPROCESSING
 #----------------------------------------------
 if rank == 0:
+    print("Loading data...")
+    csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
+    csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold, group=True)
+    dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
+    print("Data loaded, splitting into unique test datasets...")
+
+    # SEPARATE TRAIN VALIDATION AND TEST DATASETS
+    # -------------------------------------------
     if a.cluster == False:
-        print("Loading data...")
-        csv_peptides, csv_labels = load_class_seq_data(path.abspath(f"{data_path}external/processed/{a.csv_file}"), a.threshold)
         kfold = KFold(n_splits=10)
-        dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
         datasets = []
         for train_idx, test_idx in kfold.split(dataset.peptides):
             train_idx = train_idx.tolist()
@@ -163,10 +159,26 @@ if rank == 0:
                 "validation_dataloader": validation_dataloader,
                 "test_indices": test_idx
             })
-        print("Data loaded, splitting into unique test datasets...")
+    
+    else:
+        kfold = GroupKFold(n_splits=10)       
+        for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
+            train_idx = train_idx.tolist()
+            validation_indices = random.sample(train_idx, int(0.1*len(train_idx)))
+            # remove redundancies between train and validation:
+            for i in sorted(validation_indices, reverse=True):
+                del train_idx[train_idx.index(i)]
 
-        # SEPARATE TRAIN VALIDATION AND TEST DATASETS
-        # -------------------------------------------
+            train_subset = Subset(dataset, train_idx) 
+            validation_subset = Subset(dataset, validation_indices) 
+            train_dataloader = DataLoader(train_subset, batch_size=batch)
+            validation_dataloader = DataLoader(validation_subset, batch_size=batch)
+
+            datasets.append({
+                "train_dataloader": train_dataloader,
+                "validation_dataloader": validation_dataloader,
+                "test_indices": test_idx
+            })
 
 
 # CREATE MULTIPROCESSING
