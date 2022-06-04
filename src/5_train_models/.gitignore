@@ -1,3 +1,3 @@
 # trained models:
-CNN/I/class/seq/trained_models/
-CNN/I/reg/seq/trained_models/
+CNN/I/classification/seq/trained_models/
+CNN/I/regression/seq/trained_models/
