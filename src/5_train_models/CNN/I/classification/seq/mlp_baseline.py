@@ -14,7 +14,6 @@ from CNN.I.classification.seq import data_path # path to the data folder relativ
 import random
 # import multiprocessing as mp
 from mpi4py import MPI
-from sklearn.model_selection import StratifiedKFold # used to keep class distribution identical in all test/train sets
 from sklearn.model_selection import KFold # used for normal cross validation
 from sklearn.model_selection import GroupKFold
 
@@ -140,6 +139,7 @@ if rank == 0:
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
     # -------------------------------------------
     if a.cluster == False:
+        print("Splitting into shuffled datasets..")
         kfold = KFold(n_splits=10)
         datasets = []
         for train_idx, test_idx in kfold.split(dataset.peptides):
@@ -161,6 +161,7 @@ if rank == 0:
             })
     
     else:
+        print("Splitting into clustered datasets")
         kfold = GroupKFold(n_splits=10)       
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
             train_idx = train_idx.tolist()
