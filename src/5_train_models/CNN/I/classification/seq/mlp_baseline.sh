@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH -p thin
 #SBATCH --nodes 1
 #SBATCH --ntasks 10
 #SBATCH --cpus-per-task 10
