@@ -15,7 +15,7 @@ import random
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import KFold # used for normal cross validation
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import LeaveOneGroupOut
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -162,7 +162,7 @@ if rank == 0:
     
     else:
         print("Splitting into clustered datasets")
-        kfold = GroupKFold(n_splits=10)       
+        kfold = LeaveOneGroupOut()       
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
             train_idx = train_idx.tolist()
             validation_indices = random.sample(train_idx, int(0.1*len(train_idx)))
