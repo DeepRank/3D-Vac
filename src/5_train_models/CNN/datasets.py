@@ -64,21 +64,20 @@ def load_reg_seq_data(csv_file, threshold):
                 csv_ba_values.append(float(row[3]))
     return csv_peptides, csv_ba_values
 
-def load_class_seq_data(csv_file, threshold, group=False): # if cluster_file is set, performs a clustered data loading
+def load_class_seq_data(csv_file, threshold): # if cluster_file is set, performs a clustered data loading
     csv_peptides = []
     labels = []
-    groups = [] 
     df = pd.read_csv(csv_file)
 
     csv_peptides = df["peptide"].tolist()
 
     # binder or non binder if the mean value of redundant peptides less than the threshold:
-    labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
+    labels = [(0.,1.,)[value < threshold] for value in df["measurement_value"]]
+    # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
 
-    if group: # peptides grouped by clusters for the clustered classification
-        groups = df["cluster"].tolist() # used for LeaveOneGroupOut sklearn function when doing the clustered classification
-        return csv_peptides, labels, groups
-    return csv_peptides, labels
+    # peptides grouped by clusters for the clustered classification
+    groups = df["cluster"].tolist() # used for LeaveOneGroupOut sklearn function when doing the clustered classification
+    return csv_peptides, labels, groups
 
 # functions to transform/transform back binding affinity values
 def sig_norm(ds,training_mean,training_std):

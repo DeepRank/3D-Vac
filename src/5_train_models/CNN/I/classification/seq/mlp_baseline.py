@@ -132,7 +132,7 @@ device = ("cpu", "cuda")[torch.cuda.is_available()]
 if rank == 0:
     print("Loading data...")
     csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
-    csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold, group=True)
+    csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold)
     dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
     print("Data loaded, splitting into unique test datasets...")
 
@@ -140,7 +140,7 @@ if rank == 0:
     # -------------------------------------------
     if a.cluster == False:
         print("Splitting into shuffled datasets..")
-        kfold = KFold(n_splits=10)
+        kfold = KFold(n_splits=10, shuffle=True)
         datasets = []
         for train_idx, test_idx in kfold.split(dataset.peptides):
             train_idx = train_idx.tolist()
