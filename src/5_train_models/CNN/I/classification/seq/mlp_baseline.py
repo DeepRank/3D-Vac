@@ -41,7 +41,7 @@ arg_parser.add_argument("--threshold", "-t",
     default=500
 )
 arg_parser.add_argument("--cluster", "-c",
-    help="By providing this argument, will perform a scikit GroupKFold crossvalidation grouped by cluster, shuffled KFold otherwise.",
+    help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
     default=False,
     action="store_true"
 )
