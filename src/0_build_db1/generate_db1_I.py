@@ -1,4 +1,5 @@
 import argparse
+import pandas as pd
 from db1_to_db2_path import assign_outfolder
 
 # list of arguments:
@@ -16,24 +17,19 @@ arg_parser = argparse.ArgumentParser(
 arg_parser.add_argument(
     "--source-csv", "-f",
     help="Name of the MHCflurry dataset csv file in data/external/unprocessed if different from the default.",
-    default="UPDATE THIS AFTER PUTTING THE FILE ON SNELLIUS WITH SYMLINK!!!!!!"
+    default="curated_training_data.no_additional_ms.csv"
 )
 arg_parser.add_argument(
     "--output-csv", "-d",
-    help="Name of destination csv with filtered entries. Will be saved in data/external/processed",
-    required=True
+    help="Name of destination csv with filtered entries. If provided, will be saved in data/external/processed. \
+    Otherwise this script can be used to visualize the applied filters.",
+    default = None
 )
 
 arg_parser.add_argument(
     "--peptide-length", "-P",
     help="Length of peptides.",
     default=0,
-    type=int
-)
-arg_parser.add_argument(
-    "--allele-column", "-a",
-    default=1,
-    help="Index of the column for alleles, if different from default (1)",
     type=int
 )
 arg_parser.add_argument(
@@ -44,12 +40,6 @@ arg_parser.add_argument(
         The allele name can be resolved up the the last position (HLA-A*02:01) or only for a specie (HLA). \n \
         If no allele is provided, every alleles will be returned.",
     nargs="+",
-)
-arg_parser.add_argument(
-    "--peptide-column", "-p",
-    default=2,
-    help="Index of the column for peptides, if different from default (2)",
-    type=int
 )
 arg_parser.add_argument("--prefix", "-i",
     help="The prefix for the ID",
@@ -62,44 +52,34 @@ a = arg_parser.parse_args();
 # build the authorized alleles list based on arguments provided
 rows = [];
 
-with open(f"../../data/external/unprocessed/{a.file_path}") as f:
-    line_count = 0;
-    for line in f:
-        row = line.replace("\n","").split(",");
-        if line_count == 0: # add the ID header and the outdir column
-            row.insert(0, "ID")
-            row.append("outdir")
-            print(row)
-        else:
-            id = a.prefix +"_"+str(line_count);
-            row.insert(0, id);
-            out_folder = f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(line_count)}"
-            row.append(out_folder)
-        line_count+=1
-        rows.append(row)
+input_csv_df = pd.read_csv(f"../../data/external/unprocessed/{a.source_csv}")
+ids = list(range(len(input_csv_df)))
+input_csv_df["ID"] = [f"{a.prefix}_{id+1}" for id in ids] # give an ID to each entry
+# PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
+input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
-for ln,row in enumerate(rows):
-    if ln == 0: ln+=1;continue;
-    allele_id = row[a.allele_column];
-    peptide = row[a.peptide_column];
-    value = int(float(row[3]))
-    # toe = "affinity"
-    # if value > 1 and toe == row[6]:
-    if any(allele in allele_id for allele in a.allele) or a.allele == []:
-        if len(peptide) == a.peptide_length:
-            rows.append(row);
-        elif a.peptide_length == 0:
-            rows.append(row);
-    ln+=1
-## get the unique alleles of each human and all type of alleles:
-alleles = set([row[1] for row in rows]);
-print(f"unique alleles: {alleles}")
-print(f"number of rows: {len(rows)}")
+# filter only discrete and quantitative measurements. This filter is applied for pilot study 
+# as a pre-filder (before filtering alleles and peptide length):
+input_csv_df = input_csv_df.query("measurement_inequality == '=' & measurement_type == 'quantitative' & \
+    measurement_kind == 'affinity' & measurement_value >= 2")
 
-# create or update the csv file
-if (a.destination_path):
-    with open(a.destination_path, "w") as file:
-        # ln = len([row for row in file])
-        to_write = "\n".join([",".join(x) for x in rows])
-        file.write(to_write)
-    print(f"human csv file created, number of rows: {len(rows)}");
+# apply the allele and length of peptide filter:
+output_csv_df = input_csv_df
+if len(a.allele) > 0:
+    allele_mask = [ # boolean mask to filter the df for target alleles 
+        any(allele_filter in allele_id for allele_filter in a.allele) # return true if one of the a.allele string is in the allele_id string
+        for allele_id in input_csv_df["allele"].tolist() # convert the allele of the df into a list
+    ]
+    output_csv_df = input_csv_df[allele_mask] # filter for the rows which have the specified alleles
+
+if a.peptide_length > 0:
+    # simple mask to filter rows which have the desired peptide length:
+    peptide_mask = [len(peptide) == a.peptide_length for peptide in output_csv_df["peptide"].tolist()]
+    output_csv_df = output_csv_df[peptide_mask]
+
+#save the csv:
+if a.output_csv:
+    output_csv_df.to_csv(f"../../data/external/processed/{a.output_csv}", index=False)
+    print(f"file {a.output_csv} with {len(output_csv_df)} entries saved in data/external/processed/")
+else:
+    print(output_csv_df)
