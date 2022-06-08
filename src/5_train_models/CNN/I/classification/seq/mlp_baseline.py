@@ -47,7 +47,7 @@ arg_parser.add_argument("--cluster", "-c",
 )
 arg_parser.add_argument("--encoder", "-e",
     help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
-    choices=["blosum", "sparse"],
+    choices=["blosum", "sparse", "mixed"],
     default="blosum"
 )
 arg_parser.add_argument("--neurons", "-N",
@@ -187,7 +187,7 @@ if rank == 0:
 split = mpi_conn.scatter(datasets)  # master sending tasks
 
 if rank==0:
-    print(f"{kfold.get_n_splits()} datasets created, models dispatched, starting training...")
+    print(f"10 datasets created, models dispatched, starting training...")
 
 # slaves receiving work
 train_dataloader = split["train_dataloader"]
