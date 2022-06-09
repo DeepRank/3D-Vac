@@ -9,8 +9,9 @@ import random
 import os
 import glob
 import argparse
-from combine_hdf5s import folder2hdf5
-from torch.utils.data import random_split
+from sklearn.model_selection import train_test_split
+import numpy as np
+import random
 
 arg_parser = argparse.ArgumentParser(
     description="This script combines every h5 files provided in the --features-path argument\
@@ -27,8 +28,9 @@ arg_parser.add_argument("--combined-h5", "-c",
 )
 
 arg_parser.add_argument("--proportions", "-p",
-    help="Proportions for training, validation and test. Default 0.7, 0.2, 0.1",
+    help="Proportions of train, validation and test. Default 70, 20, 10",
     nargs="+",
+    type=float,
     default=[0.7, 0.2, 0.1]
 )
 
@@ -46,36 +48,48 @@ output_h5_path = "/projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_0
 __author__ = "Francesco Ambrosetti"
 __email__ = "ambrosetti.francesco@gmail.com"
 
+def h5_symlinks(input_path):
+    """Combines HDF5 files from the input_path folder
+    into a dictionaries of symlinks which then will be splited.
+    """
+    hfiles = glob.glob(f"{input_path}*.hdf5")
+    symlinks = {}
+    for hfile in hfiles:
+        caseIDs = read_caseIDS_from_hfile(hfile)
+        for caseID in caseIDs:
+            symlinks[caseID] = hfile
+    return symlinks
+
+
 def read_caseIDS_from_hfile(hfile):
     """Read a hdf5 file and return the list of
-    keys with and without the rotation number (if present)
+    keys.
     f5_file = path to the hdf5 file"""
     caseIDs = []
     with h5py.File(hfile, 'r') as h5:
         caseIDs = list(h5.keys())
     return caseIDs
 
-def split_cases(complete_hfile_path):
+def split_cases(all_cases):
     """Get the training and validation.
     complete_hfile_path: path to the HDF5 file containing all
     features of every models.
     """
 
     # Read files
-    all_cases = read_caseIDS_from_hfile(complete_hfile_path)
-
     print(f'Loaded pMHCI complexes: {len(all_cases)}')
 
     # Random split of all_cases:
-    ds_l = len(all_cases)
-    split_p = torch.tensor([train_p*ds_l, validation_p*ds_l, test_p*ds_l])
-    split_p = torch.round(split_p).int()
-    train_ids, validation_ids, test_ids = random_split(all_cases, split_p)
-
-    # Sort IDs
-    train_ids.sort()
-    validation_ids.sort()
-    test_ids.sort()
+    random.shuffle(all_cases)
+    all_cases = np.array(all_cases)
+    ds_l = all_cases.shape[0]
+    train_ids, validation_ids, test_ids = np.split( # returns [0:train_p*len], [train_p*len:val_p*len], [val_p*len:]
+        all_cases, 
+        [
+            int(train_p*ds_l),
+            int((train_p+validation_p)*ds_l),
+        ]
+    )
 
     print(f'Training set: {len(train_ids)}')
     print(f'Validation set: {len(validation_ids)}')
@@ -84,7 +98,7 @@ def split_cases(complete_hfile_path):
     return train_ids, validation_ids, test_ids
 
 
-def save_train_valid(train_idx, val_idx, test_idx, in_folder, path_out_folder):
+def save_train_valid(train_idx, val_idx, test_idx, symlinks, path_out_folder):
     """Save two subsets of the original hdf5 files for containing
     training and validation sets.
     the output file names are: train.hdf5, valid.hdf5
@@ -92,72 +106,70 @@ def save_train_valid(train_idx, val_idx, test_idx, in_folder, path_out_folder):
     train_idx = caseIDs for the training set (from split_train())
     val_idx = casedIDs for the validation set (from split_train())
     out_folder = path to the output folder
-    in_folder = path of the input h5 file containing all features."""
+    """
 
     # Create new hd5f files for the training and validation
     train_h5 = h5py.File(os.path.join(path_out_folder, 'train.hdf5'), 'w')
     val_h5 = h5py.File(os.path.join(path_out_folder, 'valid.hdf5'), 'w')
     test_h5 = h5py.File(os.path.join(path_out_folder, 'test.hdf5'), 'w')
-    with h5py.File(in_folder, 'r') as f1:
-        print('#### Creating Training set file ####')
-        subset_h5(train_idx, f1, train_h5)
 
-        print('#### Creating Validation set file ####')
-        subset_h5(val_idx, f1, val_h5)
+    print("### Creating train.hdf5 file ###") 
+    for i in train_idx:
+        symlink_in_h5(i, symlinks[i], train_h5) 
 
-        print('#### Creating Test set file ####')
-        subset_h5(test_idx, f1, test_h5)
+    print("### Creating validation.hdf5 file ###") 
+    for i in val_idx:
+        symlink_in_h5(i, symlinks[i], val_h5) 
+
+    print("### Creating test.hdf5 file ###") 
+    for i in test_idx:
+        symlink_in_h5(i, symlinks[i], test_h5) 
+
     train_h5.close()
     val_h5.close()
     test_h5.close()
 
 
-def subset_h5(idx, f1, f2):
+def symlink_in_h5(idx, f1_path, f2):
     """Copy the selected keys (idx) of one hdf5 (f1) file into
      another hdf5 file (f2)
      idx = list of keys to copy
      f1 = handle of the first hdf5 file
      f2 = handle of the the second hdf5 file"""
 
-    for b in idx:
-        print(f'copying: {b}')
+    print(f'symlink: {idx}')
 
-        # Get the name of the parent for the group we want to copy
-        group_path = f1[b].parent.name
+    # Get the name of the parent for the group we want to copy
+    f1 = h5py.File(f1_path, "r")
+    group_path = f1[idx].name
 
-        # Check that this group exists in the destination file; if it doesn't, create it
-        # This will create the parents too, if they don't exist
-        group_id = f2.require_group(group_path)
-
-        # Copy
-        f1.copy(b, group_id)
+    # Copy
+    f2[group_path] = h5py.ExternalLink(f1_path, group_path)
+    f1.close()
 
 
 if __name__ == '__main__':
     # Combine the h5 files:
-    if os.path.exists(combined_h5_path) == False:
-        print("Combining h5 files..")
-        folder2hdf5(a.features_path)
-    else:
-        print(f"{combined_h5_path} created, skipping combining features..")
+    symlinks = h5_symlinks(a.features_path)
+    all_cases = list(symlinks.keys())
 
     # Get training and validation keys
-    print("Spliting cases...")
-    tr, va, t = split_cases(combined_h5_path)
+    print("spliting cases...")
+    tr, va, t = split_cases(all_cases)
 
-    # Save keys into files
-    with open('train_caseIDS.txt', 'w') as x:
+    # save keys into files
+    with open('train_caseids.txt', 'w') as x:
         for element in tr:
             x.write(element)
             x.write('\n')
-    with open('valid_caseIDS.txt', 'w') as y:
+    with open('valid_caseids.txt', 'w') as y:
         for ele in va:
             y.write(ele)
             y.write('\n')
-    with open('test_caseIDS.txt', 'w') as y:
+    with open('test_caseids.txt', 'w') as y:
         for ele in t:
             y.write(ele)
             y.write('\n')
 
-    # Create training and validation hdf5 files
-    save_train_valid(tr, va, t, combined_h5_path, out_folder=output_h5_path)
+    # create training and validation hdf5 files
+    save_train_valid(tr, va, t,symlinks, output_h5_path)

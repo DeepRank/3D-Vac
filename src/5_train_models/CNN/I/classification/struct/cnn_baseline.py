@@ -1,28 +1,23 @@
 import torch
 import argparse
 from torch import nn
-from torch.utils.data import Subset
-from torch.utils.data import DataLoader
 import copy
 import os.path as path
 import sys
 sys.path.append(path.abspath("../../../../"))
-from CNN.models import MlpRegBaseline
-from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-import random
 # import multiprocessing as mp
 from mpi4py import MPI
-from sklearn.model_selection import KFold # used for normal cross validation
-from sklearn.model_selection import LeaveOneGroupOut
+from deeprank.learn import Dataset, NeuralNet
 
 # DEFINE CLI ARGUMENTS
 #---------------------
 
 arg_parser = argparse.ArgumentParser(
-    description="Fully connected layer to generate a model which predicts binders based on one-hot encoded \
-    peptide sequence. Works only for a fixed length of 9 residues. Takes as input the csv file (header free) containing \
-    the list of peptides, the column for the peptides and a threshold for binding affinity to define binders."
+    description="Fully connected layer to generate a model which predicts binders based on atomic features \
+    from HDF5 file. Takes as input the path to the hdf5 train, validation and test. \
+    Uses the --csv-file as the input to define binders or not.\
+    The default threshold for binders is 500."
 )
 
 arg_parser.add_argument("--csv-file", "-f",
