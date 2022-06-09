@@ -48,7 +48,7 @@ arg_parser.add_argument("--cluster", "-c",
 arg_parser.add_argument("--encoder", "-e",
     help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
     choices=["blosum", "sparse", "mixed"],
-    default="blosum"
+    default="mixed"
 )
 arg_parser.add_argument("--neurons", "-N",
     help="Number of neurons per layer. Default 1000.",
@@ -196,7 +196,8 @@ validation_dataloader = split["validation_dataloader"]
 # TRAIN THE MODEL
 #----------------
 
-model = MlpRegBaseline(outputs=1, neurons_per_layer= neurons_per_layer).to(device)
+input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
+model = MlpRegBaseline(outputs=1, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
 
 loss_fn = nn.BCELoss()        
 optimizer = torch.optim.Adam(model.parameters())
@@ -235,7 +236,7 @@ best_model["test_indices"] = split["test_indices"]
 models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
 if rank == 0:
-    model_path = f"trained_models/mlp_class_baseline_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}.pt"
+    model_path = f"trained_models/mlp_class_baseline_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}.pt"
     to_save = {
         "arguments": a,
         "models_data": models

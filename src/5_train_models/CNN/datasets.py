@@ -25,6 +25,22 @@ def peptide2blosum(peptide):
     blosum_aa = "".join(blosum_aa)
     return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
 
+def peptide2mixed(peptide):
+    AA_eye = torch.eye(20, dtype=torch.float)
+    mat = blosum.BLOSUM(62)
+    blosum_t = [[]]
+    blosum_aa = ["A"]
+    for aa in mat.keys():
+        if aa[0] in aminoacids and aa[1] in aminoacids:
+            if len(blosum_t[-1]) < 20:
+                blosum_t[-1].append(mat[aa]) 
+            else:
+                blosum_aa.append(aa[0])
+                blosum_t.append([mat[aa]])
+    blosum_t = torch.tensor(blosum_t)
+    blosum_aa = "".join(blosum_aa)
+    return [blosum_t[blosum_aa.index(res)].tolist() + AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+
 # the whole dataset class, which extends the torch Dataset class
 class Reg_Seq_Dataset(Dataset):
     def __init__(self, csv_peptides,csv_ba_values, encoder):
@@ -48,6 +64,8 @@ class Class_Seq_Dataset(Dataset):
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         else:
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
+        if encoder == "mixed":
+            self.peptides = torch.tensor([peptide2mixed(p) for p in self.csv_peptides])
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
     def __len__(self):
