@@ -16,6 +16,7 @@ import random
 from mpi4py import MPI
 from sklearn.model_selection import KFold # used for normal cross validation
 from sklearn.model_selection import LeaveOneGroupOut
+import numpy as np
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -143,14 +144,13 @@ if rank == 0:
         kfold = KFold(n_splits=10, shuffle=True)
         datasets = []
         for train_idx, test_idx in kfold.split(dataset.peptides):
-            train_idx = train_idx.tolist()
-            validation_indices = random.sample(train_idx, int(0.1*len(train_idx)))
-            # remove redundancies between train and validation:
-            for i in sorted(validation_indices, reverse=True):
-                del train_idx[train_idx.index(i)]
+            validation_idx, train_idx = np.split(
+                train_idx,
+                [int(0.1*len(train_idx))]
+            )
 
             train_subset = Subset(dataset, train_idx) 
-            validation_subset = Subset(dataset, validation_indices) 
+            validation_subset = Subset(dataset, validation_idx) 
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
 
