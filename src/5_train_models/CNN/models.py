@@ -10,12 +10,6 @@ class MlpRegBaseline(nn.Module):
             nn.Linear(neurons_per_layer, neurons_per_layer),
             nn.BatchNorm1d(neurons_per_layer),
             nn.ReLU(),
-            nn.Linear(neurons_per_layer, neurons_per_layer),
-            nn.BatchNorm1d(neurons_per_layer),
-            nn.ReLU(),
-            nn.Linear(neurons_per_layer, neurons_per_layer),
-            nn.BatchNorm1d(neurons_per_layer),
-            nn.ReLU(),
             nn.Linear(neurons_per_layer, outputs),
             nn.Sigmoid()
         )
