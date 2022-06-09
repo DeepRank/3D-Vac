@@ -169,77 +169,79 @@ if rank == 0:
             # remove redundancies between train and validation:
             for i in sorted(validation_indices, reverse=True):
                 del train_idx[train_idx.index(i)]
+            print(len(train_idx))
+            print(len(validation_indices))
+            print(len(test_idx))
+#             train_subset = Subset(dataset, train_idx) 
+#             validation_subset = Subset(dataset, validation_indices) 
+#             train_dataloader = DataLoader(train_subset, batch_size=batch)
+#             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
 
-            train_subset = Subset(dataset, train_idx) 
-            validation_subset = Subset(dataset, validation_indices) 
-            train_dataloader = DataLoader(train_subset, batch_size=batch)
-            validation_dataloader = DataLoader(validation_subset, batch_size=batch)
-
-            datasets.append({
-                "train_dataloader": train_dataloader,
-                "validation_dataloader": validation_dataloader,
-                "test_indices": test_idx
-            })
+#             datasets.append({
+#                 "train_dataloader": train_dataloader,
+#                 "validation_dataloader": validation_dataloader,
+#                 "test_indices": test_idx
+#             })
 
 
-# CREATE MULTIPROCESSING
-#-----------------------
-split = mpi_conn.scatter(datasets)  # master sending tasks
+# # CREATE MULTIPROCESSING
+# #-----------------------
+# split = mpi_conn.scatter(datasets)  # master sending tasks
 
-if rank==0:
-    print(f"10 datasets created, models dispatched, starting training...")
+# if rank==0:
+#     print(f"10 datasets created, models dispatched, starting training...")
 
-# slaves receiving work
-train_dataloader = split["train_dataloader"]
-validation_dataloader = split["validation_dataloader"]
+# # slaves receiving work
+# train_dataloader = split["train_dataloader"]
+# validation_dataloader = split["validation_dataloader"]
 
-# TRAIN THE MODEL
-#----------------
+# # TRAIN THE MODEL
+# #----------------
 
-input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
-model = MlpRegBaseline(outputs=1, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
+# input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
+# model = MlpRegBaseline(outputs=1, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
 
-loss_fn = nn.BCELoss()        
-optimizer = torch.optim.Adam(model.parameters())
+# loss_fn = nn.BCELoss()        
+# optimizer = torch.optim.Adam(model.parameters())
 
-train_losses = []
-validation_losses = []
+# train_losses = []
+# validation_losses = []
 
-for e in range(epochs):
-    # calculate train loss:
-    train_y_ba, train_pred_ba = evaluate(train_dataloader, model)
-    train_accuracy = float((torch.reshape(train_pred_ba, (-1,)).round() == train_y_ba).sum()/train_pred_ba.shape[0]*100)
-    train_losses.append(train_accuracy)
+# for e in range(epochs):
+#     # calculate train loss:
+#     train_y_ba, train_pred_ba = evaluate(train_dataloader, model)
+#     train_accuracy = float((torch.reshape(train_pred_ba, (-1,)).round() == train_y_ba).sum()/train_pred_ba.shape[0]*100)
+#     train_losses.append(train_accuracy)
 
-    validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model)
-    validation_accuracy = float((torch.reshape(validation_pred_ba, (-1,)).round() == validation_y_ba).sum()/validation_pred_ba.shape[0]*100)
-    validation_losses.append(validation_accuracy)
+#     validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model)
+#     validation_accuracy = float((torch.reshape(validation_pred_ba, (-1,)).round() == validation_y_ba).sum()/validation_pred_ba.shape[0]*100)
+#     validation_losses.append(validation_accuracy)
 
-    # update the best model if validation loss improves
-    if (validation_accuracy > best_model["validation_rate"]):
-        best_model["model"] = copy.deepcopy(model)
-        best_model["validation_rate"] = validation_accuracy
-        best_model["best_epoch"] = e
+#     # update the best model if validation loss improves
+#     if (validation_accuracy > best_model["validation_rate"]):
+#         best_model["model"] = copy.deepcopy(model)
+#         best_model["validation_rate"] = validation_accuracy
+#         best_model["best_epoch"] = e
 
-    # train the model
-    train_f(train_dataloader, model, loss_fn, optimizer, device,e)
-print(f"Training on {rank} finished.")
+#     # train the model
+#     train_f(train_dataloader, model, loss_fn, optimizer, device,e)
+# print(f"Training on {rank} finished.")
 
-# save the model:
-best_model["train_losses"] = train_losses
-best_model["validation_losses"] = validation_losses
-best_model["model"] = best_model["model"].state_dict()
-best_model["test_indices"] = split["test_indices"]
+# # save the model:
+# best_model["train_losses"] = train_losses
+# best_model["validation_losses"] = validation_losses
+# best_model["model"] = best_model["model"].state_dict()
+# best_model["test_indices"] = split["test_indices"]
 
-# GATHER THE DATA
-#--------------
-models = mpi_conn.gather(best_model, root=0) # master receiving trained models
+# # GATHER THE DATA
+# #--------------
+# models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
-if rank == 0:
-    model_path = f"trained_models/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
-    to_save = {
-        "arguments": a,
-        "models_data": models
-    }
-    torch.save(to_save, model_path)
-    print(f"trained models for `{a.model_name}` gathered, saved at: {model_path}")
+# if rank == 0:
+#     model_path = f"trained_models/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
+#     to_save = {
+#         "arguments": a,
+#         "models_data": models
+#     }
+#     torch.save(to_save, model_path)
+#     print(f"trained models for `{a.model_name}` gathered, saved at: {model_path}")
