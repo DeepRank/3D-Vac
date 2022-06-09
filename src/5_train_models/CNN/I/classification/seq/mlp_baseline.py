@@ -131,6 +131,7 @@ device = ("cpu", "cuda")[torch.cuda.is_available()]
 # DATA PREPROCESSING
 #----------------------------------------------
 if rank == 0:
+    print(f"Device used: {device}")
     print("Loading data...")
     csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
     csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold)
