@@ -236,7 +236,7 @@ best_model["test_indices"] = split["test_indices"]
 models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
 if rank == 0:
-    model_path = f"trained_models/mlp_class_baseline_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}.pt"
+    model_path = f"trained_models/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
     to_save = {
         "arguments": a,
         "models_data": models
