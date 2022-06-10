@@ -94,12 +94,11 @@ best_model = {
 #----------------------------
 
 # define the train function
-def train_f(dataloader, model, loss_fn, optimizer,device,e):
+def train_f(dataloader, model, loss_fn, optimizer,e):
     model.train()
     # print(f"training epoch {e} on {rank}")
     for X,y in dataloader:
         # forward propagation
-        X, y = X.to(device), y.to(device)
         pred = model(X)
         loss = loss_fn(pred,torch.reshape(y,(-1,1)).float())
 
@@ -109,11 +108,11 @@ def train_f(dataloader, model, loss_fn, optimizer,device,e):
         optimizer.step()
 
 # define the function used for evaluation
-def evaluate(dataloader, model):
+def evaluate(dataloader, model, device):
     model.eval()
     with torch.no_grad():
-        y_vals = torch.tensor([])
-        pred_vals = torch.tensor([])
+        y_vals = torch.tensor([], device=device)
+        pred_vals = torch.tensor([], device=device)
         for X,y in dataloader:
             pred = model(X)
             y_vals = torch.cat((y_vals, y), 0)
@@ -126,7 +125,7 @@ batch = a.batch
 epochs = a.epochs
 
 # if CUDA cores available, use them and not CPU
-device = ("cpu", "cuda")[torch.cuda.is_available()]
+device = ("cpu", torch.device('cuda:0'))[torch.cuda.is_available()]
 
 # DATA PREPROCESSING
 #----------------------------------------------
@@ -135,7 +134,7 @@ if rank == 0:
     print("Loading data...")
     csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
     csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold)
-    dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder)
+    dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder, device)
     print("Data loaded, splitting into unique test datasets...")
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
@@ -208,11 +207,11 @@ validation_losses = []
 
 for e in range(epochs):
     # calculate train loss:
-    train_y_ba, train_pred_ba = evaluate(train_dataloader, model)
+    train_y_ba, train_pred_ba = evaluate(train_dataloader, model, device)
     train_accuracy = float((torch.reshape(train_pred_ba, (-1,)).round() == train_y_ba).sum()/train_pred_ba.shape[0]*100)
     train_losses.append(train_accuracy)
 
-    validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model)
+    validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model, device)
     validation_accuracy = float((torch.reshape(validation_pred_ba, (-1,)).round() == validation_y_ba).sum()/validation_pred_ba.shape[0]*100)
     validation_losses.append(validation_accuracy)
 
@@ -223,7 +222,7 @@ for e in range(epochs):
         best_model["best_epoch"] = e
 
     # train the model
-    train_f(train_dataloader, model, loss_fn, optimizer, device,e)
+    train_f(train_dataloader, model, loss_fn, optimizer,e)
 print(f"Training on {rank} finished.")
 
 # save the model:

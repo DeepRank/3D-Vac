@@ -57,7 +57,7 @@ class Reg_Seq_Dataset(Dataset):
         return len(self.peptides)
 
 class Class_Seq_Dataset(Dataset):
-    def __init__(self, csv_peptides,labels, encoder):
+    def __init__(self, csv_peptides,labels, encoder, device):
         self.csv_peptides = csv_peptides
         self.labels = torch.tensor(labels)
         if encoder == "blosum":
@@ -66,6 +66,8 @@ class Class_Seq_Dataset(Dataset):
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
         if encoder == "mixed":
             self.peptides = torch.tensor([peptide2mixed(p) for p in self.csv_peptides])
+        self.peptides = self.peptides.to(device)
+        self.labels = self.labels.to(device)
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
     def __len__(self):
