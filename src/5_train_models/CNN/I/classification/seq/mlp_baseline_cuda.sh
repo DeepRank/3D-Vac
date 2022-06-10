@@ -1,10 +1,11 @@
 #!/bin/bash
-#SBATCH --partition thin
+#SBATCH --partition gpu
+#SBATCH --gpus 1
 #SBATCH --nodes 1
 #SBATCH --ntasks 10
-#SBATCH --cpus-per-task 10
+#SBATCH --cpus-per-task 7
 #SBATCH --time 01:00:00
-#SBATCH -o /projects/0/einf2380/data/training_logs/mlp_classification_seq_cpu-%J.out
+#SBATCH -o /projects/0/einf2380/data/training_logs/mlp_classification_seq_cuda-%J.out
 
 ## load modules
 source activate deeprank
