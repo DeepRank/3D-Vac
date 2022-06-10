@@ -92,8 +92,8 @@ def load_class_seq_data(csv_file, threshold): # if cluster_file is set, performs
     csv_peptides = df["peptide"].tolist()
 
     # binder or non binder if the mean value of redundant peptides less than the threshold:
-    labels = [(0.,1.,)[value < threshold] for value in df["measurement_value"]]
-    # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
+    # labels = [(0.,1.,)[value < threshold] for value in df["measurement_value"]]
+    labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
 
     # peptides grouped by clusters for the clustered classification
     groups = df["cluster"].tolist() # used for LeaveOneGroupOut sklearn function when doing the clustered classification

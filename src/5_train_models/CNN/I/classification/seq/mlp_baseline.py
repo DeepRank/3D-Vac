@@ -100,7 +100,7 @@ def train_f(dataloader, model, loss_fn, optimizer,e):
     for X,y in dataloader:
         # forward propagation
         pred = model(X)
-        loss = loss_fn(pred,torch.reshape(y,(-1,1)).float())
+        loss = loss_fn(pred,y)
 
         # backpropagation
         optimizer.zero_grad()
@@ -116,7 +116,7 @@ def evaluate(dataloader, model, device):
         for X,y in dataloader:
             pred = model(X)
             y_vals = torch.cat((y_vals, y), 0)
-            pred_vals = torch.cat((pred_vals, pred), 0)
+            pred_vals = torch.cat((pred_vals, pred.max(1)[1]), 0)
     return y_vals, pred_vals
 
 # hyperparamaters (all defined as arguments)
@@ -197,9 +197,9 @@ validation_dataloader = split["validation_dataloader"]
 #----------------
 
 input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
-model = MlpRegBaseline(outputs=1, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
+model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
 
-loss_fn = nn.BCELoss()        
+loss_fn = nn.CrossEntropyLoss()        
 optimizer = torch.optim.Adam(model.parameters())
 
 train_losses = []
@@ -236,7 +236,7 @@ best_model["test_indices"] = split["test_indices"]
 models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
 if rank == 0:
-    model_path = f"trained_models/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
+    model_path = f"trained_models/mlp_classification_mean_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
     to_save = {
         "arguments": a,
         "models_data": models
