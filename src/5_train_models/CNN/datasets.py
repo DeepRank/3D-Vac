@@ -59,7 +59,7 @@ class Reg_Seq_Dataset(Dataset):
 class Class_Seq_Dataset(Dataset):
     def __init__(self, csv_peptides,labels, encoder, device):
         self.csv_peptides = csv_peptides
-        self.labels = torch.tensor(labels)
+        self.labels = torch.tensor(labels).long()
         if encoder == "blosum":
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         else:
