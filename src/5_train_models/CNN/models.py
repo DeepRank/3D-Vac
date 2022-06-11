@@ -4,7 +4,6 @@ class MlpRegBaseline(nn.Module):
         super(MlpRegBaseline,self).__init__()
         self.architecture = nn.Sequential(
             # input layer
-            nn.BatchNorm1d(int(input/9)),
             nn.Flatten(),
             
             # hidden layer
