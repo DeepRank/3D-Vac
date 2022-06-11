@@ -7,17 +7,17 @@ class MlpRegBaseline(nn.Module):
 
             nn.Linear(input, neurons_per_layer),
             # nn.BatchNorm1d(neurons_per_layer),
-            nn.Dropout(),
+            # nn.Dropout(),
             nn.ReLU(),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             # nn.BatchNorm1d(int(neurons_per_layer/2)),
-            nn.Dropout(),
+            # nn.Dropout(),
             nn.ReLU(),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             # nn.BatchNorm1d(int(neurons_per_layer/4)),
-            nn.Dropout(),
+            # nn.Dropout(),
             nn.ReLU(),
 
             nn.Linear(neurons_per_layer, outputs),
