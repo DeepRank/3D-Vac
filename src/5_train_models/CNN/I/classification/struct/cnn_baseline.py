@@ -3,14 +3,17 @@ import argparse
 from torch import nn
 import copy
 import os.path as path
+import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
+from CNN.models import CnnClassificationBaseline
 # import multiprocessing as mp
 from mpi4py import MPI
-from deeprank.learn import Dataset, NeuralNet
-import h5py
+from deeprank.learn import DataSet, NeuralNet
 import pandas as pd
+from deeprank.learn.modelGenerator import *
+from deeprank.learn.model3d import cnn_class
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -22,29 +25,15 @@ arg_parser = argparse.ArgumentParser(
     The default threshold for binders is 500."
 )
 
-arg_parser.add_argument("--csv-file", "-f",
-    help="Absolute path of the csv file for target calculation.",
-    default=f"BA_pMHCI.csv"
-)
 arg_parser.add_argument("--splits-path", "-s",
     help="Path to train.hdf5, validation.hdf5 and test.hdf5 files. Default \
     /projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits",
     default="/projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits"
 )
-arg_parser.add_argument("--threshold", "-t",
-    help="Binding affinity threshold to define binders, default 500.",
-    type=float,
-    default=500
-)
 arg_parser.add_argument("--cluster", "-c",
     help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
     default=False,
     action="store_true"
-)
-arg_parser.add_argument("--neurons", "-N",
-    help="Number of neurons per layer. Default 1000.",
-    default=5,
-    type=int
 )
 arg_parser.add_argument("--batch", "-B",
     help="Batch size. Default 64.",
@@ -56,72 +45,75 @@ arg_parser.add_argument("--epochs", "-E",
     default=10,
     type=int
 )
-arg_parser.add_argument("--model-name", "-o",
-    help="Name of the model name.",
-    required=True
+arg_parser.add_argument("--output-dir", "-o",
+    help="Name of the folder where 10 subfolders will be created for each cross validation.",
+    required = True,
 )
 
 a = arg_parser.parse_args()
 
 # MPI INITIALIZATION
 #-------------------
-
 mpi_conn = MPI.COMM_WORLD
 rank = mpi_conn.Get_rank()
 size = mpi_conn.Get_size()
 datasets = []
 
-best_model = {
-    "validation_rate": 0,
-    "model": None,
-    "best_epoch": None,
-    "test_data": None
-}
+# LOAD DATA
+#----------
+train_db = (f"{a.splits_path}/shuffled/{rank}/train.hdf5", f"{a.splits_path}/clustered/{rank}/train.hdf5")[a.cluster]
+val_db = (f"{a.splits_path}/shuffled/{rank}/valid.hdf5", f"{a.splits_path}/clustered/{rank}/valid.hdf5")[a.cluster]
+test_db = (f"{a.splits_path}/shuffled/{rank}/test.hdf5", f"{a.splits_path}/clustered/{rank}/test.hdf5")[a.cluster]
 
-# onehot (sparse) encoding
-
-# FUNCTIONS AND USEFUL STUFF
-#----------------------------
-
-# hyperparamaters (all defined as arguments)
-neurons_per_layer = a.neurons
-batch = a.batch
-epochs = a.epochs
-
-# DATA PREPROCESSING
-#----------------------------------------------
+# create dirs:
 if rank == 0:
-    print("Loading data...")
-    csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
-    csv_df = pd.read_csv(csv_path)
-    splits = {
-        "train" : {
-            "h5": h5py.File(f"{a.splits_path}/train.hdf5", "r"),
-            "labels": []
-        },
-        "val" : {
-            "h5": h5py.File(f"{a.splits_path}/valid.hdf5", "r"),
-            "labels": []
-        },
-        "test" : {
-            "h5": h5py.File(f"{a.splits_path}/test.hdf5", "r"),
-            "labels": []
-        }
-    }
-    for split in splits:
-        cases = list(splits[split]["h5"].keys())
-        split_df = csv_df["ID"].isin(cases) 
-        print(len(cases))
-        print(len(split_df))
-        # splits[split]["labels"] = [(0.,1.)[value < a.threshold] for value in split_df["measurement_value"]]
-    print("Data loaded, splitting into unique test datasets...")
+    for i in range(10):
+        folder = f"{a.output_dir}/{i}"
+        try:
+            os.makedirs(folder)
+        except OSError as error:
+            print(f"folder {folder} already created")
+outdir = f"{a.output_dir}/{rank}"
 
-    # SEPARATE TRAIN VALIDATION AND TEST DATASETS
-    # -------------------------------------------
-    if a.cluster == False:
-        print("generating dataset")
-    else:
-        print("generating dataset clustered")
+data_set = DataSet(train_database=train_db,
+    test_database = test_db,
+    valid_database = val_db,
+    chain1="M",
+    chain2="P",
+    grid_info=(35,30,30),
+    select_feature="all",
+    select_target="BIN_CLASS",
+    normalize_features = True,
+    normalize_targets = False,
+    pair_chain_feature = None,
+    mapfly = False,
+    tqdm= True,
+    clip_features=False,
+    process=True,
+)
 
-# CREATE MULTIPROCESSING
-#-----------------------
+model = NeuralNet(data_set=data_set,
+    model= CnnClassificationBaseline,
+    task="class",
+    chain1="M",
+    chain2="P",
+    cuda=True,
+    ngpu=1,
+    plot=True,
+    save_classmetrics=True,
+    outdir=outdir
+)
+
+model.train(
+    nepoch = 50,
+    divide_trainset=None,
+    train_batch_size=64,
+    save_model="best",
+    save_epoch="all",
+    hdf5="metrics.hdf5",
+)
+# START TRAINING
+#---------------
+
+conv_layers = []
+conv_layers.append()
