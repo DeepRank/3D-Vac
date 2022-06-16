@@ -114,17 +114,7 @@ def split_dataset_randomly(dataset, percentages=[0.8, 0.2, .1], shuffle=True):
 	
 # Split the dataset randomly
 def split_dataset_cluster(dataset):
-	# Ensure the sum of percentages equals 1
-	percentages = [i/sum(percentages)for i in percentages]
-	# Shuffle the dataset if needed
-	if shuffle:
-		random.shuffle(dataset)
-	outputs = []
-	for i, n in enumerate(percentages):
-		before = int(sum(percentages[:i]) * len(dataset))
-		after = int(sum(percentages[:i+1]) * len(dataset))
-		outputs += [dataset[before:after]]
-	return outputs
+	pass
 
 if __name__ == '__main__':
 
