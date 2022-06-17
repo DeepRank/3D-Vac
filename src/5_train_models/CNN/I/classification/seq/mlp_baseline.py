@@ -16,6 +16,7 @@ import random
 from mpi4py import MPI
 from sklearn.model_selection import KFold # used for normal cross validation
 from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.metrics import roc_auc_score
 import numpy as np
 
 # DEFINE CLI ARGUMENTS
@@ -108,16 +109,40 @@ def train_f(dataloader, model, loss_fn, optimizer,e):
         optimizer.step()
 
 # define the function used for evaluation
-def evaluate(dataloader, model, device):
+def evaluate(dataloader, model, loss_fn, device):
+    ### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
+    # Calculate the confusion tensor (AKA matching matrix) by dividing predictions
+    # with true values.
+    # To assess performances, first calculate absolute values and adjust it to 
+    # the total number of expected postives, negatives:
+    tpr = [] # sensitivity
+    tnr = [] # specificity
+    accuracies = []
+    losses = []
     model.eval()
     with torch.no_grad():
-        y_vals = torch.tensor([], device=device)
-        pred_vals = torch.tensor([], device=device)
         for X,y in dataloader:
-            pred = model(X)
-            y_vals = torch.cat((y_vals, y), 0)
-            pred_vals = torch.cat((pred_vals, pred.max(1)[1]), 0)
-    return y_vals, pred_vals
+            logits = model(X)
+            pred = logits.max(1)[1]
+
+            confusion = pred/y # absolute values for metrics
+            tot = y.shape[0] # total number of prediction
+            pos = float((y == 1.).sum()) # total number of positives (truth 1)
+            neg = float((y == 0.).sum()) # total number of negatives (truth 0)
+
+            loss = loss_fn(logits, y)
+
+            tpr.append( float((confusion == 1.).sum()/pos) ) # true positive rate = prediction 1/truth 1
+            tnr.append( float(torch.isnan(confusion).sum()/neg) ) # true negative rate = predicted 0/truth 0
+            accuracies.append(float((pred==y).sum()/tot))
+            losses.append(loss.float())
+
+    tpr = torch.tensor(tpr, device=device)
+    tnr = torch.tensor(tnr, device=device)
+    accuracies = torch.tensor(accuracies, device=device)
+    losses = torch.tensor(losses, device=device)
+
+    return accuracies.mean(), tpr.mean(), tnr.mean(), losses.mean()
 
 # hyperparamaters (all defined as arguments)
 neurons_per_layer = a.neurons
@@ -210,28 +235,29 @@ model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=in
 loss_fn = nn.CrossEntropyLoss()        
 optimizer = torch.optim.Adam(model.parameters())
 
-train_accuracies = []
-validation_accuracies = []
-test_accuracies = []
+train_accuracies, validation_accuracies, test_accuracies = [], [], []
+train_losses, validation_losses, test_losses = [], [], []
+train_tpr, validation_tpr, test_tpr = [], [], []
+train_tnr, validation_tnr, test_tnr = [], [], []
 
 for e in range(epochs):
-    # calculate accuracies:
-    train_y_ba, train_pred_ba = evaluate(train_dataloader, model, device)
-    train_accuracy = float((torch.reshape(train_pred_ba, (-1,)).round() == train_y_ba).sum()/train_pred_ba.shape[0]*100)
-    train_accuracies.append(train_accuracy)
+    # calculate metrics:
+    tr_accuracy, tr_tpr, tr_tnr, tr_losses = evaluate(train_dataloader, model, loss_fn, device)
+    train_accuracies.append(tr_accuracy);train_tpr.append(tr_tpr); train_tnr.append(tr_tnr);
+    train_losses.append(tr_losses); 
+    
+    val_accuracy, val_tpr, val_tnr, val_losses = evaluate(validation_dataloader, model, loss_fn, device)
+    validation_accuracies.append(val_accuracy);validation_tpr.append(val_tpr)
+    validation_tnr.append(val_tnr); validation_losses.append(val_losses);
 
-    validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model, device)
-    validation_accuracy = float((torch.reshape(validation_pred_ba, (-1,)).round() == validation_y_ba).sum()/validation_pred_ba.shape[0]*100)
-    validation_accuracies.append(validation_accuracy)
-
-    test_y_ba, test_pred_ba = evaluate(test_dataloader, model, device)
-    test_accuracy = float((torch.reshape(test_pred_ba, (-1,)).round() == test_y_ba).sum()/test_pred_ba.shape[0]*100)
-    test_accuracies.append(test_accuracy)
+    t_accuracy, t_tpr, t_tnr, t_losses = evaluate(test_dataloader, model, loss_fn, device)
+    test_accuracies.append(t_accuracy);test_tpr.append(t_tpr); test_tnr.append(t_tnr); 
+    test_losses.append(t_losses);
 
     # update the best model if validation loss improves
-    if (validation_accuracy > best_model["validation_rate"]):
+    if (val_accuracy > best_model["validation_rate"]):
         best_model["model"] = copy.deepcopy(model)
-        best_model["validation_rate"] = validation_accuracy
+        best_model["validation_rate"] = val_accuracy
         best_model["best_epoch"] = e
 
     # train the model
@@ -242,6 +268,19 @@ print(f"Training on {rank} finished.")
 best_model["train_accuracies"] = train_accuracies
 best_model["validation_accuracies"] = validation_accuracies
 best_model["test_accuracies"] = test_accuracies
+
+best_model["train_tpr"] = train_tpr
+best_model["validation_tpr"] = validation_tpr
+best_model["test_tpr"] = test_tpr
+
+best_model["train_tnr"] = train_tnr
+best_model["validation_tnr"] = validation_tnr
+best_model["test_tnr"] = test_tnr
+
+best_model["train_losses"] = train_losses
+best_model["validation_losses"] = validation_losses
+best_model["test_losses"] = test_losses
+
 best_model["model"] = best_model["model"].state_dict()
 best_model["test_indices"] = split["test_indices"]
 
