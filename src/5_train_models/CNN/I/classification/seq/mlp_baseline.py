@@ -135,6 +135,7 @@ if rank == 0:
     csv_path = path.abspath(f"{data_path}external/processed/{a.csv_file}")
     csv_peptides, csv_labels, groups = load_class_seq_data(csv_path, a.threshold)
     dataset = Class_Seq_Dataset(csv_peptides, csv_labels, a.encoder, device)
+    ds_l = dataset.peptides.shape[0]
     print("Data loaded, splitting into unique test datasets...")
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
@@ -146,17 +147,21 @@ if rank == 0:
         for train_idx, test_idx in kfold.split(dataset.peptides):
             validation_idx, train_idx = np.split(
                 train_idx,
-                [int(0.1*len(train_idx))]
+                [int(0.2*ds_l)]
             )
 
             train_subset = Subset(dataset, train_idx) 
             validation_subset = Subset(dataset, validation_idx) 
+            test_subset = Subset(dataset, test_idx)
+
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
+            test_dataloader = DataLoader(test_subset, batch_size=batch)
 
             datasets.append({
                 "train_dataloader": train_dataloader,
                 "validation_dataloader": validation_dataloader,
+                "test_dataloader": test_dataloader,
                 "test_indices": test_idx
             })
     
@@ -164,23 +169,25 @@ if rank == 0:
         print("Splitting into clustered datasets")
         kfold = LeaveOneGroupOut()       
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
-            train_idx = train_idx.tolist()
-            validation_indices = random.sample(train_idx, int(0.1*len(train_idx)))
-            # remove redundancies between train and validation:
-            for i in sorted(validation_indices, reverse=True):
-                del train_idx[train_idx.index(i)]
-            
+            validation_idx, train_idx = np.split(
+                train_idx,
+                [int(0.2*ds_l)]
+            )
+
             train_subset = Subset(dataset, train_idx) 
-            validation_subset = Subset(dataset, validation_indices) 
+            validation_subset = Subset(dataset, validation_idx) 
+            test_subset = Subset(dataset, test_idx)
+
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
+            test_dataloader = DataLoader(test_subset, batch_size=batch)
 
             datasets.append({
                 "train_dataloader": train_dataloader,
                 "validation_dataloader": validation_dataloader,
-                "test_indices": test_idx
+                "test_indices": test_idx,
+                "test_dataloader": test_dataloader
             })
-
 
 # CREATE MULTIPROCESSING
 #-----------------------
@@ -192,6 +199,7 @@ if rank==0:
 # slaves receiving work
 train_dataloader = split["train_dataloader"]
 validation_dataloader = split["validation_dataloader"]
+test_dataloader = split["test_dataloader"]
 
 # TRAIN THE MODEL
 #----------------
@@ -202,18 +210,23 @@ model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=in
 loss_fn = nn.CrossEntropyLoss()        
 optimizer = torch.optim.Adam(model.parameters())
 
-train_losses = []
-validation_losses = []
+train_accuracies = []
+validation_accuracies = []
+test_accuracies = []
 
 for e in range(epochs):
-    # calculate train loss:
+    # calculate accuracies:
     train_y_ba, train_pred_ba = evaluate(train_dataloader, model, device)
     train_accuracy = float((torch.reshape(train_pred_ba, (-1,)).round() == train_y_ba).sum()/train_pred_ba.shape[0]*100)
-    train_losses.append(train_accuracy)
+    train_accuracies.append(train_accuracy)
 
     validation_y_ba, validation_pred_ba = evaluate(validation_dataloader, model, device)
     validation_accuracy = float((torch.reshape(validation_pred_ba, (-1,)).round() == validation_y_ba).sum()/validation_pred_ba.shape[0]*100)
-    validation_losses.append(validation_accuracy)
+    validation_accuracies.append(validation_accuracy)
+
+    test_y_ba, test_pred_ba = evaluate(test_dataloader, model, device)
+    test_accuracy = float((torch.reshape(test_pred_ba, (-1,)).round() == test_y_ba).sum()/test_pred_ba.shape[0]*100)
+    test_accuracies.append(test_accuracy)
 
     # update the best model if validation loss improves
     if (validation_accuracy > best_model["validation_rate"]):
@@ -226,8 +239,9 @@ for e in range(epochs):
 print(f"Training on {rank} finished.")
 
 # save the model:
-best_model["train_losses"] = train_losses
-best_model["validation_losses"] = validation_losses
+best_model["train_accuracies"] = train_accuracies
+best_model["validation_accuracies"] = validation_accuracies
+best_model["test_accuracies"] = test_accuracies
 best_model["model"] = best_model["model"].state_dict()
 best_model["test_indices"] = split["test_indices"]
 
