@@ -3,29 +3,34 @@ class CnnClassificationBaseline(nn.Module):
     def __init__(self, input_shape):
         super(CnnClassificationBaseline, self).__init__()
 
-        self.flatten_shape = 4*8*6*6 # output shape of flatten conv_layers
+        # self.flatten_shape = 4*8*6*6 # output shape of flatten conv_layers
+        self.flatten_shape = 48 # output shape of flatten conv_layers
 
         self.conv_layers = nn.Sequential(
             nn.BatchNorm3d(input_shape[0]),
 
-            nn.Conv3d(input_shape[0], 32, kernel_size=2),
+            nn.Conv3d(input_shape[0], input_shape[0], kernel_size=2),
             nn.ReLU(),
             nn.MaxPool3d((2,2,2)),
 
-            nn.Conv3d(32,4, kernel_size=2),
+            nn.Conv3d(input_shape[0],32, kernel_size=2),
             nn.ReLU(),
             nn.MaxPool3d((2,2,2)),
+
+            nn.Conv3d(32, 4, kernel_size=2),
+            nn.ReLU(),
+            nn.MaxPool3d((2,2,2))
         )
 
         self.fc_layers = nn.Sequential(
             nn.Flatten(),
             nn.BatchNorm1d(self.flatten_shape),
 
-            nn.Linear(self.flatten_shape, int(self.flatten_shape/16)),
+            nn.Linear(self.flatten_shape, 100),
             nn.ReLU(),
             nn.Dropout(),
 
-            nn.Linear(int(self.flatten_shape/16), 32),
+            nn.Linear(100, 32),
             nn.ReLU(),
             nn.Dropout(),
 
