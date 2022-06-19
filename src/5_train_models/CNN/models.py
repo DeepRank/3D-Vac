@@ -28,11 +28,11 @@ class CnnClassificationBaseline(nn.Module):
 
             nn.Linear(self.flatten_shape, 100),
             nn.ReLU(),
-            nn.Dropout(),
+            # nn.Dropout(),
 
             nn.Linear(100, 32),
             nn.ReLU(),
-            nn.Dropout(),
+            # nn.Dropout(),
 
             nn.Linear(32, 2)
         )
