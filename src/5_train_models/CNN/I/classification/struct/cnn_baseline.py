@@ -105,7 +105,7 @@ model = NeuralNet(data_set=data_set,
 )
 
 model.train(
-    nepoch = 10,
+    nepoch = 50,
     divide_trainset=None,
     train_batch_size=32,
     save_model="best",
