@@ -1,4 +1,4 @@
-from torch import nn 
+from torch import nn
 class CnnClassificationBaseline(nn.Module):
     def __init__(self, input_shape):
         super(CnnClassificationBaseline, self).__init__()
@@ -35,7 +35,7 @@ class CnnClassificationBaseline(nn.Module):
 
             nn.Linear(32, 2)
         )
-    
+
     def forward(self, x):
         x = self.conv_layers(x)
         x = self.fc_layers(x)
@@ -47,8 +47,7 @@ class MlpRegBaseline(nn.Module):
         self.architecture = nn.Sequential(
             # input layer
             nn.Flatten(),
-            nn.BatchNorm1d(input),
-            
+
             # hidden layer
             nn.Linear(input, neurons_per_layer),
             nn.ReLU(),
