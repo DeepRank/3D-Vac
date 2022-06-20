@@ -179,10 +179,6 @@ if rank == 0:
             validation_subset = Subset(dataset, validation_idx) 
             test_subset = Subset(dataset, test_idx)
 
-            train_means.append(float((dataset.labels[train_idx] == 1.).sum()/dataset.labels[train_idx].shape[0]))
-            validation_means.append(float((dataset.labels[validation_idx] == 1.).sum()/dataset.labels[validation_idx].shape[0]))
-            test_means.append(float((dataset.labels[test_idx] == 1.).sum()/dataset.labels[test_idx].shape[0]))
-
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
             test_dataloader = DataLoader(test_subset, batch_size=batch)
@@ -193,24 +189,12 @@ if rank == 0:
                 "test_dataloader": test_dataloader,
                 "test_indices": test_idx
             })
-        validation_means = torch.tensor(validation_means)
-        train_means = torch.tensor(train_means)
-        test_means = torch.tensor(test_means)
-        print("Overall train mean: ", train_means.mean())
-        print("Overall train std: ", train_means.std())
-        print("Overall validation mean: ", validation_means.mean())
-        print("Overall validation std: ", validation_means.std())
-        print("Overall test mean: ", test_means.mean())
-        print("Overall test std: ", test_means.std())
     
     else:
         print("Splitting into clustered datasets")
         kfold = LeaveOneGroupOut()       
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
-            validation_idx, train_idx = np.split(
-                train_idx,
-                [int(0.2*ds_l)]
-            )
+            train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
 
             train_subset = Subset(dataset, train_idx) 
             validation_subset = Subset(dataset, validation_idx) 
