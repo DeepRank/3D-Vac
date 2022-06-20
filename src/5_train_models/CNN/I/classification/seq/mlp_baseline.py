@@ -15,6 +15,7 @@ import random
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used for normal cross validation
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.metrics import roc_auc_score
 import numpy as np
@@ -173,11 +174,7 @@ if rank == 0:
         kfold = StratifiedKFold(n_splits=10, shuffle=True)
         datasets = []
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
-            validation_idx, train_idx = np.split(
-                train_idx,
-                [int(0.2*ds_l)]
-            )
-
+            train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
             train_subset = Subset(dataset, train_idx) 
             validation_subset = Subset(dataset, validation_idx) 
             test_subset = Subset(dataset, test_idx)
