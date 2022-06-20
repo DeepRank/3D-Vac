@@ -51,12 +51,15 @@ class MlpRegBaseline(nn.Module):
             # hidden layer
             nn.Linear(input, neurons_per_layer),
             nn.ReLU(),
+            nn.Dropout(),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             nn.ReLU(),
+            nn.Dropout(),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             nn.ReLU(),
+            nn.Dropout(),
 
             # output layer
             nn.Linear(neurons_per_layer, outputs),
