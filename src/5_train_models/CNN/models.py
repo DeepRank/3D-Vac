@@ -51,14 +51,17 @@ class MlpRegBaseline(nn.Module):
             # hidden layer
             nn.Linear(input, neurons_per_layer),
             nn.ReLU(),
-            nn.Dropout(), # half of weights are droped each forward()
+            # nn.Dropout(), # half of weights are droped each forward()
+            nn.BatchNorm1d(neurons_per_layer),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             nn.ReLU(),
             nn.Dropout(), # half of weights are droped each forward()
+            nn.BatchNorm1d(neurons_per_layer),
 
             nn.Linear(neurons_per_layer, neurons_per_layer),
             nn.ReLU(),
+            nn.BatchNorm1d(neurons_per_layer),
 
             # output layer
             nn.Linear(neurons_per_layer, outputs),
