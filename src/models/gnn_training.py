@@ -1,11 +1,13 @@
 import torch.nn as nn
 import h5py
 import torch
-from deeprank_gnn.DataSet import HDF5DataSet
-from deeprank_gnn.NeuralNet import NeuralNet
+from deeprankcore.DataSet import HDF5DataSet
+from deeprankcore.NeuralNet import NeuralNet
 from gnn_architecture import Binding_GNN
 import numpy as np
-from deeprank_gnn.ginet import GINet
+from deeprankcore.ginet import GINet
+from deeprankcore.models.metrics import OutputExporter, ScatterPlotExporter
+from naive_gnn import NaiveNetwork
 
 # Number of cores the program is using
 torch.set_num_threads(20)
@@ -24,6 +26,10 @@ NMB_GNN_LAYERS          =  3 #
 database = '/Users/giuliacrocioni/remote_snellius/data/pMHCI/gnn_hdf5/rd.hdf5'
 node_features = ["bsa", "depth", "hb_acceptors", "hb_donors", "hse", "ic", "pssm", "polarity", "sasa", "size", "type"]
 edge_features = ["coulomb", "covalent", "dist", "vanderwaals"]
+
+metrics_output_directory = "reports/"
+metrics_exporters = [OutputExporter(metrics_output_directory),
+                     ScatterPlotExporter(metrics_output_directory, 5)]
 
 if __name__ == '__main__':
 
@@ -81,13 +87,14 @@ if __name__ == '__main__':
 
     nn = NeuralNet(
         dataset,
-        GINet,
+        NaiveNetwork,
         task = "class",
         batch_size = 16,
-        percent = [0.8, 0.2]
+        percent = [0.8, 0.2],
+        metrics_exporters = metrics_exporters
     )
 
     # nn.optimizer = torch.optim.Adam(gnn.parameters(), weight_decay=1e-5)
     # nn.loss = nn.CrossEntropyLoss()
 
-    nn.train(nepoch = 5, validate = True)
+    nn.train(nepoch = 10, validate = True)
