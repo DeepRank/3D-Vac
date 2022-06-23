@@ -9,17 +9,14 @@ class CnnClassificationBaseline(nn.Module):
             nn.BatchNorm3d(input_shape[0]),
 
             nn.Conv3d(input_shape[0], input_shape[0], kernel_size=2),
-            nn.BatchNorm3d(input_shape[0]),
             nn.ReLU(),
             nn.MaxPool3d((2,2,2)),
 
             nn.Conv3d(input_shape[0],32, kernel_size=2),
-            nn.BatchNorm3d(32),
             nn.ReLU(),
             nn.MaxPool3d((2,2,2)),
 
             nn.Conv3d(32, 4, kernel_size=2),
-            nn.BatchNorm3d(4),
             nn.ReLU(),
             nn.MaxPool3d((2,2,2))
         )
