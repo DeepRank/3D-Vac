@@ -6,7 +6,7 @@ from deeprankcore.NeuralNet import NeuralNet
 from gnn_architecture import Binding_GNN
 import numpy as np
 from deeprankcore.ginet import GINet
-from deeprankcore.models.metrics import OutputExporter, ScatterPlotExporter
+from deeprankcore.models.metrics import OutputExporter, TensorboardBinaryClassificationExporter
 from naive_gnn import NaiveNetwork
 
 # Number of cores the program is using
@@ -28,8 +28,7 @@ node_features = ["bsa", "depth", "hb_acceptors", "hb_donors", "hse", "ic", "pssm
 edge_features = ["coulomb", "covalent", "dist", "vanderwaals"]
 
 metrics_output_directory = "reports/"
-metrics_exporters = [OutputExporter(metrics_output_directory),
-                     ScatterPlotExporter(metrics_output_directory, 5)]
+metrics_exporters = [OutputExporter(metrics_output_directory)]
 
 if __name__ == '__main__':
 
