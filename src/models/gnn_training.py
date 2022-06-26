@@ -6,8 +6,8 @@ from deeprankcore.NeuralNet import NeuralNet
 from gnn_architecture import Binding_GNN
 import numpy as np
 from deeprankcore.ginet import GINet
+from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.models.metrics import OutputExporter, TensorboardBinaryClassificationExporter
-from naive_gnn import NaiveNetwork
 
 # Number of cores the program is using
 torch.set_num_threads(20)
