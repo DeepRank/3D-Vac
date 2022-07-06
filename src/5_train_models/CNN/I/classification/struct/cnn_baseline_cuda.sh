@@ -10,6 +10,6 @@
 source activate deeprank
 module load 2020
 module load OpenMPI/4.0.3-GCC-9.3.0
-# usage: srun python -u mlp_reg_baseline.py <arguments for the script>
+# usage: srun python -u cnn_baseline.py <arguments for the script> --with-cuda
 
-srun python -u cnn_baseline.py "$@"
+srun python -u cnn_baseline.py "$@" --with-cuda 
