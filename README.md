@@ -79,7 +79,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 ```
-python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --output-csv BA_pMHCI.csv
+python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --P 9 --allele HLA-A*02:01 --output-csv BA_pMHCI.csv
 ```
 * Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
 * Outputs: DB1 in 'path-to-destination.csv'.
@@ -92,4 +92,8 @@ python src/build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 * Inputs: generated db1 in `data/external/processed`.
 * Output: a .pkl file in `data/external/processed` containing the clusters.
 * Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
-* Vizualise the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
+* Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
+
+### GNNs
+- Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
+- Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
