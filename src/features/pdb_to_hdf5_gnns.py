@@ -62,13 +62,13 @@ def getPilotTargets(pdbs_list, csv_file_path):
 
 if __name__ == "__main__":
 
-	run_day = '07072022'
+	run_day = '08072022'
 	project_folder = '/projects/0/einf2380/'
 	data = 'pMHCI'
 	task = 'BA'
 	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
-	output_folder = f'{project_folder}data/{data}/gnn_hdf5/{run_day}'
+	output_folder = f'{project_folder}data/{data}/features_output_folder/gnns/{run_day}'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
 
 	print('Script running has started ...')
@@ -79,9 +79,6 @@ if __name__ == "__main__":
 	pdb_targets, clusters = getPilotTargets(pdbs_list, csv_file_path)
 	print(f'Targets retrieved from {csv_file_path}, and aligned with pdbs files.\nThere are {len(pdb_targets)} targets values and {len(clusters)} cluster values. Total number of clusters is {len(set(clusters))}.\n')
 	print(f'Creating output folder and adding all the listed pdbs to the preprocessor...')
-
-	try: os.mkdir(output_folder)
-	except: pass
 
 	queries = [ProteinProteinInterfaceResidueQuery(
 		pdb_path = pdb, 
