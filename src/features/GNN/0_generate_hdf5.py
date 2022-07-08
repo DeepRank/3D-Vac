@@ -1,5 +1,4 @@
 from deeprankcore.feature import bsa, pssm, amino_acid, biopython, atomic_contact, sasa
-from deeprankcore.models.query import ProteinProteinInterfaceResidueQuery
 from deeprankcore.preprocess import preprocess
 import glob
 import os
@@ -63,14 +62,23 @@ def getPilotTargets(pdbs_list, csv_file_path):
 
 if __name__ == "__main__":
 
+	# modify here
 	run_day = '08072022'
 	project_folder = '/projects/0/einf2380/'
 	data = 'pMHCI'
 	task = 'BA'
+	resolution = 'residue' # either 'residue' or 'atomic'
+	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
+	######
+
 	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
-	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{run_day}'
-	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
+	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
+	
+	if resolution == 'atomic':
+		from deeprankcore.models.query import ProteinProteinInterfaceAtomicQuery as PPIQuery
+	else:
+		from deeprankcore.models.query import ProteinProteinInterfaceResidueQuery as PPIQuery
 
 	print('Script running has started ...')
 	pdbs_list = getBestScorePdbs(pdb_models_folder)
@@ -86,7 +94,7 @@ if __name__ == "__main__":
 	else:
 		sys.exit(f'{output_folder} already exists, please update output_folder name!')
 
-	queries = [ProteinProteinInterfaceResidueQuery(
+	queries = [PPIQuery(
 		pdb_path = pdb, 
 		chain_id1 = "M",
 		chain_id2 = "P",
