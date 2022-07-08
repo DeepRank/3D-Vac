@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=thin
 #SBATCH --time=01:00:00
-#SBATCH -o /projects/0/einf2380/data/training_logs/pdb_to_dhf5_gnns_job-%J.out
+#SBATCH -o /projects/0/einf2380/data/preproc_logs/pdb_to_dhf5_gnns_job-%J.out
 
 source activate deeprank
 
