@@ -4,6 +4,7 @@ from deeprankcore.preprocess import preprocess
 import glob
 import os
 import re
+import sys
 
 def getBestScorePdbs(pdb_models_folder):
 	'''
@@ -68,7 +69,7 @@ if __name__ == "__main__":
 	task = 'BA'
 	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
-	output_folder = f'{project_folder}data/{data}/features_output_folder/gnns/{run_day}'
+	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{run_day}'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
 
 	print('Script running has started ...')
@@ -79,6 +80,11 @@ if __name__ == "__main__":
 	pdb_targets, clusters = getPilotTargets(pdbs_list, csv_file_path)
 	print(f'Targets retrieved from {csv_file_path}, and aligned with pdbs files.\nThere are {len(pdb_targets)} targets values and {len(clusters)} cluster values. Total number of clusters is {len(set(clusters))}.\n')
 	print(f'Creating output folder and adding all the listed pdbs to the preprocessor...')
+
+	if not os.path.exists(output_folder):
+		os.makedirs(output_folder)
+	else:
+		sys.exit(f'{output_folder} already exists, please update output_folder name!')
 
 	queries = [ProteinProteinInterfaceResidueQuery(
 		pdb_path = pdb, 
@@ -96,5 +102,7 @@ if __name__ == "__main__":
 				for it, pdb in enumerate(pdbs_list)]
 	print(f'Queries created and ready to be processed.\n')
 	
-	output_paths = preprocess(feature_modules, queries, output_folder)
-	print(f'Processing is done. hdf5 files generated are in {output_folder}.\nOutput paths:\n{output_paths}')
+	# Note that preprocess() has also process_count parameter, that by default takes all available cpu cores.
+	# In Snellius' single node case, it takes 128 cpu cores, so it will generate 128 .hdf5 files.
+	output_paths = preprocess(feature_modules, queries, f'{output_folder}/preprocessed-data')
+	print(f'Processing is done. hdf5 files generated are in {output_folder}.')
