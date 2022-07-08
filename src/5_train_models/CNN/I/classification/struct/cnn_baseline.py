@@ -26,7 +26,7 @@ arg_parser.add_argument("--splits-path", "-s",
     help="Path to shuffled and clustered folders containing subfolders named from 0 to 9 each with \
     train.hdf5, valid.hdf5 and test.hdf5 files as the splits for each fold. Default path \
     /projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits",
-    default="/projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits"
+    default="/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits"
 )
 arg_parser.add_argument("--cluster", "-c",
     help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
