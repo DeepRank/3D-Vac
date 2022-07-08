@@ -44,12 +44,14 @@ a = arg_parser.parse_args()
 # Change the combined_path and output_h5:
 output_h5_path = a.output_path
 
-__author__ = "Francesco Ambrosetti"
-__email__ = "ambrosetti.francesco@gmail.com"
-
 def h5_symlinks(input_path):
     """Combines HDF5 files from the input_path folder
     into a dictionaries of symlinks which then will be splited.
+    Return values:
+    - symlinks: symlink dictionary where the key is the model name (caseID)
+    and the value is the HDF5 file where the caseID is stored.
+    - labels: model's labels from every HDF5 files ordered in the same order
+    as the keys in the symlinks variable.
     """
     hfiles = glob.glob(f"{input_path}*.hdf5")
     symlinks = {}
@@ -63,8 +65,11 @@ def h5_symlinks(input_path):
 
 
 def read_caseIDS_from_hfile(hfile):
-    """Read a hdf5 file and return the list of
-    keys.
+    """Read a hdf5 file, returns 2 lists:
+    - caseIDS: the name of the model (starting with BA_ or EL_)
+    - label: the classification task target value (BIN_CLASS property)
+
+    arguments:
     f5_file = path to the hdf5 file"""
     caseIDs = []
     labels = []
@@ -78,13 +83,16 @@ def read_caseIDS_from_hfile(hfile):
 def save_train_valid(train_idx, val_idx, test_idx, symlinks, path_out_folder,
     train_f, valid_f, test_f
 ):
-    """Save two subsets of the original hdf5 files for containing
-    training and validation sets.
-    the output file names are: train.hdf5, valid.hdf5
+    """Creates the train, valid and test HDF5 files from the symlinks
+    with the caseIDS provided.
 
-    train_idx = caseIDs for the training set (from split_train())
-    val_idx = casedIDs for the validation set (from split_train())
-    out_folder = path to the output folder
+    Arguments:
+    train_idx = caseIDs from symlinks for the training set (from split_train())
+    val_idx = casedIDs from symlinks for the validation set (from split_train())
+    test_idx = casedIDs from symlinks for the test set (from split_train())
+
+    out_folder = path to the output folder (output_h5_path)
+    train_f, valid_f, test_f: filename of train, valid and test
     """
 
     # Create new hd5f files for the training and validation
