@@ -6,6 +6,7 @@ from PANDORA.Database import Database
 from math import ceil
 from mpi4py import MPI
 import pandas as pd
+import multiprocessing
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -22,9 +23,9 @@ batch = cases_per_hour_per_node*running_time
 start_row = int(rank*batch)
 
 end_row = int((rank+1)*batch)
-# print(f"Rank {rank}. start_row: {start_row} end_row: {end_row}. Number of cores: {multiprocessing.cpu_count()}")
+print(f"Rank {rank}. start_row: {start_row} end_row: {end_row}. Number of cores: {multiprocessing.cpu_count()}")
 
-#Load the database file
+# Load the database file
 print('Loading Database..')
 db = Database.load("/home/lepikhovd/softwares/PANDORA/data/complete_db_08_06_2022.pkl")
 print('Database loaded')
@@ -43,7 +44,9 @@ wrap.create_targets(csv_path, db,
 )
 t2 = time.time()
 print('Wrapper created')
+print(f"Time to predict anchors: {t2-t1}")
 ## Run the models
 wrap.run_pandora(num_cores=num_cores, n_loop_models=20, 
     benchmark=False)
 t3 = time.time()
+print(f"Time to model: {t3-t2}")

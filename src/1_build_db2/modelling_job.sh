@@ -9,8 +9,10 @@
 ## the number of nodes for the job is provided in the dispatch_modeling_jobs_parallelized.py script
 ## usage: srun python ./run_wrapper.py <running time>
 
-module load 2020
-module load OpenMPI/4.0.3-GCC-9.3.0
+# module load 2020
+# module load OpenMPI/4.0.3-GCC-9.3.0
+module load 2021
+module load foss/2021a
 
 source activate deeprank
-mpiexec python -u modelling_job.py $1
+srun python -u modelling_job.py $1

@@ -28,12 +28,18 @@ cases_per_hour_per_node = 10*num_cores # 1280 per hour per core.
 batch = cases_per_hour_per_node*int(a.running_time)
 n_nodes = math.ceil(tot_cases/batch)
 
-subprocess.run(
-    [
-        "sbatch",
-        f"--nodes={n_nodes}",
-        f"--time=10:00:00",
-        "modelling_job.sh",
-        str(n_nodes),
-    ]
-)
+# additional hours are added to the running time to be sure every anchors is predicted
+additional_hours = int(cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
+sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
+print(additional_hours)
+print(sbatch_hours)
+
+# subprocess.run(
+#     [
+#         "sbatch",
+#         f"--nodes={n_nodes}",
+#         f"--time={sbatch_hours}:00:00",
+#         "modelling_job.sh",
+#         str(a.running_time), 
+#     ]
+# )
