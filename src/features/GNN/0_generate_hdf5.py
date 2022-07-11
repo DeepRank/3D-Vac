@@ -63,12 +63,13 @@ def getPilotTargets(pdbs_list, csv_file_path):
 if __name__ == "__main__":
 
 	# modify here
-	run_day = '08072022'
+	run_day = '11072022'
 	project_folder = '/projects/0/einf2380/'
 	data = 'pMHCI'
 	task = 'BA'
 	resolution = 'residue' # either 'residue' or 'atomic'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
+	interface_distance_cutoff = 8.5 # max distance in Ångström between two interacting residues/atoms of the two proteins
 	######
 
 	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
@@ -98,6 +99,7 @@ if __name__ == "__main__":
 		pdb_path = pdb, 
 		chain_id1 = "M",
 		chain_id2 = "P",
+		interface_distance_cutoff = interface_distance_cutoff,
 		targets = {
 			'binary': pdb_targets[it][0], # binary target value
 			f'{task}': pdb_targets[it][1], # continuous target value
