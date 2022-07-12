@@ -25,15 +25,15 @@ class CnnClassificationBaseline(nn.Module):
             nn.Flatten(),
             nn.BatchNorm1d(self.flatten_shape),
 
-            nn.Linear(self.flatten_shape, 3000),
+            nn.Linear(self.flatten_shape, 1000),
             nn.ReLU(),
             nn.Dropout(),
 
-            nn.Linear(3000, 3000),
+            nn.Linear(1000, 1000),
             nn.ReLU(),
             nn.Dropout(),
 
-            nn.Linear(3000, 2)
+            nn.Linear(1000, 2)
         )
 
     def forward(self, x):

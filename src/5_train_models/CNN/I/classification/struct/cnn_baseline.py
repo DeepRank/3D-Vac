@@ -118,7 +118,7 @@ model = NeuralNet(data_set=data_set,
 model.train(
     nepoch = a.epochs,
     divide_trainset = None,
-    train_batch_size = 32,
+    train_batch_size = a.batch,
     save_model = "best",
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
