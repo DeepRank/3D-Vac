@@ -1,6 +1,15 @@
 from torch import nn
 class CnnClassificationBaseline(nn.Module):
     def __init__(self, input_shape):
+        """This class is the architecture for DeepRank's CNN framework.
+        Made of one sequential convolutional layers array followed by
+        one fully connected layers array.
+        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        for the architecture class.
+
+        Args:
+            input_shape (int): Number of features (64 as of now)
+        """
         super(CnnClassificationBaseline, self).__init__()
 
         self.flatten_shape = 2304 # output shape of flatten conv_layers
@@ -43,6 +52,15 @@ class CnnClassificationBaseline(nn.Module):
 
 class MlpRegBaseline(nn.Module):
     def __init__(self, input = 20*9, neurons_per_layer=1000, outputs=1 ):
+        """This class is the architecture of the multi-layer perceptron used both
+        for classification and regression.
+        Used by CNN/I/regression/seq/mlp_baseline.py and CNN/I/classification/seq/mlp_baseline.py.
+
+        Args:
+            input (int, optional): Dimensions of the flattened matrix representing the peptide. Defaults to 20*9.
+            neurons_per_layer (int, optional): Neurons per layer. Defaults to 1000.
+            outputs (int, optional): Output of the layer. Defaults to 1.
+        """
         super(MlpRegBaseline,self).__init__()
         self.architecture = nn.Sequential(
             # input layer

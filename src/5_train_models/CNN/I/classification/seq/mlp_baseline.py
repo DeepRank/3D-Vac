@@ -9,16 +9,12 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
 from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
-from CNN.datasets import sig_norm, li_norm, custom_norm #normalization methods for ba_values
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-import random
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used for normal cross validation
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
-from sklearn.metrics import roc_auc_score
-import numpy as np
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -30,13 +26,8 @@ arg_parser = argparse.ArgumentParser(
 )
 
 arg_parser.add_argument("--csv-file", "-f",
-    help="Name of the csv file in data/external/processed containing the cluster column.",
+    help="Name of the csv file in data/external/processed containing the cluster column. Default BA_pMHCI.csv",
     default="BA_pMHCI.csv"
-)
-arg_parser.add_argument("--peptide-column", "-p",
-    type=int,
-    help="Column index of peptide's sequence in the csv file.",
-    default=2
 )
 arg_parser.add_argument("--threshold", "-t",
     help="Binding affinity threshold to define binders, default 500.",
@@ -81,8 +72,9 @@ a = arg_parser.parse_args()
 mpi_conn = MPI.COMM_WORLD
 rank = mpi_conn.Get_rank()
 size = mpi_conn.Get_size()
-datasets = []
+datasets = [] # this array will be filled with jobs for slaves
 
+# This will be saved in a pickle file as the best model for each cross validation (each MPI job)
 best_model = {
     "validation_rate": 0,
     "model": None,
@@ -90,13 +82,22 @@ best_model = {
     "test_data": None
 }
 
-# onehot (sparse) encoding
-
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
 
 # define the train function
-def train_f(dataloader, model, loss_fn, optimizer,e):
+def train_f(dataloader, model, loss_fn, optimizer):
+    """Function used to train the model over the whole training dataset.
+
+    Args:
+        dataloader (DataLoader): Instance of the DataLoader object iterating
+        over the train dataset.
+        model (obj): Model to train.
+        loss_fn (obj): Function used to measure the difference between the truth
+        and prediction.
+        optimizer (obj): Function used to perform backpropagation and update of
+        weights.
+    """
     model.train()
     # print(f"training epoch {e} on {rank}")
     for X,y in dataloader:
@@ -111,11 +112,23 @@ def train_f(dataloader, model, loss_fn, optimizer,e):
 
 # define the function used for evaluation
 def evaluate(dataloader, model, loss_fn, device):
-    ### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
-    # Calculate the confusion tensor (AKA matching matrix) by dividing predictions
-    # with true values.
-    # To assess performances, first calculate absolute values and adjust it to 
-    # the total number of expected postives, negatives:
+    """### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
+    Calculate the confusion tensor (AKA matching matrix) by dividing predictions
+    with true values.
+    To assess performances, first calculate absolute values and adjust it to 
+    the total number of expected postives, negatives:
+
+    Args:
+        dataloader (DataLoader): Dataloader containing the iterator for the 
+        dataset we want to evaluate.
+        model (obj): Model being evaluated.
+        loss_fn (obj): Function used to measure the difference between the truth
+        and prediction.
+        device (string): "cpu" or torch.device("cuda")
+
+    Returns:
+        _type_: _description_
+    """
     tpr = [] # sensitivity
     tnr = [] # specificity
     accuracies = []
@@ -173,12 +186,15 @@ if rank == 0:
         print("Splitting into shuffled datasets..")
         kfold = StratifiedKFold(n_splits=10, shuffle=True)
         datasets = []
+        # split the whole dataset using sklearn.metrics kfold function:
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
+            # the train dataset is further splited into validation with scaled proportion:
             train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
             train_subset = Subset(dataset, train_idx) 
             validation_subset = Subset(dataset, validation_idx) 
             test_subset = Subset(dataset, test_idx)
 
+            # create the dataloaders to dispatch on slaves:
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
             test_dataloader = DataLoader(test_subset, batch_size=batch)
@@ -190,10 +206,13 @@ if rank == 0:
                 "test_indices": test_idx
             })
     
-    else:
+    else: # perform clustered dataset split
         print("Splitting into clustered datasets")
         kfold = LeaveOneGroupOut()       
+        # same as shuffled but using sklearn.metrics leavonegroupout function
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
+            # here the test is from groups not in train,
+            # the validation is comming from the same group as train.
             train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
 
             train_subset = Subset(dataset, train_idx) 
@@ -226,6 +245,7 @@ test_dataloader = split["test_dataloader"]
 # TRAIN THE MODEL
 #----------------
 
+# instantiate the model class
 input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
 model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
 
@@ -257,8 +277,8 @@ for e in range(epochs):
         best_model["validation_rate"] = val_accuracy
         best_model["best_epoch"] = e
 
-    # train the model
-    train_f(train_dataloader, model, loss_fn, optimizer,e)
+    # train the model over one epoch
+    train_f(train_dataloader, model, loss_fn, optimizer)
 print(f"Training on {rank} finished.")
 
 # save the model:
