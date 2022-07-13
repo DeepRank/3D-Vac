@@ -62,15 +62,16 @@ def getPilotTargets(pdbs_list, csv_file_path):
 
 if __name__ == "__main__":
 
-	# modify here
-	run_day = '11072022'
+	####### please modify here #######
+	run_day = '13072022'
 	project_folder = '/projects/0/einf2380/'
 	data = 'pMHCI'
 	task = 'BA'
 	resolution = 'residue' # either 'residue' or 'atomic'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
-	interface_distance_cutoff = 8.5 # max distance in Ångström between two interacting residues/atoms of the two proteins
-	######
+	interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
+	process_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+	##################################
 
 	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
@@ -113,6 +114,6 @@ if __name__ == "__main__":
 	print(f'Queries created and ready to be processed.\n')
 	
 	# Note that preprocess() has also process_count parameter, that by default takes all available cpu cores.
-	# In Snellius' single node case, it takes 128 cpu cores, so it will generate 128 .hdf5 files.
-	output_paths = preprocess(feature_modules, queries, f'{output_folder}/preprocessed-data')
+	# BUT on Snellius the default will allocate 1 cpu core per task. Remember to set --cpus-per-task properly in the .sh script.
+	output_paths = preprocess(feature_modules, queries, f'{output_folder}/preprocessed-data', process_count)
 	print(f'Processing is done. hdf5 files generated are in {output_folder}.')
