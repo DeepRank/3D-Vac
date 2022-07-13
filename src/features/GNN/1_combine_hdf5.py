@@ -30,13 +30,13 @@ def add_hdf5(input_hdf5, key, output_hdf5):
 
 if __name__ == "__main__":
 
-	# modify here
-	run_day = '08072022'
+	####### please modify here #######
+	run_day = '13072022'
 	project_folder = '/projects/0/einf2380/'
 	data = 'pMHCI'
 	task = 'BA'
 	resolution = 'residue' # either 'residue' or 'atomic'
-	######
+	##################################
 
 	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
 	output_file_name=f'{resolution}.hdf5'
