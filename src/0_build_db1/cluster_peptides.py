@@ -5,6 +5,7 @@ import pickle
 import scipy.cluster.hierarchy as sch
 import time
 import Bio.Align
+
 from joblib import Parallel, delayed
 from math import ceil
 import pandas as pd
@@ -17,7 +18,7 @@ arg_parser = argparse.ArgumentParser(description=" \
     At the end of execution, dumps the clusters into clusters.pkl file. \
     The pkl file is made of --clusters number of lists containaing {peptide,ba_value} objects. \
     ")
-
+    
 arg_parser.add_argument(
     "--class","-c",
     help="pMHC class",
@@ -36,11 +37,13 @@ arg_parser.add_argument("--n_of_clusters", "-n",
     type=int,
     default=10
 )
+
 arg_parser.add_argument("--matrix", "-m",
     help="Matrix to use, default is the PAM250. Other matrices can be added",
     choices=["PAM250", "PAM30"],
     default="PAM250",
 )
+
 arg_parser.add_argument("--outplots", "-o",
     help="Creates the dendogram and the elbow graph if true. Default no.",
     action="store_true",
@@ -86,7 +89,8 @@ def get_pepts_dist(pept1, pept2, subt_matrix):
 def get_scores(matrix, batch, peptides):
     # Calculate distance between each peptide
     score_array = [] ### [ AB, AC, AD, AE, BC, BD, BE, CD, CE, DE]
-    subt_matrix = Bio.Alignsubstitution_matrices.load(matrix)
+    
+    subt_matrix = Bio.Align.substitution_matrices.load(matrix)
 
     for i, pept1 in batch:
         for j in range(i+1, len(peptides)):
@@ -96,7 +100,6 @@ def get_scores(matrix, batch, peptides):
             score_array.append((i, score))
 
     return score_array
-
 
 def align_and_get_scores(matrix, batch, peptides):
     score_array = [] ### [ AB, AC, AD, AE, BC, BD, BE, CD, CE, DE]
@@ -116,6 +119,7 @@ def get_score_matrix(peptides, n_jobs, matrix):
     peptides = sorted(list(set(peptides)))
 
     batches = split_in_indexed_batches(peptides, n_jobs)
+
 
     arrays = Parallel(n_jobs=n_jobs, verbose=1)(delayed(align_and_get_scores)(matrix, batch, peptides) for batch in batches)
     arrays = [sorted(a, key=lambda x:x[0]) for a in arrays]
@@ -301,6 +305,7 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     return clst_dct
 
 csv_path = f"../../data/external/processed/{a.file}"
+
 df = pd.read_csv(csv_path)
 
 # peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are
