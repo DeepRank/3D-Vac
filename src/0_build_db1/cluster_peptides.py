@@ -4,7 +4,8 @@ import os.path
 import pickle
 import scipy.cluster.hierarchy as sch
 import time
-from Bio.Align import substitution_matrices
+import Bio.Align
+
 from joblib import Parallel, delayed
 from math import ceil
 import pandas as pd
@@ -17,27 +18,38 @@ arg_parser = argparse.ArgumentParser(description=" \
     At the end of execution, dumps the clusters into clusters.pkl file. \
     The pkl file is made of --clusters number of lists containaing {peptide,ba_value} objects. \
     ")
+    
 arg_parser.add_argument(
-    "--file","-f",
-    help="Name of the DB1 in data/external/processed",
-    required=True
+    "--class","-c",
+    help="pMHC class",
+    choices=["pMHCI", "pMHCII"],
+    #required=True
+    default='pMHCII'
 )
-arg_parser.add_argument("--clusters", "-c",
+
+arg_parser.add_argument("--file","-f",
+    help="Name of the DB1 in data/external/processed",
+    #required=True
+    default='IDs_BA_DRB0101_MHCII_clusters.csv'
+)
+arg_parser.add_argument("--n_of_clusters", "-n",
     help="Maximum number of clusters. A threshold will be calculated to reach the closest number of clusters.",
     type=int,
     default=10
 )
-arg_parser.add_argument("--matrix", "-m", 
+
+arg_parser.add_argument("--matrix", "-m",
     help="Matrix to use, default is the PAM250. Other matrices can be added",
     choices=["PAM250", "PAM30"],
     default="PAM250",
 )
-arg_parser.add_argument("--make-graphs", "-e",
-    help="Creates the dendogram and the elbow graph. Default no.",
+
+arg_parser.add_argument("--outplots", "-o",
+    help="Creates the dendogram and the elbow graph if true. Default no.",
     action="store_true",
-    default=False,
+    default=False
 )
-arg_parser.add_argument("--njobs", "-n",
+arg_parser.add_argument("--njobs", "-j",
     help="Defines the number of jobs to launch for the matrix generation. Default 1.",
     default=1,
     type=int
@@ -77,7 +89,8 @@ def get_pepts_dist(pept1, pept2, subt_matrix):
 def get_scores(matrix, batch, peptides):
     # Calculate distance between each peptide
     score_array = [] ### [ AB, AC, AD, AE, BC, BD, BE, CD, CE, DE]
-    subt_matrix = substitution_matrices.load(matrix)
+    
+    subt_matrix = Bio.Align.substitution_matrices.load(matrix)
 
     for i, pept1 in batch:
         for j in range(i+1, len(peptides)):
@@ -88,12 +101,27 @@ def get_scores(matrix, batch, peptides):
 
     return score_array
 
+def align_and_get_scores(matrix, batch, peptides):
+    score_array = [] ### [ AB, AC, AD, AE, BC, BD, BE, CD, CE, DE]
+    aligner = Bio.Align.PairwiseAligner()
+    aligner.substitution_matrix = Bio.Align.substitution_matrices.load(matrix)
+
+    for i, pept1 in batch:
+        for j in range(i+1, len(peptides)):
+            pept2 = peptides[j]
+
+            score = aligner.align(pept1, pept2).score
+            score_array.append((i, score))
+
+    return score_array
+
 def get_score_matrix(peptides, n_jobs, matrix):
     peptides = sorted(list(set(peptides)))
 
     batches = split_in_indexed_batches(peptides, n_jobs)
 
-    arrays = Parallel(n_jobs=n_jobs, verbose=1)(delayed(get_scores)(matrix, batch, peptides) for batch in batches)
+
+    arrays = Parallel(n_jobs=n_jobs, verbose=1)(delayed(align_and_get_scores)(matrix, batch, peptides) for batch in batches)
     arrays = [sorted(a, key=lambda x:x[0]) for a in arrays]
 
     score_array = []
@@ -103,8 +131,74 @@ def get_score_matrix(peptides, n_jobs, matrix):
 
     return score_array
 
+def plot_dendrogram(score_array, already_linked=False,
+                    threshold=None, peptides=None,
+                    outplot=False, matrix=None):
+
+    if already_linked:
+        result = score_array
+
+    else:
+        #Convert the distances in a score array
+        dist_array = []
+        top = max(score_array)
+        for x in score_array:
+            y = top + 1 - x
+            dist_array.append(y)
+        array = np.asarray(dist_array)
+
+        #Calculate linkage between peptides (i.e. the dendrogram)
+        result = sch.linkage(array, method='complete')
+
+
+    #Plot dendrogram
+    plt.figure(figsize=(60, 20))
+    plt.title('Peptides Hierarchical Clusterization')
+    plt.xlabel('Peptides')
+    plt.ylabel('Distance')
+    if not peptides:
+        peptides = None
+    print('RESULT: ', result)
+    sch.dendrogram(
+        result,
+        leaf_rotation=90.,  # rotates the x axis labels
+        leaf_font_size=8.,  # font size for the x axis labels
+        show_contracted=True
+    )
+
+    #plt.plot(X, Y, 'ro', ratios, 'b-')
+    if threshold:
+        plt.axhline(threshold, color='r')
+    #plt.xlim(5, 30)
+    #plt.ylim(0, 400)
+    if type(outplot) == str:
+        plt.savefig(outplot + f'dendrogram.png', dpi=200)
+        plt.clf()
+    elif type(outplot) == bool and outplot == True:
+        plt.show()
+        plt.clf()
+
+
+def plot_elbow(result, matrix, outplot):
+    last = result[:,2]
+    Y = last[::-1]
+    idxs = np.arange(1, len(last)+1)
+    plt.plot(idxs,Y)
+    plt.xlabel("Distance index")
+    plt.ylabel("Distance")
+    plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
+    if type(outplot) == str:
+        plt.savefig(outplot + f'elbow.png', dpi=200)
+        plt.clf()
+        print(f"Elbow figure saved in reports/figures/elbow_{matrix}.png")
+    elif type(outplot) == bool and outplot == True:
+        plt.show()
+        plt.clf()
+
+
 def cluster_peptides(peptides, n_clusters, frag_len = 9,
-                     matrix='PAM30', n_jobs=1,):
+                     matrix='PAM30', outplot = None, n_jobs=1,
+                     make_graphs=False):
     """
     Calculates evolutionary distance (with a substitution matrix) within a set of peptides.
     Uses this distances to generate a dendrogram and cluster the pepties.
@@ -147,31 +241,36 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     t4 = time.time()
 
     #Plot dendrogram
-    if a.make_graphs:
-        plt.figure(figsize=(60, 20))
-        plt.title('Peptides Hierarchical Clusterization')
-        plt.xlabel('Peptides')
-        plt.ylabel('Distance')
-        sch.dendrogram(
-            result,
-            leaf_rotation=90.,  # rotates the x axis labels
-            leaf_font_size=8.,  # font size for the x axis labels
-            show_contracted=True,
-            labels = peptides
-        )
+    if make_graphs:
+        print('RESULT: ', result)
+        plot_dendrogram(result, already_linked=True,
+                        outplot=outplot, matrix=matrix,
+                        peptides=None)
+        # plt.figure(figsize=(60, 20))
+        # plt.title('Peptides Hierarchical Clusterization')
+        # plt.xlabel('Peptides')
+        # plt.ylabel('Distance')
+        # sch.dendrogram(
+        #     result,
+        #     leaf_rotation=90.,  # rotates the x axis labels
+        #     leaf_font_size=8.,  # font size for the x axis labels
+        #     show_contracted=True,
+        #     labels = peptides
+        # )
+        #
+        # plt.savefig(f"../../reports/figures/{a.file}_dendogram_{matrix}.png", dpi=200)
 
-        plt.savefig(f"../../reports/figures/{a.file}_dendogram_{matrix}.png", dpi=200)
-
-    if a.make_graphs:
-        last = result[:,2]
-        Y = last[::-1]
-        idxs = np.arange(1, len(last)+1)
-        plt.plot(idxs,Y)
-        plt.xlabel("Distance index")
-        plt.ylabel("Distance")
-        plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
-        plt.savefig(f"../../reports/figures/elbow_{matrix}.png")
-        print(f"Elbow figure saved in reports/figures/{a.file}_elbow_{matrix}.png")
+    if make_graphs:
+        plot_elbow(result, matrix, outplot)
+        # last = result[:,2]
+        # Y = last[::-1]
+        # idxs = np.arange(1, len(last)+1)
+        # plt.plot(idxs,Y)
+        # plt.xlabel("Distance index")
+        # plt.ylabel("Distance")
+        # plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
+        # plt.savefig(f"../../reports/figures/elbow_{matrix}.png")
+        # print(f"Elbow figure saved in reports/figures/{a.file}_elbow_{matrix}.png")
 
     t5 = time.time()
     #Produce clusters using the given threshold
@@ -206,23 +305,27 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     return clst_dct
 
 csv_path = f"../../data/external/processed/{a.file}"
-df = pd.read_csv(csv_path) 
 
-# peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
+df = pd.read_csv(csv_path)
+
+# peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are
 # used as labels, different length between peptides and the actual number of clusters (unique sequences) lead to an error.
-peptides = sorted(list(set(df["peptide"].tolist()))) 
+peptides = sorted(list(set(df["peptide"].tolist())))
+#peptides = peptides[:100]
 
+outplot = f"../../reports/figures/{a.matrix}_{a.outplots}"
 clusters = cluster_peptides(
     peptides=peptides,
     matrix=a.matrix,
     n_jobs = a.njobs,
-    n_clusters = a.clusters
+    n_clusters = a.n_of_clusters,
+    outplot=outplot
 )
 
-if a.update_csv: 
+if a.update_csv:
     for idx,cluster in enumerate(clusters.keys()):
         for peptide in clusters[cluster]:
-            df.loc[df["peptide"] == peptide, "cluster"] = idx
+            df.loc[df["peptide"] == peptide, "cluster"] = int(idx)
     df.to_csv(csv_path, index=False)
 
-pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
+pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.n_of_clusters}_clusters.pkl", "wb"))

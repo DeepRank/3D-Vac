@@ -1,0 +1,7 @@
+data/pssm/blast_dbs/human_mhc.fasta
+	-human msa of HLA-A alleles
+	-location of the fasta:PANDORA/data/csv_pkl_files
+	-date of the fasta file: 02/28/2022
+	-source: IPD-IMGT
+blast database
+	-command to build the file: makeblastdb -in hla.fasta -dbtype prot
