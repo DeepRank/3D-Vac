@@ -5,8 +5,8 @@ from PANDORA.Wrapper import Wrapper
 from PANDORA.Database import Database
 from math import ceil
 from mpi4py import MPI
-import pandas as pd
 import multiprocessing
+import numpy as np
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -17,7 +17,7 @@ csv_path = "../../data/external/processed/to_model.csv"
 running_time = int(sys.argv[1])
 
 num_cores = 128
-#total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
+# total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
 cases_per_hour_per_node = 10*num_cores # 1536
 batch = cases_per_hour_per_node*running_time
 start_row = int(rank*batch)
@@ -45,8 +45,19 @@ wrap.create_targets(csv_path, db,
 t2 = time.time()
 print('Wrapper created')
 print(f"Time to predict anchors: {t2-t1}")
-## Run the models
-wrap.run_pandora(num_cores=num_cores, n_loop_models=20, 
+
+# Run the models
+wrap.run_pandora(num_cores=num_cores, n_loop_models=20, clip_C_domain=True, 
     benchmark=False)
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
+
+wrapping_time = t2-t1
+modelling_time = t3-t2
+
+wrapping_times = comm.gather(wrapping_time)
+modelling_times = comm.gather(modelling_time)
+
+if rank==0:
+    print("Average time to create wrappers: ", float(np.array(wrapping_times).mean()))
+    print("Average time to create models: ", float(np.array(modelling_times).mean()))

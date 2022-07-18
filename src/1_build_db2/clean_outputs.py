@@ -1,15 +1,31 @@
 import os
 from mpi4py import MPI
+import argparse
+import glob
+
+arg_parser = argparse.ArgumentParser(
+    description="""
+    Script used to clean the models from unecessary files after `modelling_job.py` has completed.
+    """
+)
+arg_parser.add_argument("--models-path", "-p",
+    help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
+    https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
+     Default value: \
+    /projects/0/einf2380/data/pMHCI/models/BA/*/*",
+    default = "/projects/0/einf2380/data/pMHCI/models/test/BA/*/*"
+)
+a = arg_parser.parse_args()
+
+folders = glob.glob(a.models_path)
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-output_dir = '/projects/0/einf2380/data/pMHCI/models/test/BA'
 
-folders = os.listdir(output_dir)
 step = int(len(folders)/size)
-start = int(rank*step)
+start = int(rank*step+1)
 end = int((rank+1)*step)
 
 if rank != size-1:
@@ -17,16 +33,15 @@ if rank != size-1:
 else:
     cut_folders = folders[start:]
 
-for case in cut_folders:
-    case_path = output_dir + '/%s' %case
-    case_id = "_".join(case.split('_')[0:2])#.split('Target')[1]
-    os.system('rm %s/%s.DL*' %(case_path, case_id))
-    os.system('rm %s/%s.B99990001.pdb' %(case_path, case_id))
-    os.system('rm %s/%s.V99990001' %(case_path, case_id))
-    os.system('rm %s/%s.D00000001' %(case_path, case_id))
-    os.system('rm %s/results_%s.pkl' %(case_path, case))
-    os.system('rm -r %s/__pycache__/' %case_path)
-    os.system('rm %s/*.lrsr' %case_path)
-    os.system('rm %s/*.rsr' %case_path)
-    os.system('rm %s/*.sch' %case_path)
-    os.system('rm %s/modeller_ini.log' %case_path)
+for folder in cut_folders:
+    os.system(f"rm {folder}/*.DL*")
+    os.system(f'rm {folder}/*.B99990001.pdb')
+    os.system(f'rm {folder}/*.V99990001')
+    os.system(f'rm {folder}/*.D00000001')
+    os.system(f'rm -r {folder}/__pycache__/')
+    os.system(f'rm {folder}/*.lrsr')
+    os.system(f'rm {folder}/*.rsr')
+    os.system(f'rm {folder}/*.sch')
+    os.system(f'rm {folder}/modeller_ini.log')
+
+print(f"Cleaning on {rank} finished.")

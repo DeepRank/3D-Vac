@@ -5,7 +5,7 @@
 #SBATCH -n 128
 #SBATCH --time 01:00:00
 #SBATCH --export=NONE
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/clean_outputs.out
+#SBATCH -o /projects/0/einf2380/data/modelling_logs/clean_models_job.out
 
 # Load modules for MPI:
 module load 2021

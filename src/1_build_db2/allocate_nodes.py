@@ -2,6 +2,7 @@ import pandas as pd
 import argparse
 import math
 import subprocess
+import re
 
 arg_parser = argparse.ArgumentParser(
     description="This script is used to calculate the number of necessary nodes to call based on the total number of \
@@ -29,17 +30,24 @@ batch = cases_per_hour_per_node*int(a.running_time)
 n_nodes = math.ceil(tot_cases/batch)
 
 # additional hours are added to the running time to be sure every anchors is predicted
-additional_hours = int(cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
+additional_hours = int(batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
 sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
-print(additional_hours)
-print(sbatch_hours)
+print("additional hours:", additional_hours)
+print("total running time (in hours):", sbatch_hours)
 
-# subprocess.run(
-#     [
-#         "sbatch",
-#         f"--nodes={n_nodes}",
-#         f"--time={sbatch_hours}:00:00",
-#         "modelling_job.sh",
-#         str(a.running_time), 
-#     ]
-# )
+modeling_job_stdout = subprocess.check_output([
+    "sbatch",
+    f"--nodes={n_nodes}",
+    f"--time={sbatch_hours}:00:00",
+    "modelling_job.sh",
+    str(a.running_time), 
+]).decode("ASCII")
+
+jid = int(re.search(r"\d+", modeling_job_stdout).group())
+
+# after the modelling job ended, run the cleaning job:
+subprocess.run([
+    "sbatch",
+    f"--dependency=afterany:{jid}",
+    "clean_outputs.sh"
+])
