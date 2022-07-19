@@ -42,6 +42,5 @@ for folder in cut_folders:
     os.system(f'rm {folder}/*.lrsr')
     os.system(f'rm {folder}/*.rsr')
     os.system(f'rm {folder}/*.sch')
-    os.system(f'rm {folder}/modeller_ini.log')
 
 print(f"Cleaning on {rank} finished.")
