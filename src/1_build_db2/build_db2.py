@@ -42,7 +42,8 @@ if a.skip_check == False:
         [
             "sbatch", 
             "get_unmodelled_cases.sh",
-            "-f", a.input_csv
+            "-f", a.input_csv,
+            "-u" # this argument is mandatory to overwrite `to_model.csv`
         ]
     ).decode("ASCII");
 
