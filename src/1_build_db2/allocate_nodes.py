@@ -15,6 +15,9 @@ arg_parser.add_argument("--running-time", "-t",
     help="Number of hours spawned jobs will run. default 01.",
     default="01",
 )
+arg_parser.add_argument("--input-csv", "-i",
+    help="This argument allows to keep track of the db1 after modelling to check how many models are left."
+)
 a = arg_parser.parse_args()
 
 csv_path = "../../data/external/processed/to_model.csv"
@@ -43,11 +46,20 @@ modeling_job_stdout = subprocess.check_output([
     str(a.running_time), 
 ]).decode("ASCII")
 
-jid = int(re.search(r"\d+", modeling_job_stdout).group())
+modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 
 # after the modelling job ended, run the cleaning job:
+clean_output_job_stdout = subprocess.check_output([
+    "sbatch",
+    f"--dependency=afterany:{modelling_job_id}",
+    "clean_outputs.sh"
+]).decode("ASCII")
+
+clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
+
 subprocess.run([
     "sbatch",
-    f"--dependency=afterany:{jid}",
-    "clean_outputs.sh"
+    f"--dependency=afterany:{clean_output_job_id}",
+    "get_unmodelled_cases.sh",
+    "-f", a.input_csv
 ])
