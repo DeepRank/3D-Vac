@@ -7,11 +7,20 @@ import pandas as pd
 arg_parser = argparse.ArgumentParser(description="Script used to generate a list of unmodelled p:MHC complexes by comparing \
 the output folder and the initial db1. A case is considered modelled if 19 pdb structures were generated. Here 19 is the \
 threshold because modeller sometimes is able to generate only 19/20 in very extreme cases (6 out of 11K cases). Therefore, \
-even extreme cases are considered modelled.")
+even extreme cases are considered modelled. The logs on how much cases are still to model is available at the printed logs \
+which is at project_folder/data/modelling_logs/clean_models_job.log")
 
 arg_parser.add_argument("--csv-file", "-f",
     help="Path to db1 containing the p:MHC complexes to model.",
     default="BA_pMHCI.csv",
+)
+
+arg_parser.add_argument("--update-csv", "-u",
+    help="If this argument is provided, the `to_model.csv` file is updated with the unmodelled cases and the number \
+    of cases to model is printed into the log file. If not provided, it prints the number of cases to model without \
+    updating the `to_model.csv`",
+    default=False,
+    action="store_true"
 )
 
 a = arg_parser.parse_args()
@@ -34,5 +43,6 @@ print(f"Initial number of cases: {all_cases}")
 print(f'Unmodelled: {len(df)}')
 
 # #3. Write new input file without cases already modelled.
-df.to_csv("../../data/external/processed/to_model.csv", index=False) # the initial list of cases without the modelled cases
+if a.update_csv:
+    df.to_csv("../../data/external/processed/to_model.csv", index=False) # the initial list of cases without the modelled cases
 # is returned
