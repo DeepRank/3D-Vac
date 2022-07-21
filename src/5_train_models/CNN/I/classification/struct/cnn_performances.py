@@ -3,11 +3,10 @@ import os.path as path
 import os
 import sys
 sys.path.append(path.abspath("../../../../"))
-from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
 from CNN.models import CnnClassificationBaseline
 # import multiprocessing as mp
 from mpi4py import MPI
-from deeprank.learn import DataSet, NeuralNet
+from deeprank.learn import NeuralNet
 from deeprank.learn.modelGenerator import *
 
 # DEFINE CLI ARGUMENTS
@@ -73,10 +72,8 @@ model = NeuralNet(test_db,
     model = CnnClassificationBaseline,
     cuda = bool(a.with_cuda),
     ngpu = (0,1)[a.with_cuda],
-    plot = True,
-    save_classmetrics = True,
     outdir = outdir,
-    pretrained_model=a.splits_path
+    pretrained_model=f"./trained_models/{a.output_dir}/{rank}/best_test_model.pth.tar"
 )
 
 model.test()
