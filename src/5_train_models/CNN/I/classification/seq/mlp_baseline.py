@@ -9,12 +9,12 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
 from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
-from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used for normal cross validation
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
+from torchsummary import summary
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -248,6 +248,9 @@ test_dataloader = split["test_dataloader"]
 # instantiate the model class
 input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
 model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
+
+if rank==0:
+    summary(model, input_size=(input_dimensions, 1, 1))
 
 loss_fn = nn.CrossEntropyLoss()        
 optimizer = torch.optim.Adam(model.parameters())

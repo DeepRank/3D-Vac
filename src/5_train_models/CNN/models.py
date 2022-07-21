@@ -83,5 +83,5 @@ class MlpRegBaseline(nn.Module):
             nn.Linear(neurons_per_layer, outputs),
         )
     def forward(self,x):
-        x = x.permute((0,2,1))
+        # x = x.permute((0,2,1))
         return self.architecture(x)
