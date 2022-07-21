@@ -9,7 +9,6 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
 from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
-from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used for normal cross validation
