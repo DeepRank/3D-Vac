@@ -94,6 +94,15 @@ python src/build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 * Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
 * Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
 
+### Step 1: Generating pdb structures
+#### 1.1: Building DB2 from DB1
+```
+python src/1_build_db2/build_db2.py -i BA_pMHCI.csv --running-time 02
+```
+* Inputs: generated db1 in `data/external/processed`.
+* Output: models in the `models` folder.
+* Run `python src/1_build_db2/build_db2.py --help` for more details on how the script works.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
