@@ -103,6 +103,12 @@ python src/1_build_db2/build_db2.py -i BA_pMHCI.csv --running-time 02
 * Output: models in the `models` folder.
 * Run `python src/1_build_db2/build_db2.py --help` for more details on how the script works.
 
+### Step 2: Generating db3
+#### 1.1: Building the blast database
+* Make sure `blast` is installed. Download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`.
+* Copy the human MHC sequence fasta file from `/PANDORA_installation_folder/PANDORA_files/data/csv_pkl_files/hla_prot.fasta` into `data/pssm/blast_dbs/`.
+* Run `src/2_build_db3/PSSM/build_blastdb.sh`.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
