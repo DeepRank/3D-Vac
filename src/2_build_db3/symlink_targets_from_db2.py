@@ -5,6 +5,7 @@ import pickle
 import os
 from mpi4py import MPI
 import numpy as np
+import re
 
 conn = MPI.COMM_WORLD
 size = conn.Get_size()
@@ -68,8 +69,8 @@ for case in db2:
 for structure in db2_targets:
     # attempt to create subfolders:
         dir = "/".join(structure.split("/")[-4:-1])
-        pdf_file = structure.split("/")[-1]
-        symlink_dir = f"{db2_selected_models_path}/{dir}"
+        pdf_file = structure.split("/")[-1].replace("_", "-")
+        symlink_dir = f"{db2_selected_models_path}/{dir}/pdb"
         symlink_path = f"{symlink_dir}/{pdf_file}"
         try: # create remaining subfolders:
             os.makedirs(symlink_dir); 
