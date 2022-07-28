@@ -13,4 +13,4 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-srun python -u ./create_raw_pssm.py
+srun python -u create_raw_pssm.py
