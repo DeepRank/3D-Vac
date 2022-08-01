@@ -112,7 +112,7 @@ if __name__ == "__main__":
     #with open('../binding_data/pMHCII/IDs_BA_MHCII.csv', 'w') as outcsv:
     with open(a.output_csv, 'w') as outcsv:
         header = ['ID', 'peptide', 'allele', 
-                'score', 'measurment', 'output_folder']
+                'score', 'measurment', 'db2_folder']
         outcsv.write((',').join(header) + '\n')
         for i, case in enumerate(ba_values):
             index = i + 1

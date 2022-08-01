@@ -55,13 +55,19 @@ PDB_path = a.db_path.split('/data/')[0] + '/data/PDBs'
 db.repath(PDB_path, save=False)
 print('Database repathed')            
 
+
+#find outdir column
+with open(a.csv_path, 'r') as f:
+    header = f.readline()
+    outdir_col = header.replace('/n','').split(',').index('db2_folder')
+
 #Create targets
 t1 = time.time()
 wrap = Wrapper.Wrapper()
 wrap.create_targets(a.csv_path, db, 
-    MHC_class=a.mhc_class, header=True, delimiter=',', IDs_col=8, 
-    peptides_col=1, allele_col=0, outdir_col=-1, benchmark=False, verbose=False,
-    start_row=start_row, end_row=end_row, use_netmhcpan=True
+    MHC_class=a.mhc_class, header=True, delimiter=',', IDs_col=0,
+    peptides_col=2, allele_col=1, outdir_col=outdir_col, benchmark=False, 
+    verbose=False, start_row=start_row, end_row=end_row, use_netmhcpan=True
 )
 t2 = time.time()
 print('Wrapper created')
