@@ -14,5 +14,5 @@ module load foss/2021a
 # Load conda environment
 source activate deeprank
 
-# Usage: srun python -u clean_outputs.py
-srun python -u clean_outputs.py
+# Usage: srun python -u clean_outputs.py -p <path_to_models/*/*>
+srun python -u clean_outputs.py "$@"
