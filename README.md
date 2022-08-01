@@ -51,24 +51,18 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │   |   
 |   ├── __init__.py     <- Makes src a Python module
 │   │
-│   ├── data            <- Scripts to download or generate data
-│   │   ├── make_dataset.py
-│   │   └── utils.py
+│   ├── 0_build_db1
+│   │   ├── generate_db1_I.sh
+│   │   └── generate_db1_II.sh <- Two main scripts to generate db1 (sequence/value dataset)
 │   │
-│   ├── features        <- Scripts to turn raw data into features for modeling
-│   │   ├── build_features.py
-│   │   └── utils.py
-│   │
-│   ├── models          <- Scripts to train models and then use trained models to make
-│   │   │                 predictions
-│   │   ├── predict_model.py
-│   │   ├── train_model.py
-│   │   └── utils.py
-|   |
-|   ├── pilot_study     <- Structure available in the README of the folder
+│   ├── 1_build_db2
+│   │   ├── build_db2_I.sh
+│   │   ├── build_db2_II.sh <- Two main scripts to generate db2 (3D models dataset)
+│   │   └── clean_outputs.sh <- cleaning script to be run after generating db2
 │   │
 │   ├── tools
-│   │   └── other_utils.py
+│   │   ├── clip_C_domain_mhcII.py <- (obsolete) script to clip away the C-domain from all MHC-II generate models
+│   │   └── run_single_case.py <- Utility to run only one 3D modelling in case one or few are missing
 │   │
 │   └── visualization   <- Scripts to create exploratory and results oriented visualizations
 │       └── visualize.py
