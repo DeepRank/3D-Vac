@@ -19,7 +19,7 @@ arg_parser = argparse.ArgumentParser(description=" \
     ")
 arg_parser.add_argument(
     "--file","-f",
-    help="Name of the DB1 in data/external/processed",
+    help="Name of the DB1 file.",
     required=True
 )
 arg_parser.add_argument("--clusters", "-c",
@@ -46,6 +46,11 @@ arg_parser.add_argument("--update-csv", "-u",
     help="This option allows to either add/update the `cluster` column in db1.",
     default=False,
     action="store_true"
+)
+arg_parser.add_argument("--peptides-length", "-l",
+    help="Peptides to be clustered length",
+    default=9,
+    type=int
 )
 a = arg_parser.parse_args()
 
@@ -160,7 +165,8 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
             labels = peptides
         )
 
-        plt.savefig(f"../../reports/figures/{a.file}_dendogram_{matrix}.png", dpi=200)
+        plt.savefig(f"../../reports/figures/{filename}_dendogram_{matrix}.png", dpi=200)
+        plt.clf()
 
     if a.make_graphs:
         last = result[:,2]
@@ -171,7 +177,8 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
         plt.ylabel("Distance")
         plt.title(f"Ranked distances between dendogram clusters for the {matrix} matrice")
         plt.savefig(f"../../reports/figures/elbow_{matrix}.png")
-        print(f"Elbow figure saved in reports/figures/{a.file}_elbow_{matrix}.png")
+        plt.clf()
+        print(f"Elbow figure saved in reports/figures/{filename}_elbow_{matrix}.png")
 
     t5 = time.time()
     #Produce clusters using the given threshold
@@ -193,7 +200,8 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
         mtf_lst[(int(number))] = [[] for j in range(frag_len)]
         for i in range(frag_len):
             for frag in clst_dct[clst]:
-                mtf_lst[(int(number))][i].append(frag[i])
+                if len(frag) == frag_len:
+                    mtf_lst[(int(number))][i].append(frag[i])
             mtf_lst[(int(number))][i] = list(set(mtf_lst[(int(number))][i]))
 
     t6 = time.time()
@@ -205,7 +213,8 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     print('Clusters:', t6-t5)
     return clst_dct
 
-csv_path = f"../../data/external/processed/{a.file}"
+filename = a.file.split('/')[-1].split('.')[0]
+csv_path = a.file
 df = pd.read_csv(csv_path) 
 
 # peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
@@ -216,13 +225,14 @@ clusters = cluster_peptides(
     peptides=peptides,
     matrix=a.matrix,
     n_jobs = a.njobs,
-    n_clusters = a.clusters
+    n_clusters = a.clusters,
+    frag_len = a.peptides_length
 )
 
 if a.update_csv: 
     for idx,cluster in enumerate(clusters.keys()):
         for peptide in clusters[cluster]:
-            df.loc[df["peptide"] == peptide, "cluster"] = idx
+            df.loc[df["peptide"] == peptide, "cluster"] = int(idx)
     df.to_csv(csv_path, index=False)
 
-pickle.dump(clusters, open(f"../../data/external/processed/{a.file}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
+pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
