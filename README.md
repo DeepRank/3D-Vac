@@ -49,16 +49,46 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │
 ├──src                 <- Source code for use in this project.
 │   |   
-|   ├── __init__.py     <- Makes src a Python module
+│   ├── __init__.py     <- Makes src a Python module
 │   │
 │   ├── 0_build_db1
-│   │   ├── generate_db1_I.sh
-│   │   └── generate_db1_II.sh <- Two main scripts to generate db1 (sequence/value dataset)
+│   │   ├── generate_db1_I.sh <- Main scripts to generate db1 for MHC-I
+│   │   │ 
+│   │   ├── generate_db1_II.sh <- Main scripts to generate db1 for MHC-II
+│   │   │
+│   │   ├── generate_db1_II.py 
+│   │   │
+│   │   ├── generate_db1_I.py
+│   │   │
+│   │   ├── cluster_peptides_drb10101.sh 
+│   │   │
+│   │   ├── cluster_peptides.py
+│   │   │
+│   │   ├── db1_to_db2_path.py <- Contains function to assign db2 folder per each case. The rest is obsolete and has been replaced by generate_db1_II.sh + generate_db1_subset.py
+│   │   │
+│   │   └── generate_db1_subset.py <- Generates a subset csv starting from a db1 csv
 │   │
 │   ├── 1_build_db2
-│   │   ├── build_db2_I.sh
-│   │   ├── build_db2_II.sh <- Two main scripts to generate db2 (3D models dataset)
-│   │   └── clean_outputs.sh <- cleaning script to be run after generating db2
+│   │   ├── build_db2_I.sh <- Main script to generate db2 for MHC-I
+│   │   │
+│   │   ├── build_db2_II.sh <- Main script to generate db2 for MHC-II
+│   │   │
+│   │   ├── build_db2.py <- Code to generate a db2. Can be used either for MHC-I and -II, and has to be submitted with a bash script
+│   │   │
+│   │   ├── clean_outputs.py <- cleaning script to be run after generating db2
+│   │   │
+│   │   ├── clean_outputs.sh <- Runs clean_output.py. NOTE: To be manually run after the modelling.
+│   │   │
+│   │   ├── allocate_nodes.py <- Decides how many nodes to allocate and starts modelling jobs
+│   │   ├── allocate_nodes.sh <- Runs allocate_nodes.py. It is run by build_db2_*.sh
+│   │   │
+│   │   ├── get_unmodelled_cases.py <- Gets how many of the total cases in the db provided have been modelled, and how many still need to be modelled.
+│   │   │
+│   │   ├── get_unmodelled_cases.sh <- get_unmodelled_cases.py. It is run by build_db2_*.sh
+│   │   │
+│   │   ├── modelling_job.py <- Actual 3D modelling job containing the PANDORA Wrapper. It is submitted in parallel accross multiple nodes by allocate_nodes.py
+│   │   │
+│   │   └── modelling_job.sh <- Runs modelling_job.py. It is run by build_db2_*.sh
 │   │
 │   ├── tools
 │   │   ├── clip_C_domain_mhcII.py <- (obsolete) script to clip away the C-domain from all MHC-II generate models
