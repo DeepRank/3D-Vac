@@ -72,6 +72,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 ## How to run the pipeline for the pilot dataset:
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
+DB1 contains all sequences of pMHC-I (DB1-I) and pMHC-II (DB1-II) and their experimental Binding Affinities (BAs).
 ```
 python src/0_build_db1/generate_db1_I.py --source-csv curated_training_data.no_additional_ms.csv --P 9 --allele HLA-A*02:01 --output-csv BA_pMHCI.csv
 ```
@@ -90,6 +91,7 @@ python src/build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 
 ### Step 1: Generating pdb structures
 #### 1.1: Building DB2 from DB1
+DB2 contains structural 3D models (output of Pandora, pdb structures) for: pMHC-I in DB1-I (DB2-I), and pMHC-II in DB1-II (DB2-II). DB1-I and DB1-II are input of Pandora. 
 ```
 python src/1_build_db2/build_db2.py -i BA_pMHCI.csv --running-time 02
 ```
