@@ -17,11 +17,11 @@ arg_parser = argparse.ArgumentParser(
 arg_parser.add_argument(
     "--source-csv", "-f",
     help="Name of the MHCflurry dataset csv file in data/external/unprocessed if different from the default.",
-    default="curated_training_data.no_additional_ms.csv"
+    default="../../data/external/unprocessed/curated_training_data.no_additional_ms.csv"
 )
 arg_parser.add_argument(
     "--output-csv", "-d",
-    help="Name of destination csv with filtered entries. If provided, will be saved in data/external/processed. \
+    help="Name of destination csv with filtered entries. If provided, will be saved. \
     Otherwise this script can be used to visualize the applied filters.",
     default = None
 )
@@ -52,9 +52,9 @@ a = arg_parser.parse_args();
 # build the authorized alleles list based on arguments provided
 rows = [];
 
-input_csv_df = pd.read_csv(f"../../data/external/unprocessed/{a.source_csv}")
+input_csv_df = pd.read_csv(f"{a.source_csv}")
 ids = list(range(len(input_csv_df)))
-input_csv_df["ID"] = [f"{a.prefix}_{id+1}" for id in ids] # give an ID to each entry
+input_csv_df.insert(0, column="ID", value=[f"{a.prefix}_{id+1}" for id in ids]) # give an ID to each entry
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
 input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
@@ -79,7 +79,7 @@ if a.peptide_length > 0:
 
 #save the csv:
 if a.output_csv:
-    output_csv_df.to_csv(f"../../data/external/processed/{a.output_csv}", index=False)
+    output_csv_df.to_csv(f"{a.output_csv}", index=False)
     print(f"file {a.output_csv} with {len(output_csv_df)} entries saved in data/external/processed/")
 else:
     print(output_csv_df)
