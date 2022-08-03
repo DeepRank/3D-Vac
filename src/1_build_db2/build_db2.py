@@ -21,7 +21,7 @@ arg_parser.add_argument("--running-time", "-t",
     default = "01",
 )
 arg_parser.add_argument("--input-csv", "-i",
-    help = "db1 file name in data/external/processed. No default value. Required.",
+    help = "db1 file path. No default value. Required.",
     required = True,
 )
 arg_parser.add_argument("--skip-check", "-s",
@@ -30,10 +30,20 @@ arg_parser.add_argument("--skip-check", "-s",
     default = False,
     action = "store_true"
 )
+arg_parser.add_argument("--models-dir", "-m",
+    help="Path to the BA or EL folder where the models are generated",
+    default="/projects/0/einf2380/data/pMHCI/models/BA",
+)
+arg_parser.add_argument("--mhc-class", "-c",
+    help="MHC class of the cases",
+    choices=['I','II'],
+    required=True,
+)
 a = arg_parser.parse_args();
 
 
 running_time = a.running_time; #in hour
+to_model = ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
 
 # generate the to_model.csv containing all unmodelled cases from the input csv.  
 
@@ -43,7 +53,9 @@ if a.skip_check == False:
             "sbatch", 
             "get_unmodelled_cases.sh",
             "-f", a.input_csv,
-            "-u" # this argument is mandatory to overwrite `to_model.csv`
+            "-u", # this argument is mandatory to overwrite `to_model.csv`
+            "-m", a.models_dir,
+            "-t", to_model,
         ]
     ).decode("ASCII");
 
@@ -56,6 +68,8 @@ if a.skip_check == False:
             f"--dependency=afterany:{jid}",
             "allocate_nodes.sh",
             "-t", running_time,
+            "-m", a.mhc_class,
+            "-i", to_model,
         ]
     )
 else: 
@@ -64,5 +78,7 @@ else:
             "sbatch",
             "allocate_nodes.sh",
             "-t", running_time,
+            "-m", a.mhc_class,
+            "-i", to_model
         ]
     )
