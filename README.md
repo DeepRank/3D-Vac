@@ -47,14 +47,14 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │
 ├── .gitignore
 │
-├──src                 <- Source code for use in this project.
+├──src                             <- Source code for use in this project.
 │   |   
-│   ├── __init__.py     <- Makes src a Python module
+│   ├── __init__.py                <- Makes src a Python module
 │   │
 │   ├── 0_build_db1
-│   │   ├── generate_db1_I.sh <- Main scripts to generate db1 for MHC-I
+│   │   ├── 1_generate_db1_I.sh      <- Main scripts to generate db1 for MHC-I
 │   │   │ 
-│   │   ├── generate_db1_II.sh <- Main scripts to generate db1 for MHC-II
+│   │   ├── 1_generate_db1_II.sh     <- Main scripts to generate db1 for MHC-II
 │   │   │
 │   │   ├── generate_db1_II.py 
 │   │   │
@@ -64,23 +64,23 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │   │   │
 │   │   ├── cluster_peptides.py
 │   │   │
-│   │   ├── db1_to_db2_path.py <- Contains function to assign db2 folder per each case. The rest is obsolete and has been replaced by generate_db1_II.sh + generate_db1_subset.py
+│   │   ├── db1_to_db2_path.py     <- Contains function to assign db2 folder per each case. The rest is obsolete and has been replaced by generate_db1_II.sh + generate_db1_subset.py
 │   │   │
 │   │   └── generate_db1_subset.py <- Generates a subset csv starting from a db1 csv
 │   │
 │   ├── 1_build_db2
-│   │   ├── build_db2_I.sh <- Main script to generate db2 for MHC-I
+│   │   ├── 1_build_db2_I.sh         <- Main script to generate db2 for MHC-I
 │   │   │
-│   │   ├── build_db2_II.sh <- Main script to generate db2 for MHC-II
+│   │   ├── 1_build_db2_II.sh        <- Main script to generate db2 for MHC-II
 │   │   │
-│   │   ├── build_db2.py <- Code to generate a db2. Can be used either for MHC-I and -II, and has to be submitted with a bash script
+│   │   ├── build_db2.py           <- Code to generate a db2. Can be used either for MHC-I and -II, and has to be submitted with a bash script
 │   │   │
-│   │   ├── clean_outputs.py <- cleaning script to be run after generating db2
+│   │   ├── clean_outputs.py       <- cleaning script to be run after generating db2
 │   │   │
-│   │   ├── clean_outputs.sh <- Runs clean_output.py. NOTE: To be manually run after the modelling.
+│   │   ├── 2_clean_outputs.sh       <- Runs clean_output.py. NOTE: To be manually run after the modelling.
 │   │   │
-│   │   ├── allocate_nodes.py <- Decides how many nodes to allocate and starts modelling jobs
-│   │   ├── allocate_nodes.sh <- Runs allocate_nodes.py. It is run by build_db2_*.sh
+│   │   ├── allocate_nodes.py      <- Decides how many nodes to allocate and starts modelling jobs
+│   │   ├── allocate_nodes.sh      <- Runs allocate_nodes.py. It is run by build_db2_*.sh
 │   │   │
 │   │   ├── get_unmodelled_cases.py <- Gets how many of the total cases in the db provided have been modelled, and how many still need to be modelled.
 │   │   │
@@ -92,14 +92,17 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 │   │
 │   ├── tools
 │   │   ├── clip_C_domain_mhcII.py <- (obsolete) script to clip away the C-domain from all MHC-II generate models
-│   │   └── run_single_case.py <- Utility to run only one 3D modelling in case one or few are missing
+│   │   └── run_single_case.py     <- Utility to run only one 3D modelling in case one or few are missing
 │   │
-│   └── visualization   <- Scripts to create exploratory and results oriented visualizations
+│   └── visualization              <- Scripts to create exploratory and results oriented visualizations
 │       └── visualize.py
 └──
 ```
 
 ## How to run the pipeline for the pilot dataset:
+In general, the folders are ordered per ste number (0, 1, 2, etc.). Every folder contains both `.py` and `.sh` scripts that do not need to be manually submitted. The only scripts that need to be submitted, and eventually changed depending on the experiment, are the scripts ordered by number (e.g. `1_build_db2_II.sh`). When multiple scripts have the same number, they refer to the same job but for different experiments / mhc-class / mode. (e.g. `1_build_db2_I.sh` and `1_build_db2_II.sh` ), so only one should be run depending on the expeirment.
+
+If you perform a new experiment, please use a new `.sh` script and write a comment in it explaining what it does (i.e. what it does differently from the other identical scripts, like "Generates db2 only for HLA-C").
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 DB1 contains all sequences of pMHC-I (DB1-I) and pMHC-II (DB1-II) and their experimental Binding Affinities (BAs).
