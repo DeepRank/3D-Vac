@@ -23,6 +23,7 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 ```
 - Now you can see the contents of REMOTE_PATH on your LOCAL_PATH, and using them to run scripts *locally*.
 - To unmount use `diskutil umount force LOCAL_PATH`.
+- Note that if you try to read files to your local machine from Snellius, each file will be downloaded from the remote every time. If you try to populate in bulk a list with all certain files names, for example, if they are thousands you can get stucked. Run the script from Snellius instead. 
 
 ## Remote development locally using SSH
 
@@ -48,6 +49,7 @@ Now you can create conda envs. To activate a conda env run `source activate env_
 ### The job scheduler
 
 - When you submit a job, it enters a job queue. A scheduler reads the job requirements from all submitted job scripts and determines when, and on which nodes these jobs should run.
+- For very small tasks, it’s okay to run the script from the entry node, with no jobs scheduler. In the 3D-Vac case, an example could be to run the preprocessing part, until we have 7000 files.
 
 ### Writing a job script
 
@@ -95,7 +97,7 @@ In particular ...
 
 `#!/bin/bash` defines the interpreter for the job script with a shebang. Here we use Bash.
 
-`#SBATCH --nodes=1` defines the number of nodes you need.
+`#SBATCH --nodes=1` defines the number of nodes you need. 
 
 `#SBATCH --ntasks=1` sets the number of tasks per node. Tasks are separate programs that can run on different nodes, and communicate via the network, usually via Message Passing Interface (MPI). In SLURM (and MPI, where this comes from), a program consists of one or more tasks, each of which has a number of threads. Threads within a task are the kind of threads you get with Python's `multithreading`, and in this case the processes you get with `multiprocessing` are also considered threads. All threads of the same task need to run on the same node, because they can only communicate with each other locally (using shared memory or pipes). When allocating resources, SLURM takes that restriction into account. If you have a single task you won't be able to use more than one node.
 
