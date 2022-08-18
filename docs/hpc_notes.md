@@ -28,6 +28,15 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 
 - The [Visual Studio Code Remote - SSH extension](https://code.visualstudio.com/docs/remote/ssh) allows you to open a remote folder on any remote machine. Once connected to a server, you can interact with files and folders anywhere on the remote filesystem. The local system requirement is to have a supported OpenSSH compatible SSH client, while the remote system requirement is to have a running SSH server on RHEL 7+ (in Snellius case).
 
+### Conda on Snellius
+
+For installing conda on your Snellius home folder:
+- From [here](https://www.anaconda.com/products/distribution), run `wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh`, or the most updated version. 
+- Run the .sh script just downloaded with `bash Anaconda3-2022.05-Linux-x86_64.sh`.
+- Activate the base conda env with `source .bashrc`.
+
+Now you can create conda envs. To activate a conda env run `source activate env_name`.
+
 ## Creating and running jobs
 
 ### The batch system
