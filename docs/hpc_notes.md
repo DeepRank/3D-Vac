@@ -49,7 +49,7 @@ Now you can create conda envs. To activate a conda env run `source activate env_
 ### The job scheduler
 
 - When you submit a job, it enters a job queue. A scheduler reads the job requirements from all submitted job scripts and determines when, and on which nodes these jobs should run.
-- For very small tasks, it’s okay to run the script from the entry node, with no jobs scheduler. In the 3D-Vac case, an example could be to run the preprocessing part, until we have 7000 files.
+- For very small tasks, it’s okay to run the script from the entry node, with no job scheduler. In the 3D-Vac case, an example could be to run the preprocessing part, until we have 7000 files.
 
 ### Writing a job script
 
