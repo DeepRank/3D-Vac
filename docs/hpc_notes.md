@@ -161,3 +161,22 @@ cp -r "$TMPDIR"/output_dir $HOME
 - If you want to cancel a job in the queue, use `scancel [jobid]`.
 - In the batch system, the job output is written to a text file: `slurm-[jobid].out`. Make sure to check this file after your job has finished to see if it ran correctly.
 - After you have submitted a job, it ends up in the job queue. You can inspect the queue with `squeue -u [username]` or `squeue -j [jobid]`.
+
+
+### How to run efficient jobs
+
+The three most common reasons for a job to run inefficiently are:
+
+1. The file systems are not used efficiently.
+2. A number of nodes are reserved for a job, but the job is only running on one node.
+3. Only a single core is being used on each node.
+
+This is a waste of resources, but more importantly, it is a waste of your CPU budget, because you are paying for all the cores reserved by your job script.
+
+The solutions are:
+
+(1) If you use many/large input files, copy them from the home file system to scratch before starting your program. You may consider compressing them first (using tar). Write intermediate results only to scratch. If you have many/large output files, write to scratch and then copy them to the home file system. Again, consider compressing them first.
+
+(2 and 3) To use all nodes and cores, use [appropriate parallelization](https://servicedesk.surf.nl/wiki/display/WIKI/Methods+of+parallelization). An essential step is also to verify that your job runs on all nodes and cores the way you intended: it is easy to make a mistake and the difference in running on all cores of a node or just one may be just a single character in your job script.
+
+To verify that your job is using all nodes and cores, you first need the ID of your job. The job ID is shown when you submit a job using sbatch, or you may find it in the queue using `squeue -u [username]`. Then, you can use the ssh command to login to any of the nodes where your job is running `ssh [node_hostname]`. Once on the node, you can use the "top" unix command to show the processes running on the node and their cpu utilisation. The output you expect depends on the type of parallelisation you have used. In case you are running a multithreaded program on a 16 core node, you may expect to see a single process that is using >> 100% CPU (ideally close to 1600%, but in practice this is usually less). For more information on how to interpret the output, see `man top`.
