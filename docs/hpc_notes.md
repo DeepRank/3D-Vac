@@ -119,6 +119,8 @@ In particular ...
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=fat
 #SBATCH --time=01:00:00
+#SBATCH --job-name give_a_name_to_the_job
+#SBATCH -o /projects/0/einf2380/folder_name-%J.out
 
 #Loading modules
 module load Python/3.9.5-GCCcore-10.3.0
