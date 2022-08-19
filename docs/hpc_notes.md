@@ -182,3 +182,14 @@ The solutions are:
 To verify that your job is using all nodes and cores, you first need the ID of your job. The job ID is shown when you submit a job using sbatch, or you may find it in the queue using `squeue -u [username]`. Then, you can use the ssh command to login to any of the nodes where your job is running `ssh [node_hostname]`.
 
 Once on the node, you can use the "top" unix command to show the processes running on the node and their cpu utilisation. The output you expect depends on the type of parallelisation you have used. In case you are running a multithreaded program on a 16 core node, you may expect to see a single process that is using >> 100% CPU (ideally close to 1600%, but in practice this is usually less). For more information on how to interpret the output, see `man top`.
+
+### Using project space for sharing files
+
+In order for others to be able to access files and directories that you write to project space, it is important that they are written with the correct Unix file permissions, and are assigned the correct Unix group.
+
+- The project directory (/project/projectname) should have the correct file permissions: read and write permissions to the group, and the executable bit should be set to 's'. You can check the current permissions using `ls -lad /project/<projectname>`. 
+- If these are not 'drwxrws---' (assuming you want read, write and execute permissions for both the owner and group), you can set the correct permissions on /project/projectname and all folders in it using `chmod -R u+rwx,g+rwxs /project/<projectname>`.
+- With the s-bit set, any files and folders created within /project/<projectname> should automatically inherit the Unix group ('projectname'). In principle, this only has to be done once.
+- If at some point there are files/folders with incorrect group settings, you can change the group using `chgrp [group] [dir/file]`.
+- Before creating new files or folders in the project directory, always set `umask 007`. This ensures that all new files and folders created in the project directory are created with read/write permissions for both the user and the group (and no permissions to others).
+- If you copy data from your home directory to the project space, the file permissions from your home directory will be maintained. Since you will generally not have set read/write access to the group for files stored in your home folder, you need to set those immediately after copying. E.g. `cp -r $HOME/my_folder /project/<projectname>` and then `chmod -R ug+rwX /project/<projectname>` will copy the folder 'my_folder' to your project space, and then set read/write permissions to all files (+rw), for both the user (u) and group (g). Additionally, it sets the execute permission for the group only if the execute permission was already set for the user (X). These settings are applied recursively to all folders within my_folder (-R).
