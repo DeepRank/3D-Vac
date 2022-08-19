@@ -150,10 +150,14 @@ cp -r "$TMPDIR"/output_dir $HOME
 
 ### Submitting a job
 
+- `srun` is used to submit a job for execution in real time. You can use `srun` to start an interactive job or an MPI program (more about it [here](https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+jobs)). `srun` is interactive and blocking (you get the result in your terminal and you cannot write other commands until it is finished). In this case the script is immediately executed on the remote host.
+- `sbatch` is used to submit a job script for later execution. `sbatch` is batch processing and non-blocking (results are written to a file and you can submit other commands right away). In this case the job is handled by Slurm: you can disconnect, kill your terminal, etc. with no consequence. The job is no longer linked to a running process.
+- You typically use `sbatch` to submit a job and `srun` in the submission script to create job steps as Slurm calls them. `srun` is used to launch the processes. If your program is a parallel MPI program, `srun` takes care of creating all the MPI processes. If not, `srun` will run your program as many times as specified by the `--ntasks` option. Unless otherwise specified, `srun` inherits by default the pertinent options of the `sbatch`.
+- For some applications, you want to submit the same job script repeatedly. In these situations, you can submit an [array job](https://servicedesk.surf.nl/wiki/display/WIKI/Array+jobs).
+- A feature that is available to `sbatch` and not to `srun` is job arrays.
+- All the parameters `--ntasks`, `--nodes`, `--cpus-per-task`, `--ntasks-per-node` have the same meaning in both commands.
 - To submit the job described in my_job.sh, use `sbatch my_job.sh`.
 - Upon submission, the system will report the job ID that has been assigned to the job.
 - If you want to cancel a job in the queue, use `scancel [jobid]`.
 - In the batch system, the job output is written to a text file: `slurm-[jobid].out`. Make sure to check this file after your job has finished to see if it ran correctly.
 - After you have submitted a job, it ends up in the job queue. You can inspect the queue with `squeue -u [username]` or `squeue -j [jobid]`.
-- For some applications, you want to submit the same job script repeatedly. In these situations, you can submit an [array job](https://servicedesk.surf.nl/wiki/display/WIKI/Array+jobs).
-- you can use `srun` to start an interactive job or an MPI program (more about it [here](https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+jobs)).
