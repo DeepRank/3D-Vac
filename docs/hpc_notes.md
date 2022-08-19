@@ -133,8 +133,12 @@ cp -r $HOME/input_dir "$TMPDIR"
 #Create output directory on scratch
 mkdir "$TMPDIR"/output_dir
 
+# Activate conda environment:
+source /home/username/.bashrc
+source activate env_name
+
 #Execute a Python program located in $HOME, that takes an input directory and an output directory as arguments.
-srun python $HOME/my_program.py "$TMPDIR"/input_dir "$TMPDIR"/output_dir
+srun python -u $HOME/my_program.py "$TMPDIR"/input_dir "$TMPDIR"/output_dir
 #MPI case
 mpiexec my_program "$TMPDIR"/input_dir "$TMPDIR"/output_dir
 
