@@ -99,6 +99,15 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 └──
 ```
 
+## Databases
+
+In the code and in the repo we often refer to numbered databases. Data can refer to either pMHC class I complexes, or pMHC class II complexes. The suffix is -I in the first case and -II in the latter. 
+
+- **DB1** - Sequences of pMHC and their experimental Binding Affinities (BAs). These data are input of [PANDORA](https://github.com/X-lab-3D/PANDORA).
+- **DB2** - Structural 3D models for pMHC in DB1. These data are output of PANDORA.
+- **DB3** - PSSMs for pMHC. These data are derived from BLAST database.
+- **DB4** - Interface grids for CNNs (deeprank) or interface graphs for GNNs (deeprankcore) in the form of hdf5 files. DB3 and DB2 are used the generation of DB4.
+
 ## How to run the pipeline for the pilot dataset:
 In general, the folders are ordered per ste number (0, 1, 2, etc.). Every folder contains both `.py` and `.sh` scripts that do not need to be manually submitted. The only scripts that need to be submitted, and eventually changed depending on the experiment, are the scripts ordered by number (e.g. `1_build_db2_II.sh`). When multiple scripts have the same number, they refer to the same job but for different experiments / mhc-class / mode. (e.g. `1_build_db2_I.sh` and `1_build_db2_II.sh` ), so only one should be run depending on the expeirment.
 
