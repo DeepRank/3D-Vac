@@ -61,7 +61,7 @@ modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 clean_output_job_stdout = subprocess.check_output([
     "sbatch",
     f"--dependency=afterany:{modelling_job_id}",
-    "clean_outputs.sh"
+    "2_clean_outputs.sh"
 ]).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
