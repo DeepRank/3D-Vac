@@ -25,7 +25,9 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 a = arg_parser.parse_args()
 
-csv_path = ('/').join(a.csv_file.split('/')[:-1]) + "to_model.csv"
+csv_path =  a.input_csv # ('/').join(a.csv_file.split('/')[:-1]) + "to_model.csv"
+
+
 df = pd.read_csv(csv_path)
 tot_cases = len(df)
 

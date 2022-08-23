@@ -4,4 +4,7 @@
 #SBATCH -n 1
 #SBATCH -c 1
 
+conda init
+source activate deeprank
+
 python -u allocate_nodes.py "$@"
