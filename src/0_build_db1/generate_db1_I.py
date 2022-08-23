@@ -46,6 +46,11 @@ arg_parser.add_argument("--prefix", "-i",
     choices=["EL", "BA"],
     required=True
 )
+arg_parser.add_argument("--inequality", "-e",
+    help='flag to make sure measurements with inequalities are also included',
+    default=False,
+    type=bool,
+    action=argparse.BooleanOptionalAction)
 
 a = arg_parser.parse_args();
 
@@ -60,7 +65,18 @@ input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix
 
 # filter only discrete and quantitative measurements. This filter is applied for pilot study 
 # as a pre-filder (before filtering alleles and peptide length):
-input_csv_df = input_csv_df.query("measurement_inequality == '=' & measurement_type == 'quantitative' & \
+
+"""
+data = data.drop(data[(data['measurement_inequality'] == ">") & (data['measurement_value'] < 500)].index)
+
+data = data.drop(data[(data['measurement_inequality'] == "<") & (data['measurement_value'] > 500)].index)
+"""
+if a.inequality:
+    input_csv_df = input_csv_df.query("(measurement_inequality == '=' | (measurement_inequality == '>' & measurement_value > 499) | \
+     (measurement_inequality == '<' & measurement_value < 500)) & measurement_type == 'quantitative' & \
+    measurement_kind == 'affinity' & measurement_value >= 2")
+else:
+    input_csv_df = input_csv_df.query("measurement_inequality == '=' & measurement_type == 'quantitative' & \
     measurement_kind == 'affinity' & measurement_value >= 2")
 
 # apply the allele and length of peptide filter:
