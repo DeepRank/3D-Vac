@@ -39,7 +39,7 @@ arg_parser.add_argument("--db-path", "-d",
 )
 a = arg_parser.parse_args()
 
-print(f'DEBUG: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
+print(f'INFO: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
 running time:{int(a.running_time)}\n rank:{rank} \n batch: {10*a.num_cores*int(a.running_time)}')
 
 # total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
@@ -69,7 +69,7 @@ if df.empty:
 outdir_col = df.columns.to_list().index('db2_folder')
 
 # DEBUG
-print(f"path: {a.csv_path}\n db: {a.db_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
+print(f"INFO:\n path: {a.csv_path}\n db: {a.db_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
 
 #Create targets
 t1 = time.time()

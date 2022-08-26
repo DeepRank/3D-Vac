@@ -44,7 +44,6 @@ additional_hours = int(batch/cases_per_hour_per_node) # one hour is enough to pr
 sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
 print("additional hours:", additional_hours)
 print("total running time (in hours):", sbatch_hours)
-print(f"DEBUG: -t running time: {a.running_time} ")
 
 
 modelling_job_cmd = [
@@ -58,15 +57,7 @@ modelling_job_cmd = [
 ]
 print(f"running:\n {modelling_job_cmd}")
 
-modeling_job_stdout = subprocess.check_output([
-    "sbatch",
-    f"--nodes={n_nodes}",
-    f"--time={sbatch_hours}:00:00",
-    "modelling_job.sh",
-    '-t', str(a.running_time), 
-    '-m', a.mhc_class,
-    '-c', csv_path,
-]).decode("ASCII")
+modeling_job_stdout = subprocess.check_output(modelling_job_cmd).decode("ASCII")
 
 modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 
