@@ -14,4 +14,4 @@ module load foss/2021a
 
 source activate deeprank
 
-srun --wait=0 python -u modelling_job.py $1
+srun --wait=0 python -u modelling_job.py "$@" 

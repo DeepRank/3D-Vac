@@ -6,6 +6,7 @@ from math import ceil
 from mpi4py import MPI
 import multiprocessing
 import numpy as np
+import pandas as pd
 import argparse
 
 comm = MPI.COMM_WORLD
@@ -38,9 +39,12 @@ arg_parser.add_argument("--db-path", "-d",
 )
 a = arg_parser.parse_args()
 
+print(f'DEBUG: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
+running time:{int(a.running_time)}\n rank:{rank} \n batch: {10*a.num_cores*int(a.running_time)}')
+
 # total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
-cases_per_hour_per_node = 10*a.num_cores # 1536
-batch = cases_per_hour_per_node*a.running_time
+cases_per_hour_per_node = 10*int(a.num_cores) # 1536
+batch = cases_per_hour_per_node*int(a.running_time)
 start_row = int(rank*batch)
 
 end_row = int((rank+1)*batch)
@@ -55,11 +59,17 @@ PDB_path = a.db_path.split('/data/')[0] + '/data/PDBs'
 db.repath(PDB_path, save=False)
 print('Database repathed')            
 
+# check if there are cases to model
+df = pd.read_csv(f"{a.csv_path}")
+if df.empty:
+    print('No new cases to model, exiting')
+    sys.exit(0)
 
 #find outdir column
-with open(a.csv_path, 'r') as f:
-    header = f.readline()
-    outdir_col = header.replace('/n','').split(',').index('db2_folder')
+outdir_col = df.columns.to_list().index('db2_folder')
+
+# DEBUG
+print(f"path: {a.csv_path}\n db: {a.db_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
 
 #Create targets
 t1 = time.time()
@@ -67,7 +77,7 @@ wrap = Wrapper.Wrapper()
 wrap.create_targets(a.csv_path, db, 
     MHC_class=a.mhc_class, header=True, delimiter=',', IDs_col=0,
     peptides_col=2, allele_col=1, outdir_col=outdir_col, benchmark=False, 
-    verbose=False, start_row=start_row, end_row=end_row, use_netmhcpan=True
+    verbose=True, start_row=start_row, end_row=end_row, use_netmhcpan=True
 )
 t2 = time.time()
 print('Wrapper created')
