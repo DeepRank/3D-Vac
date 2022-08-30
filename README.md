@@ -142,6 +142,8 @@ python src/1_build_db2/build_db2.py -i BA_pMHCI.csv --running-time 02
 * Output: models in the `models` folder.
 * Run `python src/1_build_db2/build_db2.py --help` for more details on how the script works.
 Output folder structure (after cleaning with clean_outputs.sh):
+
+```
 │── <target_id>_<template_id>
 │   │
 │   ├── <template_id>.pdb           Template pdb file used for the modelling
@@ -166,6 +168,8 @@ Output folder structure (after cleaning with clean_outputs.sh):
 │   │
 │   ├── *IL*.pdb                    Initial loop model based on the .ini model. Might be marked as best model when the target is identicatl to a template
 │
+└──
+```
 
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
