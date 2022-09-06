@@ -9,23 +9,12 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.models import MlpRegBaseline
 from CNN.datasets import Class_Seq_Dataset, load_class_seq_data # class and function to generate shuffled dataset
-<<<<<<< HEAD
-from CNN.datasets import sig_norm, li_norm, custom_norm #normalization methods for ba_values
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-import random
-=======
-from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold # used for normal cross validation
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
-<<<<<<< HEAD
-from sklearn.metrics import roc_auc_score
-import numpy as np
-=======
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -37,20 +26,9 @@ arg_parser = argparse.ArgumentParser(
 )
 
 arg_parser.add_argument("--csv-file", "-f",
-<<<<<<< HEAD
-    help="Name of the csv file in data/external/processed containing the cluster column.",
-    default="BA_pMHCI.csv"
-)
-arg_parser.add_argument("--peptide-column", "-p",
-    type=int,
-    help="Column index of peptide's sequence in the csv file.",
-    default=2
-)
-=======
     help="Name of the csv file in data/external/processed containing the cluster column. Default BA_pMHCI.csv",
     default="BA_pMHCI.csv"
 )
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 arg_parser.add_argument("--threshold", "-t",
     help="Binding affinity threshold to define binders, default 500.",
     type=float,
@@ -94,14 +72,9 @@ a = arg_parser.parse_args()
 mpi_conn = MPI.COMM_WORLD
 rank = mpi_conn.Get_rank()
 size = mpi_conn.Get_size()
-<<<<<<< HEAD
-datasets = []
-
-=======
 datasets = [] # this array will be filled with jobs for slaves
 
 # This will be saved in a pickle file as the best model for each cross validation (each MPI job)
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 best_model = {
     "validation_rate": 0,
     "model": None,
@@ -109,18 +82,10 @@ best_model = {
     "test_data": None
 }
 
-<<<<<<< HEAD
-# onehot (sparse) encoding
-
-=======
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
 
 # define the train function
-<<<<<<< HEAD
-def train_f(dataloader, model, loss_fn, optimizer,e):
-=======
 def train_f(dataloader, model, loss_fn, optimizer):
     """Function used to train the model over the whole training dataset.
 
@@ -133,7 +98,6 @@ def train_f(dataloader, model, loss_fn, optimizer):
         optimizer (obj): Function used to perform backpropagation and update of
         weights.
     """
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
     model.train()
     # print(f"training epoch {e} on {rank}")
     for X,y in dataloader:
@@ -148,13 +112,6 @@ def train_f(dataloader, model, loss_fn, optimizer):
 
 # define the function used for evaluation
 def evaluate(dataloader, model, loss_fn, device):
-<<<<<<< HEAD
-    ### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
-    # Calculate the confusion tensor (AKA matching matrix) by dividing predictions
-    # with true values.
-    # To assess performances, first calculate absolute values and adjust it to 
-    # the total number of expected postives, negatives:
-=======
     """### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
     Calculate the confusion tensor (AKA matching matrix) by dividing predictions
     with true values.
@@ -172,7 +129,6 @@ def evaluate(dataloader, model, loss_fn, device):
     Returns:
         _type_: _description_
     """
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
     tpr = [] # sensitivity
     tnr = [] # specificity
     accuracies = []
@@ -230,22 +186,15 @@ if rank == 0:
         print("Splitting into shuffled datasets..")
         kfold = StratifiedKFold(n_splits=10, shuffle=True)
         datasets = []
-<<<<<<< HEAD
-        for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
-=======
         # split the whole dataset using sklearn.metrics kfold function:
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
             # the train dataset is further splited into validation with scaled proportion:
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
             train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
             train_subset = Subset(dataset, train_idx) 
             validation_subset = Subset(dataset, validation_idx) 
             test_subset = Subset(dataset, test_idx)
 
-<<<<<<< HEAD
-=======
             # create the dataloaders to dispatch on slaves:
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
             train_dataloader = DataLoader(train_subset, batch_size=batch)
             validation_dataloader = DataLoader(validation_subset, batch_size=batch)
             test_dataloader = DataLoader(test_subset, batch_size=batch)
@@ -257,12 +206,6 @@ if rank == 0:
                 "test_indices": test_idx
             })
     
-<<<<<<< HEAD
-    else:
-        print("Splitting into clustered datasets")
-        kfold = LeaveOneGroupOut()       
-        for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
-=======
     else: # perform clustered dataset split
         print("Splitting into clustered datasets")
         kfold = LeaveOneGroupOut()       
@@ -270,7 +213,6 @@ if rank == 0:
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, groups):
             # here the test is from groups not in train,
             # the validation is comming from the same group as train.
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
             train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
 
             train_subset = Subset(dataset, train_idx) 
@@ -303,10 +245,7 @@ test_dataloader = split["test_dataloader"]
 # TRAIN THE MODEL
 #----------------
 
-<<<<<<< HEAD
-=======
 # instantiate the model class
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 input_dimensions = (20*9, 40*9)[a.encoder == "mixed"]
 model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
 
@@ -338,13 +277,8 @@ for e in range(epochs):
         best_model["validation_rate"] = val_accuracy
         best_model["best_epoch"] = e
 
-<<<<<<< HEAD
-    # train the model
-    train_f(train_dataloader, model, loss_fn, optimizer,e)
-=======
     # train the model over one epoch
     train_f(train_dataloader, model, loss_fn, optimizer)
->>>>>>> 149a17263114ce545c6cc406d999ff55bb6cff49
 print(f"Training on {rank} finished.")
 
 # save the model:
