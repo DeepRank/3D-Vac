@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p thin
 #SBATCH --job-name check_unmodelled
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/MHCI_unmodelled_logs.out
+#SBATCH -o /projects/0/einf2380/data/modelling_logs/unmodelled_logs-%J.out
 
 ## load modules
 source activate deeprank

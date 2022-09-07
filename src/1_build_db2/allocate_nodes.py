@@ -18,9 +18,14 @@ arg_parser.add_argument("--running-time", "-t",
 arg_parser.add_argument("--input-csv", "-i",
     help="This argument allows to keep track of the db1 after modelling to check how many models are left."
 )
+arg_parser.add_argument("--mhc-class", "-m",
+    help="MHC class of the cases",
+    choices=['I','II'],
+    required=True,
+)
 a = arg_parser.parse_args()
 
-csv_path = "../../data/external/processed/to_model.csv"
+csv_path = ('/').join(a.csv_file.split('/')[:-1]) + "to_model.csv"
 df = pd.read_csv(csv_path)
 tot_cases = len(df)
 
@@ -43,7 +48,9 @@ modeling_job_stdout = subprocess.check_output([
     f"--nodes={n_nodes}",
     f"--time={sbatch_hours}:00:00",
     "modelling_job.sh",
-    str(a.running_time), 
+    '-t', str(a.running_time), 
+    '-m', a.mhc_class,
+    '-c', csv_path,
 ]).decode("ASCII")
 
 modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())

@@ -23,10 +23,20 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 ```
 - Now you can see the contents of REMOTE_PATH on your LOCAL_PATH, and using them to run scripts *locally*.
 - To unmount use `diskutil umount force LOCAL_PATH`.
+- Note that if you try to read files to your local machine from Snellius, each file will be downloaded from the remote every time. If you try to populate in bulk a list with all certain files names, for example, if they are thousands you can get stucked. Run the script from Snellius instead. 
 
 ## Remote development locally using SSH
 
 - The [Visual Studio Code Remote - SSH extension](https://code.visualstudio.com/docs/remote/ssh) allows you to open a remote folder on any remote machine. Once connected to a server, you can interact with files and folders anywhere on the remote filesystem. The local system requirement is to have a supported OpenSSH compatible SSH client, while the remote system requirement is to have a running SSH server on RHEL 7+ (in Snellius case).
+
+### Conda on Snellius
+
+For installing conda on your Snellius home folder:
+- From [here](https://www.anaconda.com/products/distribution), run `wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh`, or the most updated version. 
+- Run the .sh script just downloaded with `bash Anaconda3-2022.05-Linux-x86_64.sh`.
+- Activate the base conda env with `source .bashrc`.
+
+Now you can create conda envs. To activate a conda env run `source activate env_name`.
 
 ## Creating and running jobs
 
@@ -39,6 +49,7 @@ sshfs -p 22 user@server:REMOTE_PATH LOCAL_PATH -o auto_cache,reconnect,defer_per
 ### The job scheduler
 
 - When you submit a job, it enters a job queue. A scheduler reads the job requirements from all submitted job scripts and determines when, and on which nodes these jobs should run.
+- For very small tasks, it’s okay to run the script from the entry node, with no job scheduler. In the 3D-Vac case, an example could be to run the preprocessing part, until we have 7000 files.
 
 ### Writing a job script
 
@@ -86,7 +97,7 @@ In particular ...
 
 `#!/bin/bash` defines the interpreter for the job script with a shebang. Here we use Bash.
 
-`#SBATCH --nodes=1` defines the number of nodes you need.
+`#SBATCH --nodes=1` defines the number of nodes you need. 
 
 `#SBATCH --ntasks=1` sets the number of tasks per node. Tasks are separate programs that can run on different nodes, and communicate via the network, usually via Message Passing Interface (MPI). In SLURM (and MPI, where this comes from), a program consists of one or more tasks, each of which has a number of threads. Threads within a task are the kind of threads you get with Python's `multithreading`, and in this case the processes you get with `multiprocessing` are also considered threads. All threads of the same task need to run on the same node, because they can only communicate with each other locally (using shared memory or pipes). When allocating resources, SLURM takes that restriction into account. If you have a single task you won't be able to use more than one node.
 
@@ -108,6 +119,8 @@ In particular ...
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=fat
 #SBATCH --time=01:00:00
+#SBATCH --job-name give_a_name_to_the_job
+#SBATCH -o /projects/0/einf2380/folder_name-%J.out
 
 #Loading modules
 module load Python/3.9.5-GCCcore-10.3.0
@@ -122,8 +135,12 @@ cp -r $HOME/input_dir "$TMPDIR"
 #Create output directory on scratch
 mkdir "$TMPDIR"/output_dir
 
+#Activate conda environment:
+source /home/username/.bashrc
+source activate env_name
+
 #Execute a Python program located in $HOME, that takes an input directory and an output directory as arguments.
-srun python $HOME/my_program.py "$TMPDIR"/input_dir "$TMPDIR"/output_dir
+srun python -u $HOME/my_program.py "$TMPDIR"/input_dir "$TMPDIR"/output_dir
 #MPI case
 mpiexec my_program "$TMPDIR"/input_dir "$TMPDIR"/output_dir
 
@@ -131,12 +148,52 @@ mpiexec my_program "$TMPDIR"/input_dir "$TMPDIR"/output_dir
 cp -r "$TMPDIR"/output_dir $HOME
 ```
 
+Note that:
+- The `-u` option allows to output the stdout directly in the log file (provided by the `-o` slurm directive) and not wait the end.
+- You can monitor live what happens in the node with `tail -f name_of_log_file.out`.
+
 ### Submitting a job
 
+- `srun` is used to submit a job for execution in real time. You can use `srun` to start an interactive job or an MPI program (more about it [here](https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+jobs)). `srun` is interactive and blocking (you get the result in your terminal and you cannot write other commands until it is finished). In this case the script is immediately executed on the remote host.
+- `sbatch` is used to submit a job script for later execution. `sbatch` is batch processing and non-blocking (results are written to a file and you can submit other commands right away). In this case the job is handled by Slurm: you can disconnect, kill your terminal, etc. with no consequence. The job is no longer linked to a running process.
+- You typically use `sbatch` to submit a job and `srun` in the submission script to create job steps as Slurm calls them. `srun` is used to launch the processes. If your program is a parallel MPI program, `srun` takes care of creating all the MPI processes. If not, `srun` will run your program as many times as specified by the `--ntasks` option. Unless otherwise specified, `srun` inherits by default the pertinent options of the `sbatch`. In general, in the .sh script write `srun python -u script.py` for parallelized, and only `python -u script.py` for not parallelized cases.
+- For some applications, you want to submit the same job script repeatedly. In these situations, you can submit an [array job](https://servicedesk.surf.nl/wiki/display/WIKI/Array+jobs).
+- A feature that is available to `sbatch` and not to `srun` is job arrays.
+- All the parameters `--ntasks`, `--nodes`, `--cpus-per-task`, `--ntasks-per-node` have the same meaning in both commands.
 - To submit the job described in my_job.sh, use `sbatch my_job.sh`.
 - Upon submission, the system will report the job ID that has been assigned to the job.
 - If you want to cancel a job in the queue, use `scancel [jobid]`.
 - In the batch system, the job output is written to a text file: `slurm-[jobid].out`. Make sure to check this file after your job has finished to see if it ran correctly.
 - After you have submitted a job, it ends up in the job queue. You can inspect the queue with `squeue -u [username]` or `squeue -j [jobid]`.
-- For some applications, you want to submit the same job script repeatedly. In these situations, you can submit an [array job](https://servicedesk.surf.nl/wiki/display/WIKI/Array+jobs).
-- you can use `srun` to start an interactive job or an MPI program (more about it [here](https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+jobs)).
+
+
+### How to run efficient jobs
+
+The three most common reasons for a job to run inefficiently are:
+
+1. The file systems are not used efficiently.
+2. A number of nodes are reserved for a job, but the job is only running on one node.
+3. Only a single core is being used on each node.
+
+This is a waste of resources, but more importantly, it is a waste of your CPU budget, because you are paying for all the cores reserved by your job script.
+
+The solutions are:
+
+(1) If you use many/large input files, copy them from the home file system to scratch before starting your program. You may consider compressing them first (using tar). Write intermediate results only to scratch. If you have many/large output files, write to scratch and then copy them to the home file system. Again, consider compressing them first.
+
+(2 and 3) To use all nodes and cores, use [appropriate parallelization](https://servicedesk.surf.nl/wiki/display/WIKI/Methods+of+parallelization). An essential step is also to verify that your job runs on all nodes and cores the way you intended: it is easy to make a mistake and the difference in running on all cores of a node or just one may be just a single character in your job script.
+
+To verify that your job is using all nodes and cores, you first need the ID of your job. The job ID is shown when you submit a job using sbatch, or you may find it in the queue using `squeue -u [username]`. Then, you can use the ssh command to login to any of the nodes where your job is running `ssh [node_hostname]`.
+
+Once on the node, you can use the "top" unix command to show the processes running on the node and their cpu utilisation. The output you expect depends on the type of parallelisation you have used. In case you are running a multithreaded program on a 16 core node, you may expect to see a single process that is using >> 100% CPU (ideally close to 1600%, but in practice this is usually less). For more information on how to interpret the output, see `man top`.
+
+### Using project space for sharing files
+
+In order for others to be able to access files and directories that you write to project space, it is important that they are written with the correct Unix file permissions, and are assigned the correct Unix group.
+
+- The project directory (/project/projectname) should have the correct file permissions: read and write permissions to the group, and the executable bit should be set to 's'. You can check the current permissions using `ls -lad /project/<projectname>`. 
+- If these are not 'drwxrws---' (assuming you want read, write and execute permissions for both the owner and group), you can set the correct permissions on /project/projectname and all folders in it using `chmod -R u+rwx,g+rwxs /project/<projectname>`.
+- With the s-bit set, any files and folders created within /project/<projectname> should automatically inherit the Unix group ('projectname'). In principle, this only has to be done once.
+- If at some point there are files/folders with incorrect group settings, you can change the group using `chgrp [group] [dir/file]`.
+- Before creating new files or folders in the project directory, always set `umask 007`. This ensures that all new files and folders created in the project directory are created with read/write permissions for both the user and the group (and no permissions to others).
+- If you copy data from your home directory to the project space, the file permissions from your home directory will be maintained. Since you will generally not have set read/write access to the group for files stored in your home folder, you need to set those immediately after copying. E.g. `cp -r $HOME/my_folder /project/<projectname>` and then `chmod -R ug+rwX /project/<projectname>` will copy the folder 'my_folder' to your project space, and then set read/write permissions to all files (+rw), for both the user (u) and group (g). Additionally, it sets the execute permission for the group only if the execute permission was already set for the user (X). These settings are applied recursively to all folders within my_folder (-R).
