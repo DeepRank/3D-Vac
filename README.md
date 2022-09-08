@@ -171,6 +171,35 @@ Output folder structure (after cleaning with clean_outputs.sh):
 └──
 ```
 
+### Step 2: Generating db3
+#### 1.1: Selecting which PANDORA generated pdb to use
+```
+python src/2_build_db3/symlink_targets_from_db2.py
+```
+* PANDORA generates 20 pdb structures per cases. They are ranked based on the global energy of the complex.
+* The first 5 pdb in this ranking contain the most plausible structure.
+* For now, only the first structure is being used. The script `src/2_build_db3/symlink_targets_from_db2.py` is written in a way that it will be possible to select more than 1 structure in the future.
+* Run `src/2_build_db3/symlink_targets_from_db2.py --help` for more information on how the script works.
+
+#### 1.2: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
+##### 1.2.1: Build the blast database
+* Make sure `blast` is installed. Download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`.
+* Copy the human MHC sequence fasta file from `/PANDORA_installation_folder/PANDORA_files/data/csv_pkl_files/hla_prot.fasta` into `data/pssm/blast_dbs/`.
+* Run `src/2_build_db3/PSSM/build_blastdb.sh`.
+
+##### 1.2.2: Calculate raw PSSM for M chain:
+```
+python src/2_build_db3/create_raw_pssm.py
+```
+* Run `src/2_build_db3/create_raw_pssm.py --help` for more information.
+
+##### 1.2.3: Map generated raw PSSM to the PDB:
+```
+python src/2_build_db3/map_pssm2pdb.py
+```
+* Mapping raw PSSM to the pdb alleviate problems such as gaps in sequences.
+* Only mapped PSSM for the M chain are used to generate the PSSM db3 feature.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
