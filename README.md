@@ -219,21 +219,21 @@ python src/3_build_db4/generate_features.py
 ### Step 4: Training MLP and CNN models
 #### Step 4.1: Split db4 into train, validation and test 10 times for shuffled and clustered CNN dataset
 ```
-python src/4_train_models/CNN/1_split_h5.py
+python src/4_train_models/CNN/split_h5.py
 ```
 * To generate the clustered dataset, add `--cluster` argument.
 * Add `--help` for more information.
 
 #### Step 4.2: Perform 10 fold cross-validated CNN training on shuffled and clustered dataset
 ```
-python src/4_train_models/CNN/I/classification/struct/2_cnn_baseline.py -o cnn_test
+python src/4_train_models/CNN/I/classification/struct/cnn_baseline.py -o cnn_test
 ```
 * Add `--cluster` to train CNN on clustered dataset.
 * Add `--help` for detailed information and available parameters.
 
 #### Step 4.3: Generate metrics for best CNN model
 ```
-python src/4/train_models/CNN/I/classification/struct/3_cnn_performances.py -o cnn_test
+python src/4/train_models/CNN/I/classification/struct/cnn_performances.py -o cnn_test
 ```
 * Custom made script had to be written to obtain metrics from DeepRank's best model. This problem is not present with MLP.
 * For a fair comparison between CNN and MLP, only best models are used.
@@ -243,7 +243,7 @@ python src/4/train_models/CNN/I/classification/struct/3_cnn_performances.py -o c
 
 #### Step 4.4: Perform 10 fold cross-validated MLP training on shuffled and clustered dataset
 ```
-python src/4/train_models/CNN/I/classification/seq/4_mlp_baseline.py -o mlp_test
+python src/4/train_models/CNN/I/classification/seq/mlp_baseline.py -o mlp_test
 ```
 * Add `--help` for more info.
 * Add `--cluster` for clustered dataset.
