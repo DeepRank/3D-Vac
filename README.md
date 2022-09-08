@@ -216,6 +216,38 @@ python src/3_build_db4/generate_features.py
 * Build db4 output files into h5out (the path is hardcoded)
 * The list of features and targets can be modified inside the file. More information available on https://deeprank.readthedocs.io/en/latest/tutorial2_dataGeneration.html
 
+### Step 4: Training MLP and CNN models
+#### Step 4.1: Split db4 into train, validation and test 10 times for shuffled and clustered CNN dataset
+```
+python src/4_train_models/CNN/split_h5.py
+```
+* To generate the clustered dataset, add `--cluster` argument.
+* Add `--help` for more information.
+
+#### Step 4.2: Perform 10 fold cross-validated CNN training on shuffled and clustered dataset
+```
+python src/4_train_models/CNN/I/classification/struct/cnn_baseline.py -o cnn_test
+```
+* Add `--cluster` to train CNN on clustered dataset.
+* Add `--help` for detailed information and available parameters.
+
+#### Step 4.3: Generate metrics for best CNN model
+```
+python src/4/train_models/CNN/I/classification/struct/cnn_performances.py -o cnn_test
+```
+* Custom made script had to be written to obtain metrics from DeepRank's best model. This problem is not present with MLP.
+* For a fair comparison between CNN and MLP, only best models are used.
+* This step generates metrics on test dataset (clustered and shuffled) from the best model. 
+* Add `--help` for more info.
+* Add `--cluster` to generate metrics for the clustered model
+
+#### Step 4.4: Perform 10 fold cross-validated MLP training on shuffled and clustered dataset
+```
+python src/4/train_models/CNN/I/classification/seq/mlp_baseline.py -o mlp_test
+```
+* Add `--help` for more info.
+* Add `--cluster` for clustered dataset.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
