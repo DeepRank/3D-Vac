@@ -186,20 +186,21 @@ python src/2_build_db3/symlink_targets_from_db2.py
 python src/2_build_db3/align_pdb.py
 ```
 * Aligns every structures to one template.
+* Add `--help` to see additional information.
 
-#### 2.2: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
-##### 2.2.1: Build the blast database
+#### 2.3: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
+##### 2.3.1: Build the blast database
 * Make sure `blast` is installed. Download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`.
 * Copy the human MHC sequence fasta file from `/PANDORA_installation_folder/PANDORA_files/data/csv_pkl_files/hla_prot.fasta` into `data/pssm/blast_dbs/`.
 * Run `src/2_build_db3/PSSM/build_blastdb.sh`.
 
-##### 2.2.2: Calculate raw PSSM for M chain:
+##### 2.3.2: Calculate raw PSSM for M chain:
 ```
 python src/2_build_db3/create_raw_pssm.py
 ```
 * Run `src/2_build_db3/create_raw_pssm.py --help` for more information.
 
-##### 2.2.3: Map generated raw PSSM to the PDB:
+##### 2.3.3: Map generated raw PSSM to the PDB:
 ```
 python src/2_build_db3/map_pssm2pdb.py
 ```
