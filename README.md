@@ -181,6 +181,12 @@ python src/2_build_db3/symlink_targets_from_db2.py
 * For now, only the first structure is being used. The script `src/2_build_db3/symlink_targets_from_db2.py` is written in a way that it will be possible to select more than 1 structure in the future.
 * Run `src/2_build_db3/symlink_targets_from_db2.py --help` for more information on how the script works.
 
+#### 2.2: Aligning structures
+```
+python src/2_build_db3/align_pdb.py
+```
+* Aligns every structures to one template.
+
 #### 2.2: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
 ##### 2.2.1: Build the blast database
 * Make sure `blast` is installed. Download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`.
