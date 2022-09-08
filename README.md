@@ -176,16 +176,16 @@ Output folder structure (after cleaning with clean_outputs.sh):
 ### Step 2: Generating db3
 #### 2.1: Selecting which PANDORA-generated 3D-models to use
 ```
-sbatch 1_symlink_targets_from_db2.sh
+sbatch 1_copy_3Dmodels_from_db2.sh
 ```
 * PANDORA generates 20 pdb structures per cases. They are ranked based on the global energy of the complex.
 * The first 5 pdb in this ranking contain the most plausible structure.
 * For now, only the first structure is being used. The script `src/2_build_db3/symlink_targets_from_db2.py` is written in a way that it will be possible to select more than 1 structure in the future.
-* Run `src/2_build_db3/symlink_targets_from_db2.py --help` for more information on how the script works.
+* Run `python src/2_build_db3/copy_3Dmodels_from_db2.py --help` for more information on how the script works.
 
 #### 2.2: Aligning structures
 ```
-python src/2_build_db3/align_pdb.py
+sbatch 2_align_pdb.sh
 ```
 * Aligns every structures to one template.
 * Add `--help` to see additional information.
@@ -201,21 +201,28 @@ python src/2_build_db3/align_pdb.py
   
 Run: 
 ```
-sbatch 2_build_blastdb.sh
+sbatch 3_build_blastdb.sh
 ```
 
 ##### 2.3.2: Calculate raw PSSM for M chain:
 ```
-sbatch 3_create_raw_pssm.sh
+sbatch 4_create_raw_pssm.sh
 ```
-* Run `src/2_build_db3/create_raw_pssm.py --help` for more information.
+* Run `python src/2_build_db3/create_raw_pssm.py --help` for more information.
 
 ##### 2.3.3: Map generated raw PSSM to the PDB:
 ```
-sbatch 4_map_pssm2pdb.sh
+sbatch 5_map_pssm2pdb.sh
 ```
 * Mapping raw PSSM to the pdb alleviate problems such as gaps in sequences.
 * Only mapped PSSM for the M chain are used to generate the PSSM db3 feature.
+
+##### 2.3.4: Generate fake PSSM for the peptide
+```
+sbatch 6_peptide2onehot.sh
+```
+* Run `python src/2_build_db3/peptide2onehot.py --help` for more information.
+
 
 ### Step 3: Generating db4
 #### Step 3.1: Populating the features_input_folder.

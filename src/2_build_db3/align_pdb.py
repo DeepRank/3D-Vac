@@ -13,7 +13,19 @@ arg_parser = ArgumentParser(description="""
 	Aligns pdb structures from db2_selected_models with a template.
 """)
 
-import pylab as plt
+arg_parser.add_argument("--pdbs-path", "-p",
+    help="""
+    Folders containing the pdb models
+    """,
+    required=True
+)
+arg_parser.add_argument("--template", "-t",
+    help="""
+    Template alignment file
+    """,
+    required=True
+)
+a = arg_parser.parse_args()
 
 # for REPRODUCIBILITY
 warnings.filterwarnings("ignore")
@@ -81,15 +93,12 @@ class Rotation(nn.Module):
 # Class to process pdbs
 class PDB2dataset():
 	
-	def __init__(self,pdbInpFolder, pdbRotatedFolder, residues, chain='A', cores=-1): 
-		try: os.mkdir(pdbRotatedFolder)
-		except: pass
+	def __init__(self,pdbInpFolder, residues, chain='A', cores=-1): 
 		self.chain = chain
 		self.residues = [int(i) for i in residues]
-		self.pdbRotatedFolder = pdbRotatedFolder
 		self.pdbInpFolder = pdbInpFolder
 		self.pdbs = glob.glob(pdbInpFolder)
-		self.pdbs.append("/projects/0/einf2380/data/pMHCI/models/alignment/alignment_template.pdb")
+		self.pdbs.append(a.template)
 		self.pdbIds = [pdb for pdb in self.pdbs]
 		self.cores = cores
 		print('Start loading data')
@@ -210,8 +219,8 @@ class PDB2dataset():
 		print('Epochs:', epoch, ', train-time: %.2f seconds!' % (time.time()-t0))
 		self.rotator.ar, self.rotator.br, self.rotator.yr, self.rotator.bias = ar, br, yr, bias
 		
-def align(pdbInpFolder, residues, pdbRotatedFolder='modelsR', chain='M', template = -1, nmbr= -1):
-	dataProcessor = PDB2dataset(pdbInpFolder, pdbRotatedFolder, residues, chain, 128)	
+def align(pdbInpFolder, residues, chain='M', template = -1, nmbr= -1):
+	dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, 128)	
 	dataProcessor.train(template)
 	dataProcessor.rotateAll(nmbr = nmbr)
 
@@ -221,10 +230,9 @@ def extractPdbCa(fileName, chain):
 				for line in open(fileName).read().split('\n') \
 						if line.startswith('ATOM ') and line[13:15]=='CA' and line[21]==chain]
 
-# generate the
-align('/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*/pdb/*.pdb', range(100), 
-	template = '/projects/0/einf2380/data/pMHCI/models/alignment/alignment_template.pdb', 
-	pdbRotatedFolder='/projects/0/einf2380/data/pMHCI/models/pssm_mapped/BA',
+# Align the pdbs to the template file
+align(a.pdbs_path, range(100), 
+	template = a.template, 
 )
 
 
