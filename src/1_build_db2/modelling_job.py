@@ -1,17 +1,14 @@
 import sys
 import time
+import os
 from PANDORA.Wrapper import Wrapper
 from PANDORA.Database import Database
 from math import ceil
-from mpi4py import MPI
 import multiprocessing
 import numpy as np
 import pandas as pd
 import argparse
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 arg_parser = argparse.ArgumentParser(
     description="Performs 3D-modelling of the cases provided on one node."
@@ -40,15 +37,28 @@ arg_parser.add_argument("--db-path", "-d",
 a = arg_parser.parse_args()
 
 print(f'INFO: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
-running time:{int(a.running_time)}\n rank:{rank} \n batch: {10*a.num_cores*int(a.running_time)}')
+running time:{int(a.running_time)}\nbatch: {10*a.num_cores*int(a.running_time)}')
 
-# total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
-cases_per_hour_per_node = 10*int(a.num_cores) # 1536
+# determine node index so we don't do the same chunk multiple times
+node_index = int(os.getenv('SLURM_NODEID'))
+
+# check if there are cases to model
+df = pd.read_csv(f"{a.csv_path}")
+if df.empty:
+    print('No new cases to model, exiting')
+    sys.exit(0)
+
+
+cases_per_hour_per_node = 10*int(a.num_cores) # 10*128= 1280
 batch = cases_per_hour_per_node*int(a.running_time)
-start_row = int(rank*batch)
 
-end_row = int((rank+1)*batch)
-print(f"Rank {rank}. start_row: {start_row} end_row: {end_row}. Number of cores: {multiprocessing.cpu_count()}")
+start_row = (batch*node_index)
+end_row = (batch*node_index) + batch
+# it is possible that the end row index exceeds the length of the file because the file length is not divisible by the batch size
+if end_row > df.shape[0]+1: 
+    end_row = df.shape[0]+1 
+
+print(f'INFO: Node index: {node_index} \nStart row: {start_row} \nEnd row: {end_row} \nBatch size: {batch}')
 
 # Load the database file
 print('Loading Database..')
@@ -59,11 +69,6 @@ PDB_path = a.db_path.split('/data/')[0] + '/data/PDBs'
 db.repath(PDB_path, save=False)
 print('Database repathed')            
 
-# check if there are cases to model
-df = pd.read_csv(f"{a.csv_path}")
-if df.empty:
-    print('No new cases to model, exiting')
-    sys.exit(0)
 
 #find outdir column
 outdir_col = df.columns.to_list().index('db2_folder')
@@ -92,9 +97,9 @@ print(f"Time to model: {t3-t2}")
 wrapping_time = t2-t1
 modelling_time = t3-t2
 
-wrapping_times = comm.gather(wrapping_time)
-modelling_times = comm.gather(modelling_time)
+# wrapping_times = comm.gather(wrapping_time)
+# modelling_times = comm.gather(modelling_time)
 
-if rank==0:
-    print("Average time to create wrappers: ", float(np.array(wrapping_times).mean()))
-    print("Average time to create models: ", float(np.array(modelling_times).mean()))
+# if rank==0:
+#     print("Average time to create wrappers: ", float(np.array(wrapping_times).mean()))
+#     print("Average time to create models: ", float(np.array(modelling_times).mean()))

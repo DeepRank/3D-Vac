@@ -23,9 +23,14 @@ arg_parser.add_argument("--mhc-class", "-m",
     choices=['I','II'],
     required=True,
 )
+arg_parser.add_argument("--models_path", "-p",
+    help= "path of the models directory",
+    default="/projects/0/einf2380/data/pMHCI/models/BA"
+)
+
 a = arg_parser.parse_args()
 
-csv_path =  a.input_csv # ('/').join(a.csv_file.split('/')[:-1]) + "to_model.csv"
+csv_path =  ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
 
 
 df = pd.read_csv(csv_path)
@@ -65,7 +70,8 @@ modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 clean_output_job_stdout = subprocess.check_output([
     "sbatch",
     f"--dependency=afterany:{modelling_job_id}",
-    "2_clean_outputs.sh"
+    "2_clean_outputs.sh",
+    "-p", a.models_path,
 ]).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
@@ -74,5 +80,6 @@ subprocess.run([
     "sbatch",
     f"--dependency=afterany:{clean_output_job_id}",
     "get_unmodelled_cases.sh",
-    "-f", a.input_csv
+    "-f", a.input_csv,
+    "-m", a.models_path,
 ])

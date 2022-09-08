@@ -1,5 +1,4 @@
 import os
-from mpi4py import MPI
 import argparse
 import glob
 
@@ -12,23 +11,27 @@ arg_parser.add_argument("--models-path", "-p",
     help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
     https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
      Default value: \
-    /projects/0/einf2380/data/pMHCI/models/BA/*/*",
-    default = "/projects/0/einf2380/data/pMHCI/models/BA/*/*"
+    /projects/0/einf2380/data/pMHCI/models/BA",
+    default = "/projects/0/einf2380/data/pMHCI/models/BA"
 )
 a = arg_parser.parse_args()
 
-folders = glob.glob(a.models_path)
+wildcard_path = os.path.join(a.models_path, '../..')
+folders = glob.glob(wildcard_path)
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+# comm = MPI.COMM_WORLD
+# rank = comm.Get_rank()
+# size = comm.Get_size()
 
+# determine node index so we don't do the same chunk multiple times
+node_index = int(os.getenv('SLURM_NODEID'))
+n_nodes = int(os.getenv('SLURM_JOB_NUM_NODES'))
 
-step = int(len(folders)/size)
-start = int(rank*step+1)
-end = int((rank+1)*step)
+step = int(len(folders)/n_nodes)
+start = int(node_index*step+1)
+end = int((node_index+1)*step)
 
-if rank != size-1:
+if node_index != n_nodes-1:
     cut_folders = folders[start:end]
 else:
     cut_folders = folders[start:]
@@ -43,4 +46,4 @@ for folder in cut_folders:
     os.system(f'rm {folder}/*.rsr')
     os.system(f'rm {folder}/*.sch')
 
-print(f"Cleaning on {rank} finished.")
+print(f"Cleaning on node {node_index} finished.")

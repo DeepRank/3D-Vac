@@ -79,6 +79,7 @@ else:
             "allocate_nodes.sh",
             "-t", running_time,
             "-m", a.mhc_class,
-            "-i", to_model
+            "-i", to_model,
+            "-p", a.models_dir,
         ]
     )
