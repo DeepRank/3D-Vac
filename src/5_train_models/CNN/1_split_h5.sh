@@ -3,4 +3,4 @@
 #SBATCH -o /projects/0/einf2380/data/training_logs/split_h5_job-%J.out
 
 source activate deeprank
-python -u 1_split_h5.py "$@"
+python -u split_h5.py "$@"

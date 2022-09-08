@@ -13,4 +13,4 @@ module load 2020
 module load OpenMPI/4.0.3-GCC-9.3.0
 # usage: srun python -u mlp_reg_baseline.py <arguments for the script>
 
-srun python -u 4_mlp_baseline.py "$@"
+srun python -u mlp_baseline.py "$@"

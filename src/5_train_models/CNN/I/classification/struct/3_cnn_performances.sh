@@ -12,4 +12,4 @@ module load 2021
 module load foss/2021a
 
 # usage: srun python -u cnn_baseline.py <arguments for the script>
-srun python -u 3_cnn_performances.py "$@"
+srun python -u cnn_performances.py "$@"
