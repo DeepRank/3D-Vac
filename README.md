@@ -216,6 +216,8 @@ python src/3_build_db4/generate_features.py
 * Build db4 output files into h5out (the path is hardcoded)
 * The list of features and targets can be modified inside the file. More information available on https://deeprank.readthedocs.io/en/latest/tutorial2_dataGeneration.html
 
+### Step 4: Training MLP and CNN models
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
