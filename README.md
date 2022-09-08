@@ -1,5 +1,5 @@
 # 3D-Vac
-Repository of the eScience Center and RadbouduMC "Personalized cancer vaccine design through 3D modelling boosted geometric learning" collaboartive project (OEC 2021).
+Repository of the eScience Center and Radboudumc "Personalized cancer vaccine design through 3D modelling boosted geometric learning" collaboartive project (OEC 2021).
 
 Note that the 3D pMHC models (which are input for both deeprank and deeprank-gnn-2) have been generated using [PANDORA](https://github.com/X-lab-3D/PANDORA).
 
@@ -108,10 +108,12 @@ In the code and in the repo we often refer to numbered databases. Data can refer
 - **DB3** - PSSMs for pMHC. These data are derived from BLAST database.
 - **DB4** - Interface grids for CNNs (deeprank) or interface graphs for GNNs (deeprankcore) in the form of hdf5 files. DB3 and DB2 are used the generation of DB4.
 
-## How to run the pipeline for the pilot dataset:
+## How to run the pipeline:
+### Scripts Guidelines:
 In general, the folders are ordered per ste number (0, 1, 2, etc.). Every folder contains both `.py` and `.sh` scripts that do not need to be manually submitted. The only scripts that need to be submitted, and eventually changed depending on the experiment, are the scripts ordered by number (e.g. `1_build_db2_II.sh`). When multiple scripts have the same number, they refer to the same job but for different experiments / mhc-class / mode. (e.g. `1_build_db2_I.sh` and `1_build_db2_II.sh` ), so only one should be run depending on the expeirment.
 
 If you perform a new experiment, please use a new `.sh` script and write a comment in it explaining what it does (i.e. what it does differently from the other identical scripts, like "Generates db2 only for HLA-C").
+
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 DB1 contains all sequences of pMHC-I (DB1-I) and pMHC-II (DB1-II) and their experimental Binding Affinities (BAs).
@@ -172,9 +174,9 @@ Output folder structure (after cleaning with clean_outputs.sh):
 ```
 
 ### Step 2: Generating db3
-#### 2.1: Selecting which PANDORA generated pdb to use
+#### 2.1: Selecting which PANDORA-generated 3D-models to use
 ```
-python src/2_build_db3/symlink_targets_from_db2.py
+sbatch 1_symlink_targets_from_db2.sh
 ```
 * PANDORA generates 20 pdb structures per cases. They are ranked based on the global energy of the complex.
 * The first 5 pdb in this ranking contain the most plausible structure.
@@ -183,19 +185,27 @@ python src/2_build_db3/symlink_targets_from_db2.py
 
 #### 2.2: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
 ##### 2.2.1: Build the blast database
-* Make sure `blast` is installed. Download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`.
-* Copy the human MHC sequence fasta file from `/PANDORA_installation_folder/PANDORA_files/data/csv_pkl_files/hla_prot.fasta` into `data/pssm/blast_dbs/`.
-* Run `src/2_build_db3/PSSM/build_blastdb.sh`.
+* Make sure `blast` is installed. The easiest way to install it is with conda:
+  ```
+  conda install -c bioconda blast
+  ```
+  This might not work on Snellius. In that case, download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`. Make sure also `psiblast` is in your PATH and callable by terminal.
+* Copy the human MHC sequence fasta file from `/<PANDORA_installation_folder>/Databases/default/mhcseqs/hla_prot.fasta` into `data/pssm/blast_dbs/`.
+  
+Run: 
+```
+sbatch 2_build_blastdb.sh
+```
 
 ##### 2.2.2: Calculate raw PSSM for M chain:
 ```
-python src/2_build_db3/create_raw_pssm.py
+sbatch 3_create_raw_pssm.sh
 ```
 * Run `src/2_build_db3/create_raw_pssm.py --help` for more information.
 
 ##### 2.2.3: Map generated raw PSSM to the PDB:
 ```
-python src/2_build_db3/map_pssm2pdb.py
+sbatch 4_map_pssm2pdb.sh
 ```
 * Mapping raw PSSM to the pdb alleviate problems such as gaps in sequences.
 * Only mapped PSSM for the M chain are used to generate the PSSM db3 feature.

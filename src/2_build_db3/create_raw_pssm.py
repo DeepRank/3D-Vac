@@ -15,19 +15,29 @@ arg_parser.add_argument("--input-csv", "-i",
     default="BA_pMHCI.csv",
 )
 arg_parser.add_argument("--psiblast-path", "-p",
-    help="Path to psiblast executable. Default '/home/lepikhovd/softwares/blast/bin/psiblast'.",
-    default='/home/lepikhovd/softwares/blast/bin/psiblast'
+    help="Path to psiblast executable., Necessary if psiblast is not callable by terminal",
+)
+arg_parser.add_argument("--mhc-class", "-m",
+    help="""
+    MHC class
+    """,
+    default="I",
+    choices=["I", "II"],
 )
 a = arg_parser.parse_args()
 
 df = pd.read_csv(f"../../../data/external/processed/{a.input_csv}")
 
+if a.psiblast_path:
+    psiblast = a.psiblast_path
+else:
+    psiblast = 'psiblast'
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
 if rank==0:
-    best_models = glob.glob("/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*") 
+    best_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*/*") 
     db2 = np.array([model for model in best_models if "_".join(model.split("/")[-1].split("_")[0:-1]) in df["ID"].tolist()])
     db2 = np.array_split(db2, size)
 else:
@@ -43,13 +53,8 @@ for case in db2:
         # initiate the PSSM object:
         gen = PSSM(work_dir=case)
 
-        # get the fasta from pdb:
-        gen.get_fasta(pdb_dir="pdb", chain=("M"), out_dir="fasta")
-
-        # the package requires to rename the generated fasta fi
-
         # set psiblast executable, database and other psiblast parameters (here shows the defaults)
-        gen.configure(blast_exe=a.psiblast_path,
+        gen.configure(blast_exe=psiblast,
                     database='../../../data/pssm/blast_dbs/hla_prot.fasta',
                     num_threads = 3, evalue=0.0001, comp_based_stats='T',
                     max_target_seqs=2000, num_iterations=3, outfmt=7,

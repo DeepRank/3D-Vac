@@ -13,17 +13,24 @@ arg_parser = argparse.ArgumentParser(
     description="""
     This script takes peptides from `peptide` column of db1 (provided with --input-csv parameter) and encode it
     using one-hot encoding to generate a pseudo-PSSM of the peptide.
-    The pseudo-PSSM is dumped into the pssm folder as BA_xyz.P.pssm.
+    The pseudo-PSSM is written into the pssm folder as BA_xyz.P.pssm.
     """
 )
 arg_parser.add_argument("--input-csv", "-i",
     help="Name of db1 in data/external/processed/. Default BA_pMHCI.csv.",
     default="BA_pMHCI.csv",
 )
+arg_parser.add_argument("--mhc-class", "-m",
+    help="""
+    MHC class
+    """,
+    default="I",
+    choices=["I", "II"],
+)
 
 a = arg_parser.parse_args()
 
-pssm_folders = glob.glob("/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*")
+pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*/*")
 pssm_template_path = "../../../data/pssm/M_chain_template.pssm"
 
 # make the peptide_sequences
