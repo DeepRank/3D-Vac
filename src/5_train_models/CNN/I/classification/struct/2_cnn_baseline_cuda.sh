@@ -13,4 +13,4 @@ module load foss/2021a
 # export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:21,roundup_power2_divisions=4
 # usage: srun python -u cnn_baseline.py <arguments for the script> --with-cuda
 
-srun python -u cnn_baseline.py "$@" --with-cuda 
+srun python -u 2_cnn_baseline.py "$@" --with-cuda 
