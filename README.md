@@ -265,6 +265,27 @@ python src/4/train_models/CNN/I/classification/seq/mlp_baseline.py -o mlp_test
 * Add `--help` for more info.
 * Add `--cluster` for clustered dataset.
 
+### Exploration
+#### draw_cluster_motifs.ipynb
+* Enables visualization of sequence motifs in clusters of peptides generated using `src/0_build_db1/cluster_peptides.py`.
+* Gives the number of **unique** peptides as well as the distribution of binders/non binders for each cluster.
+
+#### draw_grid.py
+* Create a .vmd file to visualize the grid at the interface of a given case id in hdf5 file.
+* Run `src/exploration/draw_grid.py --help` for more information.
+
+#### explore_class_seq_xvalidation.ipynb
+* Visualize performances of the MLP on clustered and shuffled dataset.
+* Open the file for instructions.
+
+#### explore_class_struct_xvalidaiton.ipynb
+* Visualize performances of the CNN on clustered and shuffled dataset.
+* Open the file for instructions.
+
+#### explore_best_models.ipynb
+* Plots metrics from CNN and MLP best models.
+* Open the notebook file for instructions.
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
