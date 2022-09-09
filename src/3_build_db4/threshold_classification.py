@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 
 
 def __compute_target__(pdb, targrp):
@@ -10,7 +11,8 @@ def __compute_target__(pdb, targrp):
     csv_path: path of the db1 csv
     threshold: plateau to define binders (should be 500)
     """
-    df = pd.read_csv("/home/lepikhovd/training_branch_3D_vac/data/external/processed/BA_pMHCI.csv")
+    in_csv = os.environ['TARGET_INPUT_CSV']
+    df = pd.read_csv(in_csv)
     tarname = "BIN_CLASS"
     molname = targrp.parent.name.replace("/", "")
     class_id = (0.,1.)[ df[df["ID"] == molname]["measurement_value"].values[0] < 500. ] 

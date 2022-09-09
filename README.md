@@ -227,7 +227,7 @@ sbatch 6_peptide2onehot.sh
 ### Step 3: Generating db4
 #### Step 3.1: Populating the features_input_folder.
 ```
-python src/3_build_db4/populate_features_input_folder.py
+sbatch 1_populate_features_input_folder.sh
 ```
 * The way DeepRank feature generator works for now requires all .pssm and .pdb files to be in the same folder.
 * This script creates symlinks for every `db2_selected_models` .pssm and .pdb files into the feature_input_folder
@@ -235,7 +235,7 @@ python src/3_build_db4/populate_features_input_folder.py
 
 #### Step 3.2: building db4
 ```
-python src/3_build_db4/generate_features.py
+sbatch 2_generate_features.sh
 ```
 * Build db4 output files into h5out (the path is hardcoded)
 * The list of features and targets can be modified inside the file. More information available on https://deeprank.readthedocs.io/en/latest/tutorial2_dataGeneration.html

@@ -1,13 +1,33 @@
 from deeprank.generate import *
 from mpi4py import MPI
 import h5py
+import argparse
+
+arg_parser = argparse.ArgumentParser(
+    description="""
+    Use this script to create symlinks in the output folder (--output-folder) for pdb and pssm folders for db2. 
+    This folder will be used by generate_features.py as input.
+    """
+)
+arg_parser.add_argument("--input-folder", "-i",
+    help="""
+    Path to the input folder
+    """,
+    default="/projects/0/einf2380/data/pMHCI/features_input_folder"
+)
+arg_parser.add_argument("--h5out", "-o",
+    help="""
+    Output hdf5 file
+    """,
+    default="/projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/hla_a_02_01_9_length_peptide.hdf5"
+)
+
+a = arg_parser.parse_args()
 
 comm = MPI.COMM_WORLD
 
-input_folder = "/projects/0/einf2380/data/pMHCI/features_input_folder"
-pdb_folder = [f"{input_folder}/pdb"]
-pssm_folder = f"{input_folder}/pssm"
-h5out = "/projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/hla_a_02_01_9_length_peptide.hdf5"
+pdb_folder = [f"{a.input_folder}/pdb"]
+pssm_folder = f"{a.input_folder}/pssm"
 
 database = DataGenerator(
     pdb_source=pdb_folder,
@@ -25,7 +45,7 @@ database = DataGenerator(
     compute_targets=[
         "threshold_classification"
     ],
-    hdf5=h5out,
+    hdf5=a.h5out,
     mpi_comm = comm
 )
 
