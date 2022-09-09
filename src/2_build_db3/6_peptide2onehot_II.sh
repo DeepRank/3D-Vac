@@ -6,4 +6,11 @@
 #SBATCH --time 01:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/peptide2onehot_II.out
 
+# Load modules:
+module load 2021
+module load foss/2021a
+
+# Activate conda env:
+source activate deeprank
+
 mpiexec -n 128 python -u ./peptide2onehot.py --mhc-class II --csv-file BA_pMHCII.csv

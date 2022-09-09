@@ -14,3 +14,4 @@ module load foss/2021a
 source activate deeprank
 
 srun python -u map_pssm2pdb.py  --mhc-class II --csv-file BA_pMHCII.csv
+srun merge_pdbs_and_pssms_chains.py
