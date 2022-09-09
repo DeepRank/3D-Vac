@@ -14,18 +14,23 @@ arg_parser = argparse.ArgumentParser(
     This folder will be used by generate_features.py as input.
     """
 )
+arg_parser.add_argument("--input-folder", "-i",
+    help="""
+    Path to the input folder
+    """,
+    default="/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*"
+)
 arg_parser.add_argument("--output-folder", "-o",
     help="""
-    Name of the folder in "/projects/0/einf2380/data/pMHCI/features_input_folder" to put the symlinks in.
+    Path to the output folder
     """,
-    default="hla_02_01_9_mers"
+    default="/projects/0/einf2380/data/pMHCI/features_input_folder/hla_02_01_9_mers"
 )
 
 a = arg_parser.parse_args()
 
-input_folder = f"/projects/0/einf2380/data/pMHCI/features_input_folder/{a.output_folder}"
-pdb_folder = f"{input_folder}/pdb"
-pssm_folder = f"{input_folder}/pssm"
+pdb_folder = f"{a.output_folder}/pdb"
+pssm_folder = f"{a.output_folder}/pssm"
 
 if rank == 0:
     try:
@@ -35,9 +40,9 @@ if rank == 0:
         pass
 
     print("globing pdb_files")
-    pdb_files = np.array(glob.glob('/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*/pdb/*.pdb'))
+    pdb_files = np.array(glob.glob(f'{a.input_folder}/pdb/*.pdb'))
     print("globing pssm_files")
-    pssm_files = np.array(glob.glob('/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/*/*/pssm/*.pssm'))
+    pssm_files = np.array(glob.glob(f'{a.input_folder}/pssm/*.pssm'))
 
     print(f"pdb_files len: {pdb_files.shape[0]}")
     print(f"pssm_files len: {pssm_files.shape[0]}")
