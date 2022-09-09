@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
 import math
+import datetime
 import subprocess
 import re
 
@@ -14,6 +15,10 @@ arg_parser = argparse.ArgumentParser(
 arg_parser.add_argument("--running-time", "-t",
     help="Number of hours spawned jobs will run. default 01.",
     default="01",
+)
+arg_parser.add_argument("--num_nodes", "-n",
+    help = "Number of nodes to use. Should be in format 00. Default 00 (will use running-time instead).",
+    default = "00",
 )
 arg_parser.add_argument("--input-csv", "-i",
     help="This argument allows to keep track of the db1 after modelling to check how many models are left."
@@ -35,28 +40,39 @@ csv_path =  ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
 
 df = pd.read_csv(csv_path)
 tot_cases = len(df)
-
+running_time_hms = datetime.timedelta(hours=int(a.running_time))
 
 num_cores = 128
-#total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
-#10 is an optimized factor representing 3600/(time for modeling a case for a core)
-cases_per_hour_per_node = 10*num_cores # 1280 per hour per core. 
-batch = cases_per_hour_per_node*int(a.running_time)
-n_nodes = math.ceil(tot_cases/batch)
+
+if a.num_nodes == "00":
+    #no number of nodes given, compute nodes from running_time
+    #total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
+    #10 is an optimized factor representing 3600/(time for modeling a case for a core)
+    cases_per_hour_per_node = 10*num_cores # 1280 per hour per core. 
+    batch = cases_per_hour_per_node*int(a.running_time)
+    n_nodes = math.ceil(tot_cases/batch)
+else:
+    # number of nodes given, compute running time per node
+    cases_per_hour_per_node = 10*num_cores
+    running_time_frac  = tot_cases / (cases_per_hour_per_node * a.num_nodes)
+    running_time_min = math.ceil(running_time_frac * 60)
+    running_time_hms = datetime.timedelta(minutes=running_time_min)
+    batch = math.ceil(cases_per_hour_per_node*running_time_frac)
 
 # additional hours are added to the running time to be sure every anchors is predicted
-additional_hours = int(batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
-sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
-print("additional hours:", additional_hours)
-print("total running time (in hours):", sbatch_hours)
+additional_hours = datetime.timedelta(hours=batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
+sbatch_hours = str(running_time_hms + additional_hours)
+# sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
+print("additional hours:", str(additional_hours))
+print("total running time (in hours):", str(sbatch_hours))
 
 
 modelling_job_cmd = [
     "sbatch",
     f"--nodes={n_nodes}",
-    f"--time={sbatch_hours}:00:00",
+    f"--time={sbatch_hours}",
     "modelling_job.sh",
-    '-t', str(a.running_time), 
+    '-t', str(running_time_hms), 
     '-m', a.mhc_class,
     '-c', csv_path,
 ]

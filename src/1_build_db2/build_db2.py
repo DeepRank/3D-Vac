@@ -20,6 +20,10 @@ arg_parser.add_argument("--running-time", "-t",
     help = "Number of hours allocated for the job to run. Should be in format 00. Default 01.",
     default = "01",
 )
+arg_parser.add_argument("--num_nodes", "-n",
+    help = "Number of nodes to use. Should be in format 00. Default 0 (will use running-time instead).",
+    default = "00",
+)
 arg_parser.add_argument("--input-csv", "-i",
     help = "db1 file path. No default value. Required.",
     required = True,
@@ -68,8 +72,10 @@ if a.skip_check == False:
             f"--dependency=afterany:{jid}",
             "allocate_nodes.sh",
             "-t", running_time,
+            "-n", a.num_nodes,
             "-m", a.mhc_class,
             "-i", to_model,
+            "-p", a.models_dir,
         ]
     )
 else: 
