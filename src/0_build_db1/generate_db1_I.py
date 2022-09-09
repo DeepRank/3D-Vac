@@ -73,6 +73,8 @@ if not a.inequality:
     # input_csv_df = input_csv_df.query("(measurement_inequality == '=' | (measurement_inequality == '>' & measurement_value > 499) | \
     #  (measurement_inequality == '<' & measurement_value < 500)) & measurement_type == 'quantitative' & \
     # measurement_kind == 'affinity' & measurement_value >= 2")
+else:
+    input_csv_df = input_csv_df.query("measurement_type == 'quantitative' & measurement_kind == 'affinity' & measurement_value >= 2")
 
 
 # apply the allele and length of peptide filter:
