@@ -1,6 +1,7 @@
 import os
 import argparse
 import glob
+import math
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -16,20 +17,26 @@ arg_parser.add_argument("--models-path", "-p",
 )
 a = arg_parser.parse_args()
 
-wildcard_path = os.path.join(a.models_path, '../..')
+wildcard_path = os.path.join(a.models_path, '*/*')
 folders = glob.glob(wildcard_path)
 
-# comm = MPI.COMM_WORLD
-# rank = comm.Get_rank()
-# size = comm.Get_size()
 
 # determine node index so we don't do the same chunk multiple times
 node_index = int(os.getenv('SLURM_NODEID'))
 n_nodes = int(os.getenv('SLURM_JOB_NUM_NODES'))
 
-step = int(len(folders)/n_nodes)
-start = int(node_index*step+1)
-end = int((node_index+1)*step)
+
+step = math.ceil(len(folders)/n_nodes)
+start = node_index*step
+end = start + step
+if end > len(folders)+1:
+    end = len(folders)+1
+
+print(f'Start: {start} \nEnd {end} \nLen folders {len(folders)}')
+
+# step = int(len(folders)/n_nodes)
+# start = int(node_index*step+1)
+# end = int((node_index+1)*step)
 
 if node_index != n_nodes-1:
     cut_folders = folders[start:end]

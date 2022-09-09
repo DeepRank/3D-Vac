@@ -38,7 +38,7 @@ all_cases = len(df)
 
 #2. Open output folder. If the folder doesn't have 20 pdb files, it is considered as unmodelled. 
 already_modelled = []
-model_dirs = glob.glob( a.models_dir + '/*/*')
+model_dirs = glob.glob(os.path.join(a.models_dir, '/*/*'))
 for folder in model_dirs:
     n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
     if n_structures >= 19 and n_structures <= 20: # the n_structures <= 20 is to be sure that no more than 20 structures are
