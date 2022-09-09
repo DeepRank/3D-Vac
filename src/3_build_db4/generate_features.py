@@ -5,8 +5,7 @@ import argparse
 
 arg_parser = argparse.ArgumentParser(
     description="""
-    Use this script to create symlinks in the output folder (--output-folder) for pdb and pssm folders for db2. 
-    This folder will be used by generate_features.py as input.
+    Generate DeepRank 3D-grid HDF5 files
     """
 )
 arg_parser.add_argument("--input-folder", "-i",
