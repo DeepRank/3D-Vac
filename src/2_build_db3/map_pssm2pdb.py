@@ -18,7 +18,7 @@ arg_parser = argparse.ArgumentParser(
 )
 arg_parser.add_argument("--csv-file", "-i",
     help="Name of db1 in data/external/processed/. Default BA_pMHCI.csv",
-    default="BA_pMHCI.csv"
+    default="../../data/external/processed/BA_pMHCI.csv"
 )
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
@@ -30,7 +30,7 @@ arg_parser.add_argument("--mhc-class", "-m",
 
 a = arg_parser.parse_args()
 
-csv_path = f"../../../data/external/processed/{a.csv_file}"
+csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path)
 
 if rank == 0:

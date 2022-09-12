@@ -13,4 +13,4 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-mpiexec -n 128 python -u ./peptide2onehot.py
+mpiexec -n 128 python -u ./peptide2onehot.py  --mhc-class I --csv-file ../../data/external/processed/BA_pMHCI.csv

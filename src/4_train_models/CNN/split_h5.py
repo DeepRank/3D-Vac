@@ -31,12 +31,11 @@ arg_parser.add_argument("--cluster", "-c",
 
 arg_parser.add_argument("--csv-file", "-d",
     help= "Name of db1. Needed only for clustered split.",
-    default="BA_pMHCI.csv",
+    default="../../../data/external/processed/BA_pMHCI.csv",
 )
 arg_parser.add_argument("--output-path", "-o",
     help="Destination path for the generated splits. For clustered will be in --output-path/clustered and in \
-    --output-path/shuffled for shuffled. The clustered/0 to clustered/9 and shuffled/0 to shuffled/9 subfolders have \
-    to be created before running this script. Default: \
+    --output-path/shuffled for shuffled. Default: \
     /projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits/",
     default="/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits"
 )
@@ -96,7 +95,6 @@ def save_train_valid(train_idx, val_idx, test_idx, symlinks, path_out_folder,
     out_folder = path to the output folder (output_h5_path)
     train_f, valid_f, test_f: filename of train, valid and test
     """
-
     # Create new hd5f files for the training and validation
     train_h5 = h5py.File(os.path.join(path_out_folder, train_f), 'w')
     val_h5 = h5py.File(os.path.join(path_out_folder, valid_f), 'w')
@@ -138,13 +136,20 @@ def symlink_in_h5(idx, f1_path, f2):
 if __name__ == '__main__':
     # Combine the h5 files:
     symlinks, labels = h5_symlinks(a.features_path)
+    n_splits=10
+
+    #Make the output directories if they are not present already
+    for split in n_splits:
+        if not os.path.isdir(output_h5_path + f"/{split}"):
+            os.mkdirs(output_h5_path + f"/{split}")
+
     if a.cluster == False:
         all_cases = np.array(list(symlinks.keys()))
         labels = np.array(labels)
         indices = np.array(range(len(labels)))
         random.shuffle(indices)
 
-        kfold = StratifiedKFold(n_splits = 10)
+        kfold = StratifiedKFold(n_splits = n_splits)
         i = 0
         for training_idx, test_idx in kfold.split(indices, labels[indices]):
             training_idx, validation_idx = train_test_split(training_idx, test_size=2/9, stratify=labels[training_idx])
@@ -158,7 +163,7 @@ if __name__ == '__main__':
             f"shuffled/{i}/train.hdf5", f"shuffled/{i}/valid.hdf5", f"shuffled/{i}/test.hdf5") 
             i+=1
     else:
-        df = pd.read_csv(f"../../../data/external/processed/{a.csv_file}")
+        df = pd.read_csv(f"{a.csv_file}")
         groups = set(df["cluster"])
         all_cases = list(symlinks.keys())
         for i in groups:

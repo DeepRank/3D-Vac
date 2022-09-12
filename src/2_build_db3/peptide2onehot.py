@@ -18,7 +18,7 @@ arg_parser = argparse.ArgumentParser(
 )
 arg_parser.add_argument("--input-csv", "-i",
     help="Name of db1 in data/external/processed/. Default BA_pMHCI.csv.",
-    default="BA_pMHCI.csv",
+    default="../../data/external/processed/BA_pMHCI.csv",
 )
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
@@ -34,7 +34,7 @@ pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selec
 pssm_template_path = "../../../data/pssm/M_chain_template.pssm"
 
 # make the peptide_sequences
-df = pd.read_csv(f"../../../data/external/processed/{a.input_csv}")
+df = pd.read_csv(f"{a.input_csv}")
 
 # retrieve the first row of the pssm_template to make the template for the pseudo-PSSM
 pssm_template = []

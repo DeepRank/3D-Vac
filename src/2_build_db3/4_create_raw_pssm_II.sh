@@ -13,4 +13,4 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-srun python -u create_raw_pssm.py --mhc-class II --csv-file BA_pMHCII.csv
+srun python -u create_raw_pssm.py --mhc-class II --csv-file ../../data/external/processed/BA_pMHCII.csv

@@ -16,4 +16,6 @@ source activate deeprank
 $TARGET_INPUT_CSV='/projects/0/einf2380/3D-Vac/data/external/processed/BA_pMHCI.csv'
 
 # Start the script:
-srun python -u generate_features.py
+srun python -u generate_features.py \
+    --input-folder /projects/0/einf2380/data/pMHCI/features_input_folder \
+    --h5out /projects/0/einf2380/data/pMHCI/features_output_folder/hla_02_01_9_mers/hla_02_01_9_mers.hdf5

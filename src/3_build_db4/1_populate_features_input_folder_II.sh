@@ -12,8 +12,6 @@ module load foss/2021a
 
 # Activate conda env:
 source activate deeprank
-$TARGET_INPUT_CSV='/home/dariom/3D-Vac/data/external/processed/BA_pMHCII.csv'
-
 
 srun python -u populate_features_input_folder.py \
     --input-folder /projects/0/einf2380/data/pMHCII/db2_selected_models/BA/*/* \
