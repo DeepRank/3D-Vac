@@ -18,4 +18,4 @@ $TARGET_INPUT_CSV='/projects/0/einf2380/3D-Vac/data/external/processed/BA_pMHCII
 # Start the script:
 srun python -u generate_features.py \
     --input-folder /projects/0/einf2380/data/pMHCII/features_input_folder \
-    --h5out /projects/0/einf2380/data/pMHCII/features_output_folder/hla_drb10101_15_mers/hla_drb10101_15_mers.hdf5
+    --h5out /projects/0/einf2380/data/pMHCII/features_output_folder/hla_drb1_0101_15_mers/hla_drb10101_15_mers.hdf5

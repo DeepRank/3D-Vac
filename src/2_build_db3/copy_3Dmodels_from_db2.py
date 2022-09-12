@@ -31,7 +31,7 @@ arg_parser.add_argument("--csv-file", "-f",
     help="""
     Name of db1 in data/external/processed/. Default BA_pMHCI.csv.
     """,
-    default="BA_pMHCI.csv",
+    default="../../data/external/processed/BA_pMHCI.csv",
 )
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
@@ -44,7 +44,7 @@ a = arg_parser.parse_args()
 
 db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models"
 
-csv_path = f"../../data/external/processed/{a.csv_file}"
+csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path)
 
 # MANAGE MPI

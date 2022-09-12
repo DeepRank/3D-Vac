@@ -12,7 +12,7 @@ arg_parser = argparse.ArgumentParser(
 )
 arg_parser.add_argument("--input-csv", "-i",
     help="db1 name in data/external/processed to generate the raw PSSM for.",
-    default="BA_pMHCI.csv",
+    default="../../data/external/processed/BA_pMHCI.csv",
 )
 arg_parser.add_argument("--psiblast-path", "-p",
     help="Path to psiblast executable., Necessary if psiblast is not callable by terminal",
@@ -26,7 +26,7 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 a = arg_parser.parse_args()
 
-df = pd.read_csv(f"../../../data/external/processed/{a.input_csv}")
+df = pd.read_csv(f"{a.input_csv}")
 
 if a.psiblast_path:
     psiblast = a.psiblast_path
