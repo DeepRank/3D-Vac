@@ -37,7 +37,7 @@ arg_parser.add_argument("--batch_size", "-b",
 a = arg_parser.parse_args()
 
 print(f'INFO: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
-running time:{int(a.running_time)}\nbatch: {a.batch_size}')
+running time:{a.running_time}\nbatch: {a.batch_size}')
 
 # determine node index so we don't do the same chunk multiple times
 node_index = int(os.getenv('SLURM_NODEID'))
@@ -49,8 +49,8 @@ if df.empty:
     sys.exit(0)
 
 
-start_row = (a.batch_size*node_index)
-end_row = (a.batch_size*node_index) + a.batch_size
+start_row = (int(a.batch_size)*node_index)
+end_row = (int(a.batch_size)*node_index) + int(a.batch_size)
 # it is possible that the end row index exceeds the length of the file because the file length is not divisible by the batch size
 if end_row > df.shape[0]+1: 
     end_row = df.shape[0]+1 

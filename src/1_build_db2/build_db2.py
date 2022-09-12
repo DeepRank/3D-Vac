@@ -84,6 +84,7 @@ else:
             "sbatch",
             "allocate_nodes.sh",
             "-t", running_time,
+            "-n", a.num_nodes,
             "-m", a.mhc_class,
             "-i", to_model,
             "-p", a.models_dir,

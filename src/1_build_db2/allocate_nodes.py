@@ -50,18 +50,18 @@ if a.num_nodes == "00":
     #10 is an optimized factor representing 3600/(time for modeling a case for a core)
     cases_per_hour_per_node = 10*num_cores # 1280 per hour per core. 
     batch = cases_per_hour_per_node*int(a.running_time)
-    n_nodes = math.ceil(tot_cases/batch)
+    a.num_nodes = '{:0>2}'.format(math.ceil(tot_cases/batch))
 else:
     # number of nodes given, compute running time per node
     cases_per_hour_per_node = 10*num_cores
-    running_time_frac  = tot_cases / (cases_per_hour_per_node * a.num_nodes)
+    running_time_frac  = tot_cases / (cases_per_hour_per_node * int(a.num_nodes))
     running_time_min = math.ceil(running_time_frac * 60)
     running_time_hms = datetime.timedelta(minutes=running_time_min)
     batch = math.ceil(cases_per_hour_per_node*running_time_frac)
 
 # additional hours are added to the running time to be sure every anchors is predicted
 additional_hours = datetime.timedelta(hours=batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
-sbatch_hours = str(running_time_hms + additional_hours)
+sbatch_hours = str(running_time_hms + additional_hours).split('.')[0] # remove the microseconds
 # sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
 print("additional hours:", str(additional_hours))
 print("total running time (in hours):", str(sbatch_hours))
@@ -69,12 +69,13 @@ print("total running time (in hours):", str(sbatch_hours))
 
 modelling_job_cmd = [
     "sbatch",
-    f"--nodes={n_nodes}",
+    f"--nodes={a.num_nodes}",
     f"--time={sbatch_hours}",
     "modelling_job.sh",
     '-t', str(running_time_hms), 
     '-m', a.mhc_class,
     '-c', csv_path,
+    '-b', str(batch)
 ]
 print(f"running:\n {modelling_job_cmd}")
 
