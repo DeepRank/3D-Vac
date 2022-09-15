@@ -15,7 +15,7 @@ from deeprank.learn.modelGenerator import *
 
 arg_parser = argparse.ArgumentParser(
     description = "Script used to load the train, validation and test HDF5 files generated with 5/CNN/split_train_h5.py \
-    and train 10 models using CnnClassificationBaseline architecture from CNN/models.py file. \
+    and train 10 models using CnnClassificationBaseline architecture from CNN/3D_models.py file. \
     The script should be run using cnn_baseline_cuda.sh or cnn_baseline.sh. \
     The script expects both shuffled and clustered HDF5 splits to be in the {--split-path}/shuffled/<0:9>/ \
     and in the {--split-path}/clustered/<0:9>/ folders (works only for 10 fold xvalidation). By default this script \

@@ -49,5 +49,5 @@ sql_coords = sql.get('x,y,z')
 
 sql.update('x,y,z', pca.transform(sql_coords))
 
-#sql.exportpdb('/projects/0/einf2380/data/pMHCII/models/alignment/alignment_template.pdb')
+#sql.exportpdb('/projects/0/einf2380/data/pMHCII/3D_models/alignment/alignment_template.pdb')
 sql.exportpdb(a.template)

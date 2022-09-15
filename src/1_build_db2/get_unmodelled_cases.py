@@ -27,7 +27,7 @@ arg_parser.add_argument("--update-csv", "-u",
 )
 arg_parser.add_argument("--models-dir", "-m",
     help="Path to the BA or EL folder where the models are generated",
-    default="/projects/0/einf2380/data/pMHCI/models/BA",
+    default="/projects/0/einf2380/data/pMHCI/3D_models/BA",
 )
 
 a = arg_parser.parse_args()
