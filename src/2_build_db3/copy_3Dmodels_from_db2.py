@@ -52,7 +52,7 @@ df = pd.read_csv(csv_path)
 
 if rank==0:
     # Look only at db2 cases and not every cases:
-    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/models//BA/*/*")
+    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/3D_models//BA/*/*")
     db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
     db2 = np.array_split(db2, size)
 else:

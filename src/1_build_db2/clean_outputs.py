@@ -12,8 +12,8 @@ arg_parser.add_argument("--models-path", "-p",
     help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
     https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
      Default value: \
-    /projects/0/einf2380/data/pMHCI/models/BA/*/*",
-    default = "/projects/0/einf2380/data/pMHCI/models/BA/*/*"
+    /projects/0/einf2380/data/pMHCI/3D_models/BA/*/*",
+    default = "/projects/0/einf2380/data/pMHCI/3D_models/BA/*/*"
 )
 a = arg_parser.parse_args()
 

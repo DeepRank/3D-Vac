@@ -243,7 +243,7 @@ sbatch 2_generate_features.sh
 ### Step 4: Training MLP and CNN models
 #### Step 4.1: Split db4 into train, validation and test 10 times for shuffled and clustered CNN dataset
 ```
-python src/4_train_models/CNN/split_h5.py
+sbatch split_h5.sh
 ```
 * To generate the clustered dataset, add `--cluster` argument.
 * Add `--help` for more information.
