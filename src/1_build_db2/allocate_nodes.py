@@ -62,6 +62,10 @@ else:
 # additional hours are added to the running time to be sure every anchors is predicted
 additional_hours = datetime.timedelta(hours=batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
 sbatch_hours = str(running_time_hms + additional_hours).split('.')[0] # remove the microseconds
+
+if (running_time_hms + additional_hours) < datetime.timedelta(minutes=15): # run at least 15 minutes, small batches tend to time out
+    sbatch_hours = str(datetime.timedelta(minutes=15))
+
 # sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
 print("additional hours:", str(additional_hours))
 print("total running time (in hours):", str(sbatch_hours))
@@ -87,8 +91,9 @@ modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 clean_output_job_stdout = subprocess.check_output([
     "sbatch",
     f"--dependency=afterany:{modelling_job_id}",
-    "2_clean_outputs.sh",
+    "1_clean_outputs.sh",
     "-p", a.models_path,
+    "-m", a.mhc_class
 ]).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
@@ -99,4 +104,6 @@ subprocess.run([
     "get_unmodelled_cases.sh",
     "-f", a.input_csv,
     "-m", a.models_path,
+    "-p",
+    "-a", 
 ])
