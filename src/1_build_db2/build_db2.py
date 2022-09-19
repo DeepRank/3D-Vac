@@ -60,6 +60,8 @@ if a.skip_check == False:
             "-u", # this argument is mandatory to overwrite `to_model.csv`
             "-m", a.models_dir,
             "-t", to_model,
+            '-p',
+            "-a"
         ]
     ).decode("ASCII");
 
