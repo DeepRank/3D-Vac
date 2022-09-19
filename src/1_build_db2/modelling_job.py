@@ -3,12 +3,9 @@ import time
 import os
 from PANDORA.Wrapper import Wrapper
 from PANDORA.Database import Database
-from math import ceil
-import multiprocessing
 import numpy as np
 import pandas as pd
 import argparse
-
 
 arg_parser = argparse.ArgumentParser(
     description="Performs 3D-modelling of the cases provided on one node."
@@ -28,13 +25,16 @@ arg_parser.add_argument("--running-time", "-t",
 )
 arg_parser.add_argument("--num-cores", "-n",
     help="Number of cores to be used per node.",
+    type=int,
     default=128
 )
 arg_parser.add_argument("--batch_size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
+
 a = arg_parser.parse_args()
+
 
 print(f'INFO: \n cases per hour per node :{10*a.num_cores} \n num of cores: {a.num_cores}\n \
 running time:{a.running_time}\nbatch: {a.batch_size}')
@@ -52,8 +52,8 @@ if df.empty:
 start_row = (int(a.batch_size)*node_index)
 end_row = (int(a.batch_size)*node_index) + int(a.batch_size)
 # it is possible that the end row index exceeds the length of the file because the file length is not divisible by the batch size
-if end_row > df.shape[0]+1: 
-    end_row = df.shape[0]+1 
+if end_row > df.shape[0]: 
+    end_row = df.shape[0] 
 
 print(f'INFO: Node index: {node_index} \nStart row: {start_row} \nEnd row: {end_row} \nBatch size: {a.batch_size}')
 
