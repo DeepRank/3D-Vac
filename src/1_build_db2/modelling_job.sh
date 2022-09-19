@@ -5,6 +5,7 @@
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/3D_modelling_job-%J.out
 #SBATCH --exclusive
 #SBATCH --cpus-per-task 128
+#SBATCH --no-kill
 
 ## the number of nodes for the job is provided in the dispatch_modeling_jobs_parallelized.py script
 ## usage: srun python modelling_job.py <running time>
