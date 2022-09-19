@@ -73,7 +73,7 @@ if __name__ == "__main__":
 	process_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
 	##################################
 
-	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
+	pdb_models_folder = f'{project_folder}data/{data}/3D_models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
 	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
 	

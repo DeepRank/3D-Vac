@@ -58,7 +58,12 @@ def h5_symlinks(input_path):
     symlinks = {}
     labels = []
     for hfile in hfiles:
-        caseIDs, case_labels = read_caseIDS_from_hfile(hfile)
+        try:
+            caseIDs, case_labels = read_caseIDS_from_hfile(hfile)
+        except:
+            print('#########')
+            print(f'Problem occurred with hdf5 file {hfile}')
+            #raise Exception(f'Problem occurred with hdf5 file {hfile}')
         labels = labels + case_labels
         for caseID in caseIDs:
             symlinks[caseID] = hfile
@@ -77,7 +82,12 @@ def read_caseIDS_from_hfile(hfile):
     with h5py.File(hfile, 'r') as h5:
         caseIDs = list(h5.keys())
         for case in caseIDs:
-            labels.append(h5[case]["targets"]["BIN_CLASS"][()])
+            try:
+                labels.append(h5[case]["targets"]["BIN_CLASS"][()])
+            except:
+                print('#########')
+                print(f'Problem occurred with case {case}')
+                #raise Exception(f'Problem occurred with case {case}')
     return caseIDs, labels
 
 
@@ -139,9 +149,10 @@ if __name__ == '__main__':
     n_splits=10
 
     #Make the output directories if they are not present already
-    for split in n_splits:
+    split_type = ('shuffled', 'clustered')[a.cluster]
+    for split in range(0,n_splits):
         if not os.path.isdir(output_h5_path + f"/{split}"):
-            os.mkdirs(output_h5_path + f"/{split}")
+            os.makedirs(output_h5_path + f"/{split_type}/{split}")
 
     if a.cluster == False:
         all_cases = np.array(list(symlinks.keys()))
@@ -160,11 +171,13 @@ if __name__ == '__main__':
             # create training and validation hdf5 files
             print(f"### SAVING SPLITS for {i} ###")
             save_train_valid(tr, va, t,symlinks, output_h5_path,
-            f"shuffled/{i}/train.hdf5", f"shuffled/{i}/valid.hdf5", f"shuffled/{i}/test.hdf5") 
+                f"shuffled/{i}/train.hdf5", 
+                f"shuffled/{i}/valid.hdf5", 
+                f"shuffled/{i}/test.hdf5") 
             i+=1
     else:
         df = pd.read_csv(f"{a.csv_file}")
-        groups = set(df["cluster"])
+        groups = [int(x) for x in set(df["cluster"])]
         all_cases = list(symlinks.keys())
         for i in groups:
             test_mask = (df["ID"].isin(all_cases)) & (df["cluster"] == i)

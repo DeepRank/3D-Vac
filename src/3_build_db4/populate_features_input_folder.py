@@ -58,17 +58,17 @@ pdb_files = comm.scatter(pdb_files, root=0)
 pssm_files = comm.scatter(pssm_files, root=0)
 
 for pdb in pdb_files:
-        pdb_file_name = pdb.split("/")[-1]
-        dest = f"{pdb_folder}/{pdb_file_name}"
-        try:
-            os.symlink(pdb, dest)
-        except:
-            pass
+    pdb_file_name = pdb.split("/")[-1]
+    dest = f"{pdb_folder}/{pdb_file_name}"
+    try:
+        os.symlink(pdb, dest)
+    except:
+        print(f'Something went wrong with pdb {pdb}')
 
 for pssm in pssm_files:
-        pssm_file_name = pssm.split("/")[-1]
-        dest = f"{pssm_folder}/{pssm_file_name}"
-        try:
-            os.symlink(pssm, dest)
-        except:
-            pass
+    pssm_file_name = pssm.split("/")[-1]
+    dest = f"{pssm_folder}/{pssm_file_name}"
+    try:
+        os.symlink(pssm, dest)
+    except:
+        print(f'Something went wrong with pssm {pssm}')

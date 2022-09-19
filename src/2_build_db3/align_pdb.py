@@ -160,8 +160,12 @@ class PDB2dataset():
 					stringCoord = ''.join([(' '*(8-len(i)))+i for i in stringCoord])
 					line = line[:30] + stringCoord + line[54:]
 					atomIndex += 1
-				write.write(line + '\n')					
+				write.write(line + '\n')	
 			write.close()
+			if atomIndex > 200:			
+				pass
+			else:
+				raise Exception(f'Something went wrong with pdb {pdbIndex}')
 	
 	# Rotate all, or a selection of pdbs
 	def rotateAll(self, nmbr=-1):
@@ -173,10 +177,10 @@ class PDB2dataset():
 		self.rotator.bias = self.rotator.bias.detach()
 		self.rotator.mean = self.rotator.mean.detach()
 		self.rotator.coordinates = self.rotator.coordinates.detach()
-		# pool = mp.Pool()
-		# pool.map(self._rotate, range(nmbr))
-		for pdbIndex in range(nmbr):
-			self._rotate(pdbIndex)
+		pool = mp.Pool()
+		pool.map(self._rotate, range(nmbr))
+		#for pdbIndex in range(nmbr):
+		#	self._rotate(pdbIndex)
 		# _ = [self._rotate(pdbIndex) for pdbIndex in range(nmbr)] 
 		print('Rotating and saving data took: %.2f seconds' % (time.time()-t0))
 		
@@ -219,10 +223,10 @@ class PDB2dataset():
 		print('Epochs:', epoch, ', train-time: %.2f seconds!' % (time.time()-t0))
 		self.rotator.ar, self.rotator.br, self.rotator.yr, self.rotator.bias = ar, br, yr, bias
 		
-def align(pdbInpFolder, residues, chain='M', template = -1, nmbr= -1):
-	dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, 128)	
+def align(pdbInpFolder, residues, chain='M', template = -1, n_cores= -1):
+	dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, n_cores)	
 	dataProcessor.train(template)
-	dataProcessor.rotateAll(nmbr = nmbr)
+	dataProcessor.rotateAll(nmbr = n_cores)
 
 
 def extractPdbCa(fileName, chain):
@@ -233,6 +237,7 @@ def extractPdbCa(fileName, chain):
 # Align the pdbs to the template file
 align(a.pdbs_path, range(100), 
 	template = a.template, 
+	n_cores = 128
 )
 
 

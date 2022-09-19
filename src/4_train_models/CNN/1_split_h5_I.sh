@@ -7,7 +7,7 @@ python -u split_h5.py --features-path /projects/0/einf2380/data/pMHCI/features_o
     --output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits \
 
 python -u split_h5.py --features-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/ \
-    --cluster --csv-file ../../../data/external/processed/BA_pMHCI.csv \
+    --cluster --csv-file /projects/0/einf2380/data/external/processed/I/IDs_BA_MHCI.csv \
     --output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits \
     
     

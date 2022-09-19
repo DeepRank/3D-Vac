@@ -102,7 +102,7 @@ if __name__ == "__main__":
             ba_dict[x[0]] = {x[1]:[x[2]]}
 
     #Define output folder
-    MHCII_outfolder = '/projects/0/einf2380/data/pMHCII/models/'
+    MHCII_outfolder = '/projects/0/einf2380/data/pMHCII/3D_models/'
     if a.prefix == 'BA':
         outfolder = MHCII_outfolder + 'BA/'
     elif a.prefix == 'EL':

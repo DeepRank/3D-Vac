@@ -18,7 +18,7 @@ if __name__ == "__main__":
         ba_values = pickle.load(inpkl)
         ba_dict = pickle.load(inpkl)
 
-    MHCII_outfolder = '/projects/0/einf2380/data/pMHCII/models/'
+    MHCII_outfolder = '/projects/0/einf2380/data/pMHCII/3D_models/'
     BA_outfolder = MHCII_outfolder + 'BA/'
     EL_outfolder = MHCII_outfolder + 'EL/'
 

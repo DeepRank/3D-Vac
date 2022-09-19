@@ -13,5 +13,8 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-srun python -u map_pssm2pdb.py  --mhc-class II --csv-file ../../data/external/processed/BA_pMHCII.csv
-srun merge_pdbs_and_pssms_chains.py
+srun --job-name map_pssm \
+    python -u map_pssm2pdb.py  --mhc-class II \ 
+    --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv
+srun --dependency=afterany:map_pssm \
+    merge_pdbs_and_pssms_chains.py

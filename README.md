@@ -237,6 +237,8 @@ sbatch 1_populate_features_input_folder.sh
 ```
 sbatch 2_generate_features.sh
 ```
+IMPORTANT NOTE: the path to the .csv with the targets needs to be changed in threshold_classification.py, line 15.
+
 * Build db4 output files into h5out (the path is hardcoded)
 * The list of features and targets can be modified inside the file. More information available on https://deeprank.readthedocs.io/en/latest/tutorial2_dataGeneration.html
 
