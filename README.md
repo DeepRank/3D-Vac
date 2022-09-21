@@ -192,11 +192,8 @@ sbatch 2_align_pdb.sh
 
 #### 2.3: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
 ##### 2.3.1: Build the blast database
-* Make sure `blast` is installed. The easiest way to install it is with conda:
-  ```
-  conda install -c bioconda blast
-  ```
-  This might not work on Snellius. In that case, download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`. Make sure also `psiblast` is in your PATH and callable by terminal.
+* Make sure `blast` is installed.
+  The conda installation does not work on Snellius (on other systems should be ok). In that case, download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`. Make sure also `psiblast` is in your PATH and callable by terminal.
 * Copy the human MHC sequence fasta file from `/<PANDORA_installation_folder>/Databases/default/mhcseqs/hla_prot.fasta` into `data/pssm/blast_dbs/`.
   
 Run: 

@@ -1,64 +1,43 @@
 from pssmgen import PSSM
 import argparse
-from mpi4py import MPI
-import pandas as pd
-import glob
-import numpy as np
-import os
 
 arg_parser = argparse.ArgumentParser(
-    description="This script generates the unmapped pssm for each case and dumps it into the pssm_raw folder in the \
-    db3_inputs folder."
+    description="Generate one raw pssm in the given folder. Requires a blast database and a fasta file. \
+        The fasta file can be generated with src/tools/pdb_to_fasta.py"
 )
-arg_parser.add_argument("--input-csv", "-i",
-    help="db1 name in data/external/processed to generate the raw PSSM for.",
-    default="../../data/external/processed/BA_pMHCI.csv",
-)
+
 arg_parser.add_argument("--psiblast-path", "-p",
     help="Path to psiblast executable., Necessary if psiblast is not callable by terminal",
 )
-arg_parser.add_argument("--mhc-class", "-m",
-    help="""
-    MHC class
-    """,
-    default="I",
-    choices=["I", "II"],
-)
-a = arg_parser.parse_args()
 
-df = pd.read_csv(f"{a.input_csv}")
+arg_parser.add_argument("--workdir", "-w",
+    help="""
+    PSSMGen working directory including /pssm_raw and /fasta
+    """,
+    required=True,
+) #'/projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101'
+
+arg_parser.add_argument("--blast-db", "-b",
+    help="Path and name of blast db. Defaults to /projects/0/einf2380/data/blast_dbs/all_hla/all_hla",
+    default='/projects/0/einf2380/data/blast_dbs/all_hla/all_hla'
+)
+
+a = arg_parser.parse_args()
 
 if a.psiblast_path:
     psiblast = a.psiblast_path
 else:
     psiblast = 'psiblast'
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
-if rank==0:
-    best_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*/*") 
-    db2 = np.array([model for model in best_models if "_".join(model.split("/")[-1].split("_")[0:-1]) in df["ID"].tolist()])
-    db2 = np.array_split(db2, size)
-else:
-    db2 = None
-db2 = comm.scatter(db2, root=0)
+#create the raw_pssm, for the proof of principle work with the HLA-A*02:01 allele, only 1 sequence is required:
+gen = PSSM(work_dir=a.workdir)
 
-for case in db2:
-        try: # create necessary directories for pssm
-            os.mkdir(f"{case}/fasta")
-        except:
-            pass
+# set psiblast executable, database and other psiblast parameters (here shows the defaults)
+gen.configure(blast_exe=psiblast,
+            database=a.blast_db,
+            num_threads = 3, evalue=0.0001, comp_based_stats='T',
+            max_target_seqs=2000, num_iterations=3, outfmt=7,
+            save_each_pssm=True, save_pssm_after_last_round=True)
 
-        # initiate the PSSM object:
-        gen = PSSM(work_dir=case)
-
-        # set psiblast executable, database and other psiblast parameters (here shows the defaults)
-        gen.configure(blast_exe=psiblast,
-                    database='../../../data/pssm/blast_dbs/hla_prot.fasta',
-                    num_threads = 3, evalue=0.0001, comp_based_stats='T',
-                    max_target_seqs=2000, num_iterations=3, outfmt=7,
-                    save_each_pssm=True, save_pssm_after_last_round=True)
-
-        # generates raw PSSM files by running BLAST with fasta files
-        gen.get_pssm(fasta_dir='fasta', out_dir='pssm_raw', run=True, save_all_psiblast_output=True)
+# generates raw PSSM files by running BLAST with fasta files
+gen.get_pssm(fasta_dir='fasta', out_dir='pssm_raw', run=True, save_all_psiblast_output=True)

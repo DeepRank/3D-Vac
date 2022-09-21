@@ -8,9 +8,9 @@ from mpi4py import MPI
 import numpy as np
 import re
 
-conn = MPI.COMM_WORLD
-size = conn.Get_size()
-rank = conn.Get_rank()
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -57,7 +57,7 @@ if rank==0:
     db2 = np.array_split(db2, size)
 else:
     db2 = None
-db2 = conn.scatter(db2, root=0)
+db2 = comm.scatter(db2, root=0)
 
 # EXECUTE TASK
 # ------------
@@ -73,25 +73,27 @@ for case in db2:
         targets = [f"{case}/{structure}" for structure in target_ids]
         db2_targets.extend(targets)
 
-# Symlink each target:
+# Copy each target:
 for structure in db2_targets:
     # attempt to create subfolders:
         dir = "/".join(structure.split("/")[-4:-1])
-        pdb_file = structure.split("/")[-1].replace("_", "-")
+        pdb_file = structure.split("/")[-1].split('.')
+        pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
         destination_dir = f"{db2_selected_models_path}/{dir}/pdb"
         destination_file = f"{destination_dir}/{pdb_file}"
         try: # create remaining subfolders:
-            os.makedirs(destination_dir); 
+            os.makedirs(destination_dir)
         except:
             print('Something went worng in creating', destination_dir)
-        try: #make the symlink:
+        try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
             subprocess.check_call(f'cp {structure} {destination_file}', shell=True)
+            subprocess.check_call(f'cp {structure} {destination_file}.origin', shell=True)
         except:
             pass
 
 # retrieve all db2 to make sure everything is modelled:
 print(f"Finished copying on {rank} for {db2.shape[0]} cases.")
-db2 = conn.gather(db2.shape[0], root=0)
+db2 = comm.gather(db2.shape[0], root=0)
 if rank == 0:
     db2 = np.array(db2)
     print(f"Total structures copied: {db2.sum()}")
