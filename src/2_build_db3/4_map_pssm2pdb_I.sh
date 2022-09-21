@@ -14,4 +14,5 @@ module load foss/2021a
 source activate deeprank
 
 srun python -u map_pssm2pdb.py --mhc-class I \
-    --csv-file /projects/0/einf2380/data/external/processed/I/IDs_BA_MHCI.csv
+    --csv-file /projects/0/einf2380/data/external/processed/I/IDs_BA_MHCI.csv \
+    --alphachain_pssm /projects/0/einf2380/data/pMHCII/pssm_raw/hla_02_01/pssm_raw/hla_02_01.pssm #NOTE: please generate this pssm, do not use the Human_MHC_data.pssm present already
