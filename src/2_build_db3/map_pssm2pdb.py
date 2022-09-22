@@ -21,10 +21,6 @@ arg_parser.add_argument("--csv-file", "-i",
     help="Name of db1 in data/external/processed/. Default BA_pMHCI.csv",
     default="../../data/external/processed/BA_pMHCI.csv"
 )
-arg_parser.add_argument("--raw-pssm", "-r",
-    help="Path to original raw pssm to be copied",
-    required=True
-)
 arg_parser.add_argument("--alphachain-pssm", "-M",
     help="""
     MHC class alpha chain (M chain) raw pssm path
@@ -66,9 +62,17 @@ elif a.mhc_class == 'II':
 
 for case in db2:
     work_dir = "/".join(case.split("/")[:-2])
+    try:
+        subprocess.check_call(f'mkdir {work_dir}/pssm_raw', shell=True)
+    except:
+        print(f'Warning: could not make pssm_raw folder for case {case}')
+    try:
+        subprocess.check_call(f'mkdir {work_dir}/pssm', shell=True)
+    except:
+        print(f'Warning: could not make pssm folder for case {case}')
     model_name = case.split("/")[-1].split('.')[0]
     for chain_id, path in chains.items():
-        subprocess.check_call(f'cp {path} {work_dir}/pssm_raw/{model_name}.{chain_id}.pssm')
+        subprocess.check_call(f'cp {path} {work_dir}/pssm_raw/{model_name}.{chain_id}.pssm', shell=True)
 
     gen = PSSM(work_dir=work_dir)
     gen.map_pssm(pssm_dir="pssm_raw", pdb_dir="pdb", out_dir="pssm", chain=list(chains.keys()))

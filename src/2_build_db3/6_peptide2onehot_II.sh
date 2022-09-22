@@ -14,4 +14,4 @@ module load foss/2021a
 source activate deeprank
 
 mpiexec -n 128 python -u ./peptide2onehot.py --mhc-class II \
-     --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv
+     --input-csv /projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv

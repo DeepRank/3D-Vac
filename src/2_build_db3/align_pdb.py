@@ -166,7 +166,7 @@ class PDB2dataset():
 			if atomIndex > 200:			
 				pass
 			else:
-				raise Exception(f'Something went wrong with pdb {pdbIndex}')
+				raise Exception(f'Something went wrong with pdb {pdbIndex}, path: {self.pdbs[pdbIndex]}')
 	
 	# Rotate all, or a selection of pdbs
 	def rotateAll(self, nmbr=-1):

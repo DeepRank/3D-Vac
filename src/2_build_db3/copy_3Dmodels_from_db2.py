@@ -81,18 +81,21 @@ for structure in db2_targets:
         pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
         destination_dir = f"{db2_selected_models_path}/{dir}/pdb"
         destination_file = f"{destination_dir}/{pdb_file}"
-        try: # create remaining subfolders:
-            os.makedirs(destination_dir)
-        except:
-            print('Something went worng in creating', destination_dir)
+        if not os.path.isdir(destination_dir):
+            try: # create remaining subfolders:
+                os.makedirs(destination_dir)
+            except:
+                print('Something went worng in creating', destination_dir)
+        else:
+            print(f"Directory {destination_dir} already exists")
         try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
             subprocess.check_call(f'cp {structure} {destination_file}', shell=True)
             subprocess.check_call(f'cp {structure} {destination_file}.origin', shell=True)
-        except:
-            pass
+        except Exception as e:
+            print(f'The following error occurred: {e}')
 
 # retrieve all db2 to make sure everything is modelled:
-print(f"Finished copying on {rank} for {db2.shape[0]} cases.")
+print(f"Finished copying on rank {rank} for {db2.shape[0]} cases.")
 db2 = comm.gather(db2.shape[0], root=0)
 if rank == 0:
     db2 = np.array(db2)

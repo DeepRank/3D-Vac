@@ -31,7 +31,7 @@ arg_parser.add_argument("--mhc-class", "-m",
 a = arg_parser.parse_args()
 
 pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*/*")
-pssm_template_path = "../../../data/pssm/M_chain_template.pssm"
+pssm_template_path = "/projects/0/einf2380/data/templates/M_chain_mapped_template.pssm"
 
 # make the peptide_sequences
 df = pd.read_csv(f"{a.input_csv}")
