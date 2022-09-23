@@ -65,13 +65,13 @@ if a.skip_check == False:
         ]
     ).decode("ASCII");
 
-    jid = int(re.search(r"\d+", command_output).group())
+    jid_get_unmod = int(re.search(r"\d+", command_output).group())
 
     # run the parallel modeling on n nodes
     subprocess.run(
         [
             "sbatch",
-            f"--dependency=afterany:{jid}",
+            f"--dependency=afterok:{jid_get_unmod}",
             "allocate_nodes.sh",
             "-t", running_time,
             "-n", a.num_nodes,
