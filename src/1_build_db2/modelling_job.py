@@ -76,6 +76,7 @@ wrap.create_targets(a.csv_path, db,
     peptides_col=2, allele_col=1, outdir_col=outdir_col, benchmark=False, 
     verbose=True, start_row=start_row, end_row=end_row, use_netmhcpan=True
 )
+
 t2 = time.time()
 print('Wrapper created')
 print(f"Time to predict anchors: {t2-t1}")
@@ -85,6 +86,3 @@ wrap.run_pandora(num_cores=a.num_cores, n_loop_models=20, clip_C_domain=True,
     benchmark=False)
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
-
-wrapping_time = t2-t1
-modelling_time = t3-t2
