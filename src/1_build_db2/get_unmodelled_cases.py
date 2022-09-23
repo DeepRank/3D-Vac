@@ -44,7 +44,7 @@ arg_parser.add_argument("--archived", "-a",
 )
 
 a = arg_parser.parse_args()
-
+os.environ["NUMEXPR_MAX_THREADS"]=str(64)
 
 def zip_and_remove(case):    
     # remove the old archive, but only if already unzipped
@@ -81,39 +81,30 @@ def get_archive_members(dir):
     except:
         print(traceback.print_exc())
 
-
-#1. Open cases file
-df = pd.read_csv(f"{a.csv_file}")
-all_cases = len(df)
-
-wildcard_path = os.path.join(a.models_dir, '*/*')
-folders = glob.glob(wildcard_path)
-model_dirs = [dir.split('.')[0] for dir in folders]
-n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
-# if a.parallel:
-#     node_index = int(os.getenv('SLURM_NODEID'))
-#     n_nodes = int(os.getenv('SLURM_JOB_NUM_NODES'))
-
-
-#     step = math.ceil(len(folders)/n_nodes)
-#     start = node_index*step
-#     end = start + step
-#     if end > len(folders):
-#         end = len(folders)
-
-#     print(f'Start: {start} \nEnd {end} \nLen folders {len(folders)}')
-
-#     if node_index != n_nodes-1:
-#         model_dirs = folders[start:end]
-#     else:
-#         model_dirs = folders[start:]
-# else:
-#      model_dirs = glob.glob(os.path.join(a.models_dir, '*/*'))
+def check_molpdf(fold):
+    try:
+        with tarfile.open(f'{fold}.tar', 'r') as archive:
+            molpdf = archive.extractfile(f'{fold[1:]}/molpdf_DOPE.tsv')
+            molpdf_df = pd.read_csv(molpdf, sep='\t', header=None)
+            if molpdf_df.shape[0] >= 19:
+                df_types = []
+                for idx, row in molpdf_df.iterrows():
+                    df_types.append(pd.isna(row[1]))
+                    df_types.append(pd.isna(row[2]))
+                # allow 4 faulty scores in the molpdf file (2 models)
+                if df_types.count(True) <= 4:
+                    return True
+    except tarfile.ReadError as e:
+        print(e)
+    except KeyError as e:
+        print(f'Molpdf.tsv not present: {fold}')
+    except pd.errors.EmptyDataError:
+        print(f'Molpdf empty: {fold}')
 
 
 def search_folders(folder):
     try:
-        #2. Open output folder. If the folder doesn't have 20 pdb files, it is considered as unmodelled.     #
+        # Open output folder. If the folder doesn't have 20 pdb files, it is considered as unmodelled.     #
         if a.archived:
             members = get_archive_members(folder)
             if not members:
@@ -123,27 +114,55 @@ def search_folders(folder):
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
         if n_structures >= 19 and n_structures <= 20: # the n_structures <= 20 is to be sure that no more than 20 structures are
-            # generated
             case = "_".join(folder.split("/")[-1].split("_")[0:2])
-            return case
+            molpdf_present = [re.search('molpdf_DOPE.tsv', mem) for mem in members]
+            
+            # return True if 19 or 20 models present AND molpdf present AND check molpdf has valid values
+            if molpdf_present:
+                if check_molpdf(folder):
+                    return case
+        try:
+            print(f'Removing case from models folder: {folder}')
+            subprocess.Popen(f'rm -r {folder}.tar', shell=True).wait()
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
     except:
         print(f'Failed to search folder for case {folder}')
         print(traceback.format_exc())
 
+
+#1. Open cases file
+df = pd.read_csv(f"{a.csv_file}")
+all_cases = len(df)
+
+#2. Get all the paths of the modelled cases in the models folder
+wildcard_path = os.path.join(a.models_dir, '*/*')
+folders = glob.glob(wildcard_path)
+model_dirs = [dir.split('.')[0] for dir in folders]
+
+#3. Count successfully modelled cases based on some critera
 if a.parallel:
+    n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
     cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(search_folders)(case) for case in list(model_dirs))
 else:
     cases = []
-    for folder in folders:
-        cases.append(search_folders(model_dirs))
+    for folder in model_dirs:
+        cases.append(search_folders(folder))
 
-# gather the indices of the IDs that were found to have complete models
+#4. gather the indices of the IDs that were found to have complete models
 cases_indices = df[df["ID"].isin(cases)].index.tolist()
+#5. Drop the cases from the original dataframe
 df.drop(cases_indices, inplace=True) # the initial list of cases is reduced with the case.
-
 
 print(f"Initial number of cases: {all_cases}")
 print(f'Unmodelled: {len(df)}')
+
+print('List of cases that were present in output folder but were not valid, these are now removed:')
+unmodelled_cases = [False for case in cases if case==None]
+for bcase, casedir in zip(cases, model_dirs):
+    if not bcase:
+        print(casedir)
 
 # #3. Write new input file without cases already modelled.
 if a.update_csv:
