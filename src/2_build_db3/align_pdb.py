@@ -9,6 +9,8 @@ import time
 import os
 from argparse import ArgumentParser
 
+from joblib import Parallel, delayed
+
 arg_parser = ArgumentParser(description="""
 	Aligns pdb structures from db2_selected_models with a template.
 """)
@@ -25,10 +27,14 @@ arg_parser.add_argument("--template", "-t",
     """,
     required=True
 )
-a = arg_parser.parse_args()
+arg_parser.add_argument("--n-cores", "-n",
+    help="""
+    Number of cores
+    """,
+    type=int,
+	default=1
+)
 
-# for REPRODUCIBILITY
-warnings.filterwarnings("ignore")
 
 # The Rotation module with all learnable parameters
 # Matrix from: https://en.wikipedia.org/wiki/Rotation_matrix
@@ -36,6 +42,7 @@ class Rotation(nn.Module):
 	
 	def __init__(self, coordinates, mean='calculate'):
 		super(Rotation, self).__init__()
+		#print('Calculating mean coordinates')
 		self.mean = coordinates.mean(1).reshape(-1,1,3) if mean=='calculate' else mean
 		self.coordinates = coordinates.clone() - self.mean
 		self.template = 0
@@ -97,7 +104,10 @@ class PDB2dataset():
 		self.chain = chain
 		self.residues = [int(i) for i in residues]
 		self.pdbInpFolder = pdbInpFolder
+		#print(f"pdbInpFolder: {pdbInpFolder}")
 		self.pdbs = glob.glob(pdbInpFolder)
+		#print(f"self.pdbs: {self.pdbs}")
+		print(f"Number of 3D Models: {len(self.pdbs)}")
 		self.pdbs.append(a.template)
 		self.pdbIds = [pdb for pdb in self.pdbs]
 		self.cores = cores
@@ -121,12 +131,12 @@ class PDB2dataset():
 						if line.startswith('ATOM ') and line[13:15]=='CA' and line[21]==self.chain and int(line[22:26]) in self.residues]
 	
 	# Parse the PDBs to obtain the data needed for calculating the rotation matrices
-	# TODO make it poolalble by processing one file to tensor object and then cncatenate all tensors...
+	# TODO make it poolalble by processing one file to tensor object and then concatenate all tensors...
 	def getData(self):
 		pool = mp.Pool(self.cores)
 		#pdb_db    = [self._extractPdbCa(pdb) for pdb in self.pdbs]
 		pdb_db = pool.map(self._extractPdbCa, self.pdbs)
-		#pdb_db    = [[atom for atom in pdb if atom[0] in self.residues] for pdb in pdb_db]
+		pdb_db    = [[atom for atom in pdb if atom[0] in self.residues] for pdb in pdb_db]
 		trainData = torch.zeros(len(self.pdbs), len(self.residues), 3)
 		weights   = torch.zeros(len(self.pdbs), len(self.residues), 1)
 		for i, pdb in enumerate(pdb_db):
@@ -140,17 +150,23 @@ class PDB2dataset():
 	def _rotate(self, pdbIndex):
 		with torch.no_grad():
 			pdbFile = self.pdbs[pdbIndex]
+			#print(f"rotating {pdbFile}")
+			#print('coordinates')
 			coordinates = torch.Tensor(self._extractPdbAtoms(pdbFile)).reshape(1, -1, 3)
+			#print('init rotator')
 			newRotator = Rotation(coordinates, self.rotator.mean[pdbIndex])
+			#print('Assign Euler angles')
 			newRotator.ar   = self.rotator.ar[pdbIndex]
 			newRotator.br   = self.rotator.br[pdbIndex]
 			newRotator.yr   = self.rotator.yr[pdbIndex]
 			newRotator.bias = self.rotator.bias[pdbIndex] + \
 								self.rotator.mean[self.rotator.template]
+			#print('SQUEEEEEEZE')
 			newCts = newRotator().squeeze()
-			
+			#print('Read pdb')
 			atomIndex = 0
 			pdb = open(pdbFile).read().split('\n')[:-1]
+			#print('Write pdb')
 			write = open(pdbFile, 'w')
 			for line in pdb:
 				if line.startswith('ATOM') or line.startswith('HETATM '):
@@ -160,23 +176,32 @@ class PDB2dataset():
 					stringCoord = ''.join([(' '*(8-len(i)))+i for i in stringCoord])
 					line = line[:30] + stringCoord + line[54:]
 					atomIndex += 1
-				write.write(line + '\n')					
+				write.write(line + '\n')	
 			write.close()
+			# if atomIndex > 200:			
+			# 	pass
+			# else:
+			# 	raise Exception(f'Something went wrong with pdb {pdbIndex}, path: {self.pdbs[pdbIndex]}')
 	
 	# Rotate all, or a selection of pdbs
-	def rotateAll(self, nmbr=-1):
+	def rotateAll(self, nmbr=-1, n_cores=64):
 		t0 = time.time()
 		nmbr = min(nmbr, len(self.pdbs)) if nmbr != -1 else len(self.pdbs)
+		print(f'self.pdbs len: {len(self.pdbs)}')
+		print(f'nmbr: {nmbr}')
 		self.rotator.ar = self.rotator.ar.detach()
 		self.rotator.br = self.rotator.br.detach()
 		self.rotator.yr = self.rotator.yr.detach()
 		self.rotator.bias = self.rotator.bias.detach()
 		self.rotator.mean = self.rotator.mean.detach()
 		self.rotator.coordinates = self.rotator.coordinates.detach()
-		# pool = mp.Pool()
-		# pool.map(self._rotate, range(nmbr))
-		for pdbIndex in range(nmbr):
-			self._rotate(pdbIndex)
+		
+		Parallel(n_jobs=n_cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in range(nmbr))
+		#pool = mp.Pool(n_cores)
+		#pool.map(self._rotate, range(nmbr))
+		
+		#for pdbIndex in range(len(self.pdbs)):
+		#	self._rotate(pdbIndex)
 		# _ = [self._rotate(pdbIndex) for pdbIndex in range(nmbr)] 
 		print('Rotating and saving data took: %.2f seconds' % (time.time()-t0))
 		
@@ -194,7 +219,7 @@ class PDB2dataset():
 		yr = self.rotator.yr.clone()
 		bias = self.rotator.bias.clone()
 		changeLog = 0
-		for epoch in range(0, 10000000):
+		for epoch in range(0, 500):
 			optimizer.zero_grad() # Clear old gradients
 			newCoordinates = self.rotator() # get rotated coordinates
 			loss = F.mse_loss(newCoordinates, label, reduction='none') * self.indiWeights
@@ -214,15 +239,20 @@ class PDB2dataset():
 			bias[log] = self.rotator.bias[log].clone()
 			sampleLoss.mean().backward() # Calculate gradients
 			optimizer.step() # Update learnable parameters
-			#if epoch % 60 == 0:
+			if epoch % 100 == 0:
+				print(f'Epoch: {epoch}') #\t Loss: {loss}')
 			#	self.rotator.bias.data *= 0
 		print('Epochs:', epoch, ', train-time: %.2f seconds!' % (time.time()-t0))
 		self.rotator.ar, self.rotator.br, self.rotator.yr, self.rotator.bias = ar, br, yr, bias
 		
-def align(pdbInpFolder, residues, chain='M', template = -1, nmbr= -1):
-	dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, 128)	
+def align(pdbInpFolder, residues, chain='M', template = -1, n_cores= 64):
+	pdbInpFolder = pdbInpFolder.replace('\\','')
+	print('PROCESS DATA')
+	dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, n_cores)	
+	print('TRAINING')
 	dataProcessor.train(template)
-	dataProcessor.rotateAll(nmbr = nmbr)
+	print('ROTATING')
+	dataProcessor.rotateAll()#nmbr = n_cores)
 
 
 def extractPdbCa(fileName, chain):
@@ -230,10 +260,17 @@ def extractPdbCa(fileName, chain):
 				for line in open(fileName).read().split('\n') \
 						if line.startswith('ATOM ') and line[13:15]=='CA' and line[21]==chain]
 
-# Align the pdbs to the template file
-align(a.pdbs_path, range(100), 
-	template = a.template, 
-)
+if __name__=='__main__':
+	a = arg_parser.parse_args()
+	torch.set_num_threads(a.n_cores)
+
+	# for REPRODUCIBILITY
+	warnings.filterwarnings("ignore")
+
+	# Align the pdbs to the template file
+	align(a.pdbs_path, range(86), 
+		template = a.template, n_cores = a.n_cores,
+	)
 
 
 

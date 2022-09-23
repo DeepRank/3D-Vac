@@ -4,6 +4,8 @@ from pdb2sql import pdb2sql
 from glob import glob
 import time
 import argparse
+#from mpi4py import MPI
+from joblib import Parallel, delayed
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -12,7 +14,7 @@ arg_parser = argparse.ArgumentParser(
 )
 arg_parser.add_argument("--input-folders", "-i",
     help="Path to the folders containing the pdbs to be merged",
-    default="/projects/0/einf2380/data/pMHCII/pssm_mapped/BA/*/*",
+    default="/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/\*/\*/",
 )
 
 a = arg_parser.parse_args()
@@ -32,19 +34,21 @@ def parse_pssm(pssm_file):
     pssm = pssm[1:]
     return header, pssm#, tail
 
-infolders = glob(a.input_folders)
-for infolder in infolders:
+
+
+def merge_chains_and_pssms(infolder):
+    #for infolder in infolders:
     t0 = time.time()
     print('Working on: ', infolder)
     #1 Parse pdb
     case = ('_').join(infolder.split('/')[-1].split('_')[:-1])
     #Copy pdb to not lose it
     pdbfile = infolder + f'/pdb/{case}.pdb'
-    os.system(f'cp {pdbfile} {pdbfile}.origin')
+    #os.system(f'cp {pdbfile} {pdbfile}.origin')
     db = pdb2sql(pdbfile)
     if db.get_chains() != ['M', 'N', 'P']:
-        print('Some chain is missing!')
-        continue
+        print(f'Some chain is missing for case {infolder}')
+        return None
 
     #2 Parse pssms
     M_pssm_file = infolder + f'/pssm/{case}.M.pdb.pssm'
@@ -61,14 +65,14 @@ for infolder in infolders:
 
     if len(M_pssm) > 90:
         print('M chain PSSM is too long!')
-        continue
+        return None
 
     #3 check pssm numbers and pdb numbers check out
     if (int(M_pssm[0][1].split()[0]),
     int(M_pssm[-1][1].split()[0]),
     int(N_pssm[0][1].split()[0]),
     int(N_pssm[-1][1].split()[0])) == (db.get('resSeq', chainID='M')[0],
-    db.get('resSeq', chainID='M')[-1],
+    db.get('resSeq', chainID='M')[-1],  
     db.get('resSeq', chainID='N')[0],
     db.get('resSeq', chainID='N')[-1]):
         print(f'PSSM and PDB numbers check out for case {case} !')
@@ -106,3 +110,17 @@ for infolder in infolders:
     t1 = time.time()
     tf = t1 - t0
     print('Time: ', tf)
+
+
+# comm = MPI.COMM_WORLD
+# size = comm.Get_size()
+# rank = comm.Get_rank()
+
+#if rank ==0:
+infolders = a.input_folders.replace('\\','')
+infolders = glob(infolders)
+#else:
+#    infolders=None
+
+#infolders = comm.scatter(infolders, root=0)
+Parallel(n_jobs = 128, verbose = 1)(delayed(merge_chains_and_pssms)(infolder) for infolder in infolders)
