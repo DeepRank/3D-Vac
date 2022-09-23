@@ -3,8 +3,10 @@ import pandas as pd
 import glob
 import pickle
 import os
+import traceback
 import subprocess
 from mpi4py import MPI
+import tarfile
 import numpy as np
 import re
 
@@ -40,9 +42,39 @@ arg_parser.add_argument("--mhc-class", "-m",
     default="I",
     choices=["I", "II"],
 )
+
+def extract_member(case, member_name):
+    try:
+        with tarfile.open(f'{case}.tar', 'r') as tar:
+            # need to rename tar members because writing to the original dir will not work otherwise
+            for member in tar:
+                member.name = os.path.basename(member.name)
+            os.mkdir(os.join(temp, case))
+            tar.extract(member_name, os.join(temp, case))
+        # return the full path of tar member
+        return os.path.join(temp, case, member_name)
+    except tarfile.ReadError as e:
+        print(e)
+        # remove complete directory so that get_unmodelled cases sees it as unmodelled
+        print(f"(unpack archive) Tar file is not valid, removing: {case}")
+        subprocess.run(f'rm -r {case}.tar', shell=True, check=True)
+        return False
+    except subprocess.CalledProcessError as e:
+        print('In unpack archive: ')
+        print(e)
+    except:
+        traceback.print_exc()
+    assert os.path.exists(case) # if all goes well the tar file should exist
+    return True
+
 a = arg_parser.parse_args()
 
 db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models"
+# TMP dir to write temporary files to 
+base_tmp = os.environ["TMPDIR"]
+temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
+if not os.path.exists:
+    os.mkdir(temp)
 
 csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path)
@@ -65,7 +97,7 @@ db2 = comm.scatter(db2, root=0)
 # For each db2 cases, get the best structures:
 db2_targets = []
 for case in db2:
-        molpdf_path = f"{case}/molpdf_DOPE.tsv"
+        molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
         molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
         target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
         target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
@@ -75,22 +107,26 @@ for case in db2:
 
 # Copy each target:
 for structure in db2_targets:
-    # attempt to create subfolders:
-        dir = "/".join(structure.split("/")[-4:-1])
+        # extract model from tar so it can be copied
+        structure_path = extract_member(case, structure)
+
+        # building the output path
+        case_path = "/".join(structure.split("/")[-4:-1])
         pdb_file = structure.split("/")[-1].split('.')
         pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
-        destination_dir = f"{db2_selected_models_path}/{dir}/pdb"
+        destination_dir = f"{db2_selected_models_path}/{case_path}/pdb"
         destination_file = f"{destination_dir}/{pdb_file}"
+
         if not os.path.isdir(destination_dir):
             try: # create remaining subfolders:
                 os.makedirs(destination_dir)
             except:
-                print('Something went worng in creating', destination_dir)
+                print('Something went wrong in creating', destination_dir)
         else:
             print(f"Directory {destination_dir} already exists")
         try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
-            subprocess.check_call(f'cp {structure} {destination_file}', shell=True)
-            subprocess.check_call(f'cp {structure} {destination_file}.origin', shell=True)
+            subprocess.check_call(f'cp {structure_path} {destination_file}', shell=True)
+            subprocess.check_call(f'cp {structure_path} {destination_file}.origin', shell=True)
         except Exception as e:
             print(f'The following error occurred: {e}')
 
@@ -100,3 +136,6 @@ db2 = comm.gather(db2.shape[0], root=0)
 if rank == 0:
     db2 = np.array(db2)
     print(f"Total structures copied: {db2.sum()}")
+
+# remove all the files in the newly created temp folder
+subprocess.run(f"rm -r {temp}", shell=True)
