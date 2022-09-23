@@ -16,11 +16,11 @@ source activate deeprank
 # raw_pssm_N = "/projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_drb1_0101.pssm"
 # raw_pssm_M = "/projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_dra_0101.pssm"
 
-# srun --job-name map_pssm \
-#     python -u map_pssm2pdb.py --mhc-class II \
-#     --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv \
-#     --alphachain-pssm /projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_dra_0101.pssm \
-#     --betachain-pssm /projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_drb1_0101.pssm
+srun --job-name map_pssm \
+    python -u map_pssm2pdb.py --mhc-class II \
+    --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv \
+    --alphachain-pssm /projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_dra_0101.pssm \
+    --betachain-pssm /projects/0/einf2380/data/pMHCII/pssm_raw/hla_drb1_0101/pssm_raw/hla_drb1_0101.pssm
 
 srun --dependency=afterany:map_pssm \
     python merge_pdbs_and_pssms_chains.py \
