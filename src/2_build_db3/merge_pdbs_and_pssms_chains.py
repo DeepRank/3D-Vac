@@ -47,7 +47,7 @@ def merge_chains_and_pssms(infolder):
     #os.system(f'cp {pdbfile} {pdbfile}.origin')
     db = pdb2sql(pdbfile)
     if db.get_chains() != ['M', 'N', 'P']:
-        print(f'Some chain is missing for case {infolder}')
+        print(f'WARNING: Some chain is missing for case {infolder}')
         return None
 
     #2 Parse pssms
@@ -58,7 +58,11 @@ def merge_chains_and_pssms(infolder):
     os.system(f'cp {M_pssm_file} {M_pssm_file}.origin')
 
     M_head, M_pssm = parse_pssm(M_pssm_file)
-    N_head, N_pssm = parse_pssm(N_pssm_file)
+    try:
+        N_head, N_pssm = parse_pssm(N_pssm_file)
+    except FileNotFoundError:
+        print(f'WARNING: N PSSM not found for case {infolder} ')
+        return None
 
     #Move the N pssm
     os.system(f'mv {N_pssm_file} {N_pssm_file}.origin')

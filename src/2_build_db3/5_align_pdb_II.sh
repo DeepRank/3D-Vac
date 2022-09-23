@@ -24,7 +24,7 @@ cp $original_pdb $alignment_template
 # Align all the models to the template file
 #srun --job-name first_align  \
 echo "FIRST ALIGNMENT"
-python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 64
+python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
 
 # Orient the template file on the aligned peptides PCA
 #srun --job-name orient_peptides \
@@ -36,5 +36,5 @@ python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --template $alignment_tem
 # Align all the models to the re-oriented template file
 #srun --dependency=afterany:first_align:orient_peptides \
 echo "SECOND ALIGNMENT"
-python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 64
+python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
     

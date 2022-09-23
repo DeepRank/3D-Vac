@@ -14,4 +14,4 @@ module load foss/2021a
 source activate deeprank
 
 srun python -u ./peptide2onehot.py  --mhc-class I \ 
-    --csv-file /projects/0/einf2380/data/external/processed/I/IDs_BA_MHCI.csv
+    --input-csv /projects/0/einf2380/data/external/processed/I/IDs_BA_MHCI.csv
