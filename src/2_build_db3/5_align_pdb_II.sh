@@ -2,7 +2,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=128
 #SBATCH --partition=thin
 #SBATCH --time=05:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/alignpdbs_II.out
@@ -31,10 +31,10 @@ python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n
 #    --dependency=afterany:first_align \
 echo "ORIENT PEPTIDES ON PCA"
 #TODO: make this script rotate all the models, so there is no need for the second alignment
-python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --template $alignment_template 
+python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --n-cores 128
 
 # Align all the models to the re-oriented template file
 #srun --dependency=afterany:first_align:orient_peptides \
-echo "SECOND ALIGNMENT"
-python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
+#echo "SECOND ALIGNMENT"
+#python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
     

@@ -151,7 +151,7 @@ if __name__ == '__main__':
     #Make the output directories if they are not present already
     split_type = ('shuffled', 'clustered')[a.cluster]
     for split in range(0,n_splits):
-        if not os.path.isdir(output_h5_path + f"/{split}"):
+        if not os.path.isdir(output_h5_path + f"/{split_type}/{split}"):
             os.makedirs(output_h5_path + f"/{split_type}/{split}")
 
     if a.cluster == False:

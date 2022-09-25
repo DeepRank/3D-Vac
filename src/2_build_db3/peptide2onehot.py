@@ -52,7 +52,7 @@ else:
 IDs = comm.scatter(IDs, root=0)
 
 for idx in IDs:
-    #if idx == 0:
+    #if idx == 317:
     sequence = df.loc[idx,"peptide"]
     sequence_id = df.loc[idx, "ID"]
     peptide_pssm_rows = [pssm_template]
@@ -66,11 +66,12 @@ for idx in IDs:
         peptide_pssm_row[onehot_pos] = str(1)
         peptide_pssm_rows.append(peptide_pssm_row) 
     #write the file
-    peptide_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]][0] + "/pssm"
+    peptide_pssm_path = [path for path in pssm_folders if sequence_id + '_' in path.split("/")[-1]][0] + "/pssm"
     peptide_pssm_file = glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm")[0].split("/")[-1].replace("M","P")
     peptide_pssm_complete_path = f"{peptide_pssm_path}/{peptide_pssm_file}"
-    print(peptide_pssm_complete_path)
+    print(f'WRITING: {peptide_pssm_complete_path}')
     to_write= "\n".join(["\t".join(row) for row in peptide_pssm_rows])
     with open(peptide_pssm_complete_path, "wb") as peptide_f:
         to_write = to_write.encode("utf8").strip()
         peptide_f.write(to_write)
+        
