@@ -68,7 +68,11 @@ for pdb in pdb_files:
             subprocess.check_call(f'rm {dest}', shell=True)
         except:
             print(f'Something went removing old symlink for pdb {pdb}')
-    try:
+    try: #Try to remove pre-existing symlink
+        subprocess.check_call(f'rm {dest}')
+    except:
+        pass
+    try: #Make new symlink
         os.symlink(pdb, dest)
     except:
         print(f'Something went wrong symlinking pdb {pdb}')
@@ -81,7 +85,11 @@ for pssm in pssm_files:
             subprocess.check_call(f'rm {dest}', shell=True)
         except:
             print(f'Something went removing old symlink for pssm {pdb}')
-    try:
+    try: #Try to remove pre-existing symlink
+        subprocess.check_call(f'rm {dest}')
+    except:
+        pass
+    try: #Make new symlink
         os.symlink(pssm, dest)
     except:
         print(f'Something went wrong symlinking pssm {pssm}')
