@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p thin
-#SBATCH -N 1
-#SBATCH -n 128
-#SBATCH -c 1
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=128
 #SBATCH --time 01:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/populate_input_folder.out
 

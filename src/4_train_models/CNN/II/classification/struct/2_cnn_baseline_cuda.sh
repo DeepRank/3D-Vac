@@ -16,4 +16,4 @@ module load foss/2021a
 srun python -u cnn_baseline.py --with-cuda \
     --exp-name hla_drb1_0101_15mers \
     --model CnnClassificationBaseline \
-    -E 2
+    -E 10
