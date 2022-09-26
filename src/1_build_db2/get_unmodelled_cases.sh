@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -p thin
 #SBATCH --job-name check_unmodelled
-#SBATCH --cpus-per-task 64
+#SBATCH --cpus-per-task 32
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/unmodelled_logs-%J.out
-#SBATCH --time=0-00:45:00
+#SBATCH --time=01:00:00
 
 ## load modules
 source activate deeprank
