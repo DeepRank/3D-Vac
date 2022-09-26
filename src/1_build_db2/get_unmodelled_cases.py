@@ -32,7 +32,7 @@ arg_parser.add_argument("--update-csv", "-u",
 )
 arg_parser.add_argument("--models-dir", "-m",
     help="Path to the BA or EL folder where the models are generated",
-    default="/projects/0/einf2380/data/pMHCI/models/BA",
+    default="/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
 )
 arg_parser.add_argument("--parallel", "-p",
     action='store_true',
@@ -137,7 +137,7 @@ df = pd.read_csv(f"{a.csv_file}")
 all_cases = len(df)
 
 #2. Get all the paths of the modelled cases in the models folder
-wildcard_path = os.path.join(a.models_dir, '*/*')
+wildcard_path = a.models_dir.replace('\\', '')
 folders = glob.glob(wildcard_path)
 model_dirs = [dir.split('.')[0] for dir in folders]
 
@@ -167,4 +167,8 @@ for bcase, casedir in zip(cases, model_dirs):
 # #3. Write new input file without cases already modelled.
 if a.update_csv:
     df.to_csv(a.to_model, index=False) # the initial list of cases without the modelled cases
-# is returned
+else:
+    print('Unmodelled cases (excluding removed cases):')
+    not_modelled_ids = df['ID'].tolist()
+    for mod_id in not_modelled_ids:
+        print(mod_id)
