@@ -42,18 +42,19 @@ df = pd.read_csv(csv_path)
 tot_cases = len(df)
 running_time_hms = datetime.timedelta(hours=int(a.running_time))
 
-num_cores = 128
+NUM_CORES = 128
+CASES_PER_HOUR_PER_CORE = 10
 
 if a.num_nodes == "00":
     #no number of nodes given, compute nodes from running_time
     #total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
     #10 is an optimized factor representing 3600/(time for modeling a case for a core)
-    cases_per_hour_per_node = 10*num_cores # 1280 per hour per core. 
+    cases_per_hour_per_node = CASES_PER_HOUR_PER_CORE*NUM_CORES 
     batch = cases_per_hour_per_node*int(a.running_time)
     a.num_nodes = '{:0>2}'.format(math.ceil(tot_cases/batch))
 else:
     # number of nodes given, compute running time per node
-    cases_per_hour_per_node = 10*num_cores
+    cases_per_hour_per_node = CASES_PER_HOUR_PER_CORE*NUM_CORES
     running_time_frac  = tot_cases / (cases_per_hour_per_node * int(a.num_nodes))
     running_time_min = math.ceil(running_time_frac * 60)
     running_time_hms = datetime.timedelta(minutes=running_time_min)
