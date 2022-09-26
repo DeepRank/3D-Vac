@@ -7,5 +7,5 @@
 source activate deeprank
 
 python -u build_db2.py -i ../../data/external/processed/II/BA_pMHCII.csv \
-    -m /projects/0/einf2380/data/pMHCII/models/BA \
+    -m /projects/0/einf2380/data/pMHCII/3D_models/BA \
     -c II

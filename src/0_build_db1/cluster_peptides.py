@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-import os.path
+import subprocess
 import pickle
 import scipy.cluster.hierarchy as sch
 import time
@@ -9,6 +9,10 @@ from joblib import Parallel, delayed
 from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
+from glob import glob
+from random import choice
+import string
+import os
 
 arg_parser = argparse.ArgumentParser(description=" \
     Cluster peptides from a .csv file. \
@@ -21,6 +25,11 @@ arg_parser.add_argument(
     "--file","-f",
     help="Name of the DB1 file.",
     required=True
+)
+arg_parser.add_argument("--gibbs", "-g",
+    help="Use gibbscluster for clustering. Defaults to False",
+    action="store_true",
+    default=False,
 )
 arg_parser.add_argument("--clusters", "-c",
     help="Maximum number of clusters. A threshold will be calculated to reach the closest number of clusters.",
@@ -52,7 +61,6 @@ arg_parser.add_argument("--peptides-length", "-l",
     default=9,
     type=int
 )
-a = arg_parser.parse_args()
 
 ###############################################################
 #TODO: keep peptide ID
@@ -109,7 +117,7 @@ def get_score_matrix(peptides, n_jobs, matrix):
     return score_array
 
 def cluster_peptides(peptides, n_clusters, frag_len = 9,
-                     matrix='PAM30', n_jobs=1,):
+                     matrix='PAM250', n_jobs=1,):
     """
     Calculates evolutionary distance (with a substitution matrix) within a set of peptides.
     Uses this distances to generate a dendrogram and cluster the pepties.
@@ -213,26 +221,90 @@ def cluster_peptides(peptides, n_clusters, frag_len = 9,
     print('Clusters:', t6-t5)
     return clst_dct
 
-filename = a.file.split('/')[-1].split('.')[0]
-csv_path = a.file
-df = pd.read_csv(csv_path) 
+def parse_gibbscluster_out(res_folder, n_clusters=10):
+    #use file.ds.out
+    #files = glob(f"{res_folder}/gibbs.*g.ds.out")
+    file = f"{res_folder}/gibbs.{n_clusters}g.ds.out"
+    clusters = {}
+    #for file in files:
+        #clust_name = f"clust_{file.split('/')[-1].split('.')[1].strip('g')}"
+    #clusters[clust_name] = []
+    with open(file) as infile:
+        next(infile)
+        for line in infile:
 
-# peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
-# used as labels, different length between peptides and the actual number of clusters (unique sequences) lead to an error.
-peptides = sorted(list(set(df["peptide"].tolist()))) 
+            clust_name = f"clust_{line.split()[1]}"
+            if not clust_name in list(clusters.keys()):
+                clusters[clust_name] = {'peptides' : [], 'cores': []}
 
-clusters = cluster_peptides(
-    peptides=peptides,
-    matrix=a.matrix,
-    n_jobs = a.njobs,
-    n_clusters = a.clusters,
-    frag_len = a.peptides_length
-)
+            clusters[clust_name]['cores'].append(line.split()[4]) #[3] is the peptide, [4] is the core
+            clusters[clust_name]['peptides'].append(line.split()[3])
 
-if a.update_csv: 
-    for idx,cluster in enumerate(clusters.keys()):
-        for peptide in clusters[cluster]:
-            df.loc[df["peptide"] == peptide, "cluster"] = int(idx)
-    df.to_csv(csv_path, index=False)
+    return clusters
 
-pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_clusters.pkl", "wb"))
+
+def gibbscluster_peptides(peptides, n_jobs=1, 
+                            pept_length=15, n_clusters=10,
+                             rm_outputs=True):
+    results = f'/projects/0/einf2380/data/temp'
+    peptides_file = f'{results}/{filename}_pepitdes.txt'
+    with open(peptides_file, 'w') as outfile:
+        for pept in peptides:
+            outfile.write(pept + '\n')
+
+    # Assign a random id to the run
+    letters = string.ascii_letters + string.digits 
+    run_id = ''.join(choice(letters) for i in range(6))   
+    
+    print(f'Sending gibbscluster output to {results}/{pept_length}mers_{run_id}')
+    command = f"gibbscluster -f {peptides_file} -l {pept_length} -R {results} -P {pept_length}mers_{run_id} -k {n_jobs} -g {n_clusters}"
+    print(command)
+    subprocess.check_call(['/bin/bash', '-i', '-c', command])
+    #os.popen(command).read()
+
+    outfolder = glob(f'{results}/{pept_length}mers_{run_id}*')[0] + '/res'
+    print(f'outfolder: {outfolder}')
+    clusters = parse_gibbscluster_out(outfolder, n_clusters=n_clusters)
+
+    if rm_outputs:
+        subprocess.check_call(f'rm {peptides_file}', shell=True)
+        subprocess.check_call(f'rm -r {outfolder}', shell=True)
+
+    return clusters
+
+
+if __name__=='__main__':
+    a = arg_parser.parse_args()
+    filename = a.file.split('/')[-1].split('.')[0]
+    csv_path = a.file
+    df = pd.read_csv(csv_path) 
+
+    # peptides has to be a unique set because the dendogram is calculated for unique peptide sequences. Because peptides are 
+    # used as labels, different length between peptides and the actual number of clusters (unique sequences) lead to an error.
+    peptides = sorted(list(set(df["peptide"].tolist()))) 
+
+    #Add a a.gibbs argument. If true, use gibbscluster, otherwise use this.
+    if not a.gibbs:
+        method = 'standard'
+        clusters = cluster_peptides(
+            peptides=peptides,
+            matrix=a.matrix,
+            n_jobs = a.njobs,
+            n_clusters = a.clusters,
+            frag_len = a.peptides_length
+        )
+    else:
+        method = 'gibbscluster'
+        clusters = gibbscluster_peptides(peptides, n_jobs=a.njobs, 
+                    pept_length=a.peptides_length, n_clusters=a.clusters,
+                    rm_outputs=False)
+
+        #raise Exception('This function is not complete yet.')
+
+    if a.update_csv: 
+        for idx,cluster in enumerate(clusters.keys()):
+            for peptide in clusters[cluster]:
+                df.loc[df["peptide"] == peptide, "cluster"] = int(idx)
+        df.to_csv(csv_path, index=False)
+
+    pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_{method}_clusters.pkl", "wb"))

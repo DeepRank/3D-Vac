@@ -36,7 +36,7 @@ arg_parser.add_argument("--skip-check", "-s",
 )
 arg_parser.add_argument("--models-dir", "-m",
     help="Path to the BA or EL folder where the models are generated",
-    default="/projects/0/einf2380/data/pMHCI/models/BA",
+    default="/projects/0/einf2380/data/pMHCI/3D_models/BA",
 )
 arg_parser.add_argument("--mhc-class", "-c",
     help="MHC class of the cases",
