@@ -35,6 +35,13 @@ arg_parser.add_argument("--csv-file", "-f",
     """,
     default="../../data/external/processed/BA_pMHCI.csv",
 )
+arg_parser.add_argument("--models-path", "-p",
+    help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
+    https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
+     Default value: \
+    /projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
+    default = "/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*"
+)
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
     MHC class
@@ -43,16 +50,21 @@ arg_parser.add_argument("--mhc-class", "-m",
     choices=["I", "II"],
 )
 
+
 def extract_member(case, member_name):
+    
     try:
         with tarfile.open(f'{case}.tar', 'r') as tar:
             # need to rename tar members because writing to the original dir will not work otherwise
             for member in tar:
                 member.name = os.path.basename(member.name)
-            os.mkdir(os.join(temp, case))
-            tar.extract(member_name, os.join(temp, case))
+
+            case_path = os.path.join(temp, os.path.basename(case))
+            if not os.path.exists(case_path):
+                os.mkdir(case_path)
+            tar.extract(member_name, os.path.join(temp, os.path.basename(case)))
         # return the full path of tar member
-        return os.path.join(temp, case, member_name)
+        return os.path.join(temp, os.path.basename(case), member_name)
     except tarfile.ReadError as e:
         print(e)
         # remove complete directory so that get_unmodelled cases sees it as unmodelled
@@ -63,28 +75,32 @@ def extract_member(case, member_name):
         print('In unpack archive: ')
         print(e)
     except:
-        traceback.print_exc()
-    assert os.path.exists(case) # if all goes well the tar file should exist
-    return True
+        traceback.print_exc()# if all goes well the tar file should exist
 
 a = arg_parser.parse_args()
 
-db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models"
+db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1"
 # TMP dir to write temporary files to 
 base_tmp = os.environ["TMPDIR"]
 temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
-if not os.path.exists:
+if not os.path.exists(temp):
     os.mkdir(temp)
 
 csv_path = f"{a.csv_file}"
-df = pd.read_csv(csv_path)
+df = pd.read_csv(csv_path, header=0)
 
 # MANAGE MPI
 # ----------
 
 if rank==0:
+    wildcard_path = a.models_path.replace('\\', '')
+    folders = glob.glob(wildcard_path)
+    folders = [folder for folder in folders if '.tar' in folder]
+    all_models = [case.split('.')[0] for case in folders]
     # Look only at db2 cases and not every cases:
-    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/3D_models//BA/*/*")
+    # all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/models/BA_1/*/*")
+    # all_models = glob.glob(f'/projects/0/einf2380/data/pMHCI/models/BA_1')
+    # all_models = glob.glob(f'')
     db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
     db2 = np.array_split(db2, size)
 else:
@@ -106,9 +122,10 @@ for case in db2:
         db2_targets.extend(targets)
 
 # Copy each target:
-for structure in db2_targets:
+for case, structure in zip(db2, db2_targets):
         # extract model from tar so it can be copied
-        structure_path = extract_member(case, structure)
+        basename_structure = os.path.basename(structure)
+        structure_path = extract_member(case, basename_structure)
 
         # building the output path
         case_path = "/".join(structure.split("/")[-4:-1])
