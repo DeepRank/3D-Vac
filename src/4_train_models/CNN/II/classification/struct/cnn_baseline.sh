@@ -12,4 +12,7 @@ module load 2021
 module load foss/2021a
 
 # usage: srun python -u cnn_baseline.py <arguments for the script>
-srun python -u cnn_baseline.py "$@"
+srun python -u cnn_baseline.py \
+    --exp-name hla_drb1_0101_15mers \
+    --model CnnClassificationBaseline \
+    -E 2 -c --batch 32
