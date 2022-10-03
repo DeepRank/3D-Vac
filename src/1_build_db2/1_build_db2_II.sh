@@ -6,6 +6,7 @@
 
 source activate deeprank
 
-python -u build_db2.py -i ../../data/external/processed/II/BA_pMHCII.csv \
-    -m /projects/0/einf2380/data/pMHCII/3D_models/BA \
-    -c II
+python -u build_db2.py -i /projects/0/einf2380/data/external/processed/II/BA_pMHCII.csv \
+    --models-dir \
+    --mhc-class II \
+    --num-nodes 10

@@ -3,7 +3,6 @@
 #SBATCH -N 1
 #SBATCH --cpus-per-task 128
 #SBATCH --time 02:00:00
-#SBATCH --export=NONE # dont take environment variables from the user
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/clean_models_job-%J.out
 
 # Load modules for MPI:

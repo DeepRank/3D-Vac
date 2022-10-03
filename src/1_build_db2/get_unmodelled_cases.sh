@@ -8,4 +8,4 @@
 ## load modules
 source activate deeprank
 ## usage: python get_unmodelled_cases.py
-srun python get_unmodelled_cases.py "$@"
+python get_unmodelled_cases.py "$@"

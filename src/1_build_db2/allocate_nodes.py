@@ -16,7 +16,7 @@ arg_parser.add_argument("--running-time", "-t",
     help="Number of hours spawned jobs will run. default 01.",
     default="01",
 )
-arg_parser.add_argument("--num_nodes", "-n",
+arg_parser.add_argument("--num-nodes", "-n",
     help = "Number of nodes to use. Should be in format 00. Default 00 (will use running-time instead).",
     default = "00",
 )
@@ -28,7 +28,7 @@ arg_parser.add_argument("--mhc-class", "-m",
     choices=['I','II'],
     required=True,
 )
-arg_parser.add_argument("--models_path", "-p",
+arg_parser.add_argument("--models-dir", "-p",
     help= "path of the models directory",
     default="/projects/0/einf2380/data/pMHCI/models/BA"
 )
@@ -76,10 +76,10 @@ modelling_job_cmd = [
     f"--nodes={a.num_nodes}",
     f"--time={sbatch_hours}",
     "modelling_job.sh",
-    '-t', str(running_time_hms), 
-    '-m', a.mhc_class,
-    '-c', csv_path,
-    '-b', str(batch)
+    '--running-time', str(running_time_hms), 
+    '--mhc-class', a.mhc_class,
+    '--csv-path', csv_path,
+    '--batch-size', str(batch)
 ]
 print(f"running:\n {modelling_job_cmd}")
 
@@ -92,8 +92,8 @@ clean_output_job_stdout = subprocess.check_output([
     "sbatch",
     f"--dependency=afterany:{modelling_job_id}",
     "clean_outputs.sh",
-    "-p", a.models_path,
-    "-m", a.mhc_class
+    "--models-dir", a.models_dir,
+    "--mhc-class", a.mhc_class
 ]).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
@@ -102,8 +102,8 @@ subprocess.run([
     "sbatch",
     f"--dependency=afterok:{clean_output_job_id}",
     "get_unmodelled_cases.sh",
-    "-f", a.input_csv,
-    "-m", a.models_path,
-    "-p",
-    "-a", 
+    "--csv-file", a.input_csv,
+    "--models-dir", a.models_dir,
+    "--parallel",
+    "--archived", 
 ])
