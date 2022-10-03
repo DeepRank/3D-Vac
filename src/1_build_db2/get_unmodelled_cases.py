@@ -43,9 +43,6 @@ arg_parser.add_argument("--archived", "-a",
     help="Flag to be used when folders are archived",
 )
 
-a = arg_parser.parse_args()
-os.environ["NUMEXPR_MAX_THREADS"]=str(64)
-
 def zip_and_remove(case):    
     # remove the old archive, but only if already unzipped
     if os.path.exists(f'{case}.tar') and os.path.exists(case):
@@ -131,12 +128,17 @@ def search_folders(folder):
         print(f'Failed to search folder for case {folder}')
         print(traceback.format_exc())
 
+a = arg_parser.parse_args()
 
 #1. Open cases file
 df = pd.read_csv(f"{a.csv_file}")
 all_cases = len(df)
 
 #2. Get all the paths of the modelled cases in the models folder
+if "*" not in a.models_dir and type(a.models_dir)!=list:
+    print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
+    raise SystemExit
+
 wildcard_path = a.models_dir.replace('\\', '')
 folders = glob.glob(wildcard_path)
 model_dirs = [dir.split('.')[0] for dir in folders]

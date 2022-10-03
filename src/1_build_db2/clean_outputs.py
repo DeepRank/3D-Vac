@@ -13,7 +13,7 @@ arg_parser = argparse.ArgumentParser(
     Script used to clean the models from unecessary files after `modelling_job.py` has completed.
     """
 )
-arg_parser.add_argument("--models-path", "-p",
+arg_parser.add_argument("--models-dir", "-p",
     help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
     https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
      Default value: \
@@ -145,8 +145,11 @@ if a.single_path:
     folders = [a.single_path.split('.')[0]]
     n_cores = 1
 else:
+    if "*" not in a.models_dir and type(a.models_dir)!=list:
+        print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
+        raise SystemExit
     # clean the whole models folder
-    wildcard_path = a.models_path.replace('\\', '')
+    wildcard_path = a.models_dir.replace('\\', '')
     folders = glob.glob(wildcard_path)
     folders = [folder for folder in folders if '.tar' in folder]
     folders = [case.split('.')[0] for case in folders]
