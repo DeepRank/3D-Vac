@@ -1,7 +1,6 @@
 import sys
 import time
 import os
-from 3D-Vac.src.1_build_db2.allocate_nodes import CASES_PER_HOUR_PER_CORE
 from PANDORA.Wrapper import Wrapper
 from PANDORA.Database import Database
 import numpy as np
@@ -29,7 +28,7 @@ arg_parser.add_argument("--num-cores", "-n",
     type=int,
     default=128
 )
-arg_parser.add_argument("--batch_size", "-b",
+arg_parser.add_argument("--batch-size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
