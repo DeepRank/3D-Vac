@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name build_db2_I
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/I/build_db2_I.out
+#SBATCH -o /projects/0/einf2380/data/modelling_logs/I/db2/build_db2_I.out
 #SBATCH -n 1
 #SBATCH -c 1
 
