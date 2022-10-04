@@ -144,8 +144,7 @@ if a.single_path:
     n_cores = 1
 else:
     if "*" not in a.models_dir and type(a.models_dir)!=list:
-        print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
-        raise SystemExit
+        raise Exception("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
     # clean the whole models folder
     wildcard_path = a.models_dir.replace('\\', '')
     folders = glob.glob(wildcard_path)
