@@ -135,7 +135,8 @@ df = pd.read_csv(f"{a.csv_file}")
 all_cases = len(df)
 
 #2. Get all the paths of the modelled cases in the models folder
-if "*" not in a.models_dir and type(a.models_dir)!=list:
+# path should be string and contain an asterisk
+if type(a.models_dir)!=str or "*" not in a.models_dir:
     print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
     raise SystemExit
 

@@ -143,7 +143,8 @@ if a.single_path:
     folders = [a.single_path.split('.')[0]]
     n_cores = 1
 else:
-    if "*" not in a.models_dir and type(a.models_dir)!=list:
+    # path should be string and contain an asterisk
+    if type(a.models_dir)!=str or "*" not in a.models_dir:
         raise Exception("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
     # clean the whole models folder
     wildcard_path = a.models_dir.replace('\\', '')
