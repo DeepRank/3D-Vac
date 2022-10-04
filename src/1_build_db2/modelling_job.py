@@ -83,6 +83,6 @@ print(f"Time to predict anchors: {t2-t1}")
 
 # Run the models
 wrap.run_pandora(num_cores=a.num_cores, n_loop_models=20, clip_C_domain=True, 
-    benchmark=False)
+    benchmark=False, archive=True)
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
