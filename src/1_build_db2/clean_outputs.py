@@ -138,8 +138,6 @@ def clean_copy_target_files(sub_folders):
 
 a = arg_parser.parse_args()
 
-db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1"
-
 # find the paths of the models inside the model_path folder
 if a.single_path:
     folders = [a.single_path.split('.')[0]]
