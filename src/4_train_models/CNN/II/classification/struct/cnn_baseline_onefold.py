@@ -132,7 +132,7 @@ model.train(
     save_model = "best",
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
-    num_workers=18
+    num_workers=12
 )
 
 # START TRAINING
