@@ -4,9 +4,8 @@ import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-from CNN.models import *
+from CNN.CNN_models import *
 # import multiprocessing as mp
-from mpi4py import MPI
 from deeprank.learn import DataSet, NeuralNet
 from deeprank.learn.modelGenerator import *
 
@@ -30,8 +29,9 @@ arg_parser = argparse.ArgumentParser(
 # )
 arg_parser.add_argument("--cluster", "-c",
     help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
-    default=False,
-    action="store_true"
+    default=0,
+    type=int,
+    choices=[0,1]
 )
 arg_parser.add_argument("--batch", "-B",
     help="Batch size. Default 64.",
@@ -58,43 +58,41 @@ arg_parser.add_argument("--model", "-m",
     help="Model architecture to use. It will be imported from ",
     default='CnnClassificationBaseline'
 )
+arg_parser.add_argument("--task-id", "-t",
+    help="Task id signaling which cross-validation fold this job is running",
+    required=True,
+    type=int
+)
 
 a = arg_parser.parse_args()
 
-# MPI INITIALIZATION
-#-------------------
-mpi_conn = MPI.COMM_WORLD
-rank = mpi_conn.Get_rank()
-size = mpi_conn.Get_size()
+
 datasets = []
 
-# handle printing messages only for one task so the logs are not messy:
-if rank != 0:
-    sys.stdout = open(os.devnull, 'w')
+sys.stdout = open(os.devnull, 'w')
+
 
 # LOAD DATA
 #----------
 
 
-splits_path = f'/projects/0/einf2380/data/pMHCII/features_output_folder/CNN/{a.exp_name}'
+splits_path = f'/projects/0/einf2380/data/pMHCII/features_output_folder/CNN/hla_drb1_0101_15mers'#{a.exp_name}'
 # chose to load either clustered or shuffled data
 split_type = ('shuffled', 'clustered')[a.cluster]
 
-train_db = f"{splits_path}/{split_type}/{rank}/train.hdf5"
-val_db = f"{splits_path}/{split_type}/{rank}/valid.hdf5"
-test_db = f"{splits_path}/{split_type}/{rank}/test.hdf5"
+train_db = f"{splits_path}/{split_type}/{a.task_id}/train.hdf5"
+val_db = f"{splits_path}/{split_type}/{a.task_id}/valid.hdf5"
+test_db = f"{splits_path}/{split_type}/{a.task_id}/test.hdf5"
 
-# create dirs:
+# create output directory:
 output_dir = f'/projects/0/einf2380/data/pMHCII/trained_models/CNN/classification/{a.exp_name}/struct/{a.model}/{split_type}'
 
-if rank == 0:
-    for i in range(10):
-        folder = f"{output_dir}/{i}"
-        try:
-            os.makedirs(folder)
-        except OSError as error:
-            print(f"folder {folder} already created")
-outdir = f"{output_dir}/{rank}"
+outdir = f"{output_dir}/{a.task_id}"
+try:
+    os.makedirs(outdir)
+except OSError as error:
+    print(f"folder {outdir} already created")
+    
 
 data_set = DataSet(train_database=train_db,
     test_database = test_db,
@@ -102,7 +100,9 @@ data_set = DataSet(train_database=train_db,
     chain1 = "M",
     chain2 = "P",
     grid_info = (35,30,30),
-    select_feature = "all",
+    select_feature = {#'AtomicDensities_ind': 'all',
+        "Feature_ind": ['Edesolv',
+        'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
     select_target = "BIN_CLASS",
     normalize_features = True,
     normalize_targets = False,
@@ -113,8 +113,10 @@ data_set = DataSet(train_database=train_db,
     process = True,
 )
 
+architecture='' #Useless, but it makes vscode not complain
+exec('architecture='+a.model)
 model = NeuralNet(data_set=data_set,
-    model = CnnClassificationBaseline,
+    model = architecture,
     task = "class",
     chain1 = "M",
     chain2 = "P",
@@ -132,6 +134,8 @@ model.train(
     save_model = "best",
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
+    num_workers=12
 )
+
 # START TRAINING
 #---------------

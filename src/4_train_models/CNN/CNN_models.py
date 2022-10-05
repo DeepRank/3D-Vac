@@ -82,7 +82,7 @@ class CnnClassification4Conv(nn.Module):
             nn.ReLU(),
 
             nn.Conv3d(int(input_shape[0]//2), int(input_shape[0]//2), kernel_size=2),
-            nn.MaxPool3d((2,2,2))
+            nn.MaxPool3d((2,2,2)),
             nn.ReLU(),
         )
 
@@ -105,7 +105,6 @@ class CnnClassification4Conv(nn.Module):
 
     def forward(self, x):
         x = self.conv_layers(x)
-        print(x.shape)
         x = self.fc_layers(x)
         return x
 

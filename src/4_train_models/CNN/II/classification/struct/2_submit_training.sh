@@ -12,14 +12,14 @@
 
 for i in {0..9}
 do
-    sbatch -o /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_$i.out \
-    -e /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_$i.err \
+    sbatch -o /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_s$i.out \
+    -e /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_s$i.err \
     train_single_fold.sh $i 0
 done
 
 for i in {0..9}
 do
-    sbatch -o /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_$i.out \
-    -e /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_$i.err \
+    sbatch -o /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_c$i.out \
+    -e /projects/0/einf2380/data/training_logs/II/cnn_classification_struct_cuda-%J_c$i.err \
     train_single_fold.sh $i 1
 done
