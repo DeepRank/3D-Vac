@@ -60,19 +60,22 @@ def extract_member(case, member_name):
                 member.name = os.path.basename(member.name)
 
             case_path = os.path.join(temp, os.path.basename(case))
-            if not os.path.exists(case_path):
-                os.mkdir(case_path)
+            try:
+                if not os.path.exists(case_path):
+                    os.mkdir(case_path)
+            except FileExistsError:
+                print("folder already made")
             tar.extract(member_name, os.path.join(temp, os.path.basename(case)))
         # return the full path of tar member
         return os.path.join(temp, os.path.basename(case), member_name)
     except tarfile.ReadError as e:
         print(e)
         # remove complete directory so that get_unmodelled cases sees it as unmodelled
-        print(f"(unpack archive) Tar file is not valid, removing: {case}")
-        subprocess.run(f'rm -r {case}.tar', shell=True, check=True)
+        print(f"(extract_member) Tar file is not valid, removing: {case}")
+        # subprocess.run(f'rm -r {case}.tar', shell=True, check=True)
         return False
     except subprocess.CalledProcessError as e:
-        print('In unpack archive: ')
+        print('In extract_member: ')
         print(e)
     except:
         traceback.print_exc()# if all goes well the tar file should exist
@@ -86,6 +89,12 @@ temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
 if not os.path.exists(temp):
     os.mkdir(temp)
 
+# do a check if models dir is passed in the correct way
+if "*" not in a.models_path and type(a.models_path)!=list:
+    print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
+    raise SystemExit
+
+# read the csv from db2 to find all case ids
 csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path, header=0)
 
@@ -97,16 +106,20 @@ if rank==0:
     folders = glob.glob(wildcard_path)
     folders = [folder for folder in folders if '.tar' in folder]
     all_models = [case.split('.')[0] for case in folders]
-    # Look only at db2 cases and not every cases:
     # all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/models/BA_1/*/*")
     # all_models = glob.glob(f'/projects/0/einf2380/data/pMHCI/models/BA_1')
     # all_models = glob.glob(f'')
+    # filter out the models that match in the original csv from db2
     db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
+    # split folders in equal chunks based on number of tasks (parallel processes) running
     db2 = np.array_split(db2, size)
 else:
     db2 = None
+
 db2 = comm.scatter(db2, root=0)
 
+with np.printoptions(threshold=np.inf):
+    print(db2)
 # EXECUTE TASK
 # ------------
 
@@ -114,7 +127,11 @@ db2 = comm.scatter(db2, root=0)
 db2_targets = []
 for case in db2:
         molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
-        molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
+        try:
+            molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
+        except pd.errors.EmptyDataError:
+            print(f"empty df: {molpdf_path}")
+            continue
         target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
         target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
         target_ids = molpdf_df[target_mask].iloc[:,0]
@@ -142,8 +159,10 @@ for case, structure in zip(db2, db2_targets):
         else:
             print(f"Directory {destination_dir} already exists")
         try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
-            subprocess.check_call(f'cp {structure_path} {destination_file}', shell=True)
-            subprocess.check_call(f'cp {structure_path} {destination_file}.origin', shell=True)
+            subprocess.run(f'cp {structure_path} {destination_file}', check=True, shell=True)
+            subprocess.run(f'cp {structure_path} {destination_file}.origin', check=True, shell=True)
+            # now remove the temp files
+            subprocess.run(f'rm -r {os.path.split(structure_path)[0]}', check=True, shell=True)
         except Exception as e:
             print(f'The following error occurred: {e}')
 
@@ -155,4 +174,4 @@ if rank == 0:
     print(f"Total structures copied: {db2.sum()}")
 
 # remove all the files in the newly created temp folder
-subprocess.run(f"rm -r {temp}", shell=True)
+# subprocess.run(f"rm -r {temp}", shell=True)
