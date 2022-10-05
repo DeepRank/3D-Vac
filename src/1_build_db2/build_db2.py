@@ -12,13 +12,17 @@ arg_parser = argparse.ArgumentParser(
     At the end of the modelling job, `clean_outputs.py` is called to clean the models from unecessary files.\
     When choosing the running time, it should be known that each core on each node can \
     model around 1280 cases per hour. The number of nodes to allocate for this job is calculated by allocate_nodes.py \
-    w.r.t the number of cases per hour per core. Because the anchors are predicted using NetMHCPpan4.1 tool, it should \
-    be known that around 1h is necessary to predict anchors for 1280 cases (the additional time is taken care of by \
-    the allocate_nodes.py script). This means that if you provided a --running-time of 2 hours, the job will run for 4 hours \
-    to be sure that every anchors are predicted.")
+    w.r.t the number of cases per hour per core. Because the anchors are predicted using NetMHCPpan4.1 tool. \
+    \nUsage\n: You can either specify number of nodes [num-nodes=n]. This will calculate the running time per nodes based \
+     on the number of cases. OR you can specify a running time [running-time=00] in hours. This will calculate the number \
+    of nodes needes to process the number of cases based on the running time. These calculations are done in allocate_nodes.py")
 arg_parser.add_argument("--running-time", "-t",
     help = "Number of hours allocated for the job to run. Should be in format 00. Default 01.",
     default = "01",
+)
+arg_parser.add_argument("--num-nodes", "-n",
+    help = "Number of nodes to use. Should be in format 00. Default 0 (will use running-time instead).",
+    default = "00",
 )
 arg_parser.add_argument("--input-csv", "-i",
     help = "db1 file path. No default value. Required.",
@@ -52,24 +56,28 @@ if a.skip_check == False:
         [
             "sbatch", 
             "get_unmodelled_cases.sh",
-            "-f", a.input_csv,
-            "-u", # this argument is mandatory to overwrite `to_model.csv`
-            "-m", a.models_dir,
-            "-t", to_model,
+            "--csv-file", a.input_csv,
+            "--update-csv", # this argument is mandatory to overwrite `to_model.csv`
+            "--models-dir", a.models_dir,
+            "--to-model", to_model,
+            '--parallel',
+            "--archived"
         ]
     ).decode("ASCII");
 
-    jid = int(re.search(r"\d+", command_output).group())
+    jid_get_unmod = int(re.search(r"\d+", command_output).group())
 
     # run the parallel modeling on n nodes
     subprocess.run(
         [
             "sbatch",
-            f"--dependency=afterany:{jid}",
+            f"--dependency=afterok:{jid_get_unmod}",
             "allocate_nodes.sh",
-            "-t", running_time,
-            "-m", a.mhc_class,
-            "-i", to_model,
+            "--running-time", running_time,
+            "--num-nodes", a.num_nodes,
+            "--mhc-class", a.mhc_class,
+            "--input-csv", to_model,
+            "--models-dir", a.models_dir,
         ]
     )
 else: 
@@ -77,8 +85,10 @@ else:
         [
             "sbatch",
             "allocate_nodes.sh",
-            "-t", running_time,
-            "-m", a.mhc_class,
-            "-i", to_model
+            "--running-time", running_time,
+            "--num-nodes", a.num_nodes,
+            "--mhc-class", a.mhc_class,
+            "--input-csv", to_model,
+            "--models-dir", a.models_dir,
         ]
     )
