@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
 import math
+import datetime
 import subprocess
 import re
 
@@ -15,6 +16,10 @@ arg_parser.add_argument("--running-time", "-t",
     help="Number of hours spawned jobs will run. default 01.",
     default="01",
 )
+arg_parser.add_argument("--num-nodes", "-n",
+    help = "Number of nodes to use. Should be in format 00. Default 00 (will use running-time instead).",
+    default = "00",
+)
 arg_parser.add_argument("--input-csv", "-i",
     help="This argument allows to keep track of the db1 after modelling to check how many models are left."
 )
@@ -23,35 +28,62 @@ arg_parser.add_argument("--mhc-class", "-m",
     choices=['I','II'],
     required=True,
 )
+arg_parser.add_argument("--models-dir", "-p",
+    help= "path of the models directory",
+    default="/projects/0/einf2380/data/pMHCI/models/BA"
+)
+
 a = arg_parser.parse_args()
 
-csv_path = ('/').join(a.csv_file.split('/')[:-1]) + "to_model.csv"
+csv_path =  ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
+
+
 df = pd.read_csv(csv_path)
 tot_cases = len(df)
+running_time_hms = datetime.timedelta(hours=int(a.running_time))
 
+NUM_CORES = 128
+CASES_PER_HOUR_PER_CORE = 10
 
-num_cores = 128
-#total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
-#10 is an optimized factor representing 3600/(time for modeling a case for a core)
-cases_per_hour_per_node = 10*num_cores # 1280 per hour per core. 
-batch = cases_per_hour_per_node*int(a.running_time)
-n_nodes = math.ceil(tot_cases/batch)
+if a.num_nodes == "00":
+    #no number of nodes given, compute nodes from running_time
+    #total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
+    #10 is an optimized factor representing 3600/(time for modeling a case for a core)
+    cases_per_hour_per_node = CASES_PER_HOUR_PER_CORE*NUM_CORES 
+    batch = cases_per_hour_per_node*int(a.running_time)
+    a.num_nodes = '{:0>2}'.format(math.ceil(tot_cases/batch))
+else:
+    # number of nodes given, compute running time per node
+    cases_per_hour_per_node = CASES_PER_HOUR_PER_CORE*NUM_CORES
+    running_time_frac  = tot_cases / (cases_per_hour_per_node * int(a.num_nodes))
+    running_time_min = math.ceil(running_time_frac * 60)
+    running_time_hms = datetime.timedelta(minutes=running_time_min)
+    batch = math.ceil(cases_per_hour_per_node*running_time_frac)
 
 # additional hours are added to the running time to be sure every anchors is predicted
-additional_hours = int(batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
-sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
-print("additional hours:", additional_hours)
-print("total running time (in hours):", sbatch_hours)
+# additional_hours = datetime.timedelta(hours=batch/cases_per_hour_per_node) # one hour is enough to predict all anchors from 1280 cases
+sbatch_hours = str(running_time_hms).split('.')[0] # remove the microseconds
 
-modeling_job_stdout = subprocess.check_output([
+if (running_time_hms) < datetime.timedelta(minutes=15): # run at least 15 minutes, small batches tend to time out
+    sbatch_hours = str(datetime.timedelta(minutes=15))
+
+# sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
+print("total running time (in hours):", str(sbatch_hours))
+
+
+modelling_job_cmd = [
     "sbatch",
-    f"--nodes={n_nodes}",
-    f"--time={sbatch_hours}:00:00",
+    f"--nodes={a.num_nodes}",
+    f"--time={sbatch_hours}",
     "modelling_job.sh",
-    '-t', str(a.running_time), 
-    '-m', a.mhc_class,
-    '-c', csv_path,
-]).decode("ASCII")
+    '--running-time', str(running_time_hms), 
+    '--mhc-class', a.mhc_class,
+    '--csv-path', csv_path,
+    '--batch-size', str(batch)
+]
+print(f"running:\n {modelling_job_cmd}")
+
+modeling_job_stdout = subprocess.check_output(modelling_job_cmd).decode("ASCII")
 
 modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 
@@ -59,14 +91,19 @@ modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
 clean_output_job_stdout = subprocess.check_output([
     "sbatch",
     f"--dependency=afterany:{modelling_job_id}",
-    "clean_outputs.sh"
+    "clean_outputs.sh",
+    "--models-dir", a.models_dir,
+    "--mhc-class", a.mhc_class
 ]).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
 
 subprocess.run([
     "sbatch",
-    f"--dependency=afterany:{clean_output_job_id}",
+    f"--dependency=afterok:{clean_output_job_id}",
     "get_unmodelled_cases.sh",
-    "-f", a.input_csv
+    "--csv-file", a.input_csv,
+    "--models-dir", a.models_dir,
+    "--parallel",
+    "--archived", 
 ])
