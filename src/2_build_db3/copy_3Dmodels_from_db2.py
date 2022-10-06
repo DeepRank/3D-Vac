@@ -1,18 +1,12 @@
 import argparse
 import pandas as pd
 import glob
-import pickle
 import os
+import math
 import traceback
 import subprocess
-from mpi4py import MPI
 import tarfile
-import numpy as np
-import re
-
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
+from joblib import Parallel, delayed 
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -52,7 +46,6 @@ arg_parser.add_argument("--mhc-class", "-m",
 
 
 def extract_member(case, member_name):
-    
     try:
         with tarfile.open(f'{case}.tar', 'r') as tar:
             # need to rename tar members because writing to the original dir will not work otherwise
@@ -80,6 +73,58 @@ def extract_member(case, member_name):
     except:
         traceback.print_exc()# if all goes well the tar file should exist
 
+def retrieve_best_model(case):
+    molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
+    try:
+        molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
+    except pd.errors.EmptyDataError:
+        print(f"empty df: {molpdf_path}")
+        return
+    target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
+    target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
+    target_ids = molpdf_df[target_mask].iloc[:,0]
+    targets = [f"{case}/{structure}" for structure in target_ids]
+    return targets
+
+def copy_best_model(case, pdb_names):
+    # iterate of top n models (usually n=1)
+    for pdb_name in pdb_names:
+        # extract model from tar so it can be copied
+        basename_pdb = os.path.basename(pdb_name)
+        pdb_path = extract_member(case, basename_pdb)
+
+        # building the output path
+        case_path = "/".join(pdb_name.split("/")[-4:-1])
+        pdb_file = pdb_name.split("/")[-1].split('.')
+        pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
+        destination_dir = f"{db2_selected_models_path}/{case_path}/pdb"
+        destination_file = f"{destination_dir}/{pdb_file}"
+
+        if not os.path.isdir(destination_dir):
+            try: # create remaining subfolders:
+                os.makedirs(destination_dir)
+            except:
+                print('Something went wrong in creating', destination_dir)
+        else:
+            print(f"Directory {destination_dir} already exists")
+        try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
+            subprocess.run(f'cp {pdb_path} {destination_file}', check=True, shell=True)
+            subprocess.run(f'cp {pdb_path} {destination_file}.origin', check=True, shell=True)
+            # now remove the temp files
+            subprocess.run(f'rm -r {os.path.split(pdb_path)[0]}', check=True, shell=True)
+        except Exception as e:
+            print(f'The following error occurred: {e}')
+
+def run(case_paths):
+    for case in case_paths:
+        try:
+            targets = retrieve_best_model(case)
+            copy_best_model(case, targets)
+        except:
+            print(traceback.format_exc())
+            print(f'Copying best models of case: {case} not succesful')
+
+
 a = arg_parser.parse_args()
 
 db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1"
@@ -98,80 +143,20 @@ if "*" not in a.models_path and type(a.models_path)!=list:
 csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path, header=0)
 
-# MANAGE MPI
-# ----------
+wildcard_path = a.models_path.replace('\\', '')
+folders = glob.glob(wildcard_path)
+folders = [folder for folder in folders if '.tar' in folder]
+all_models = [case.split('.')[0] for case in folders]
+# filter out the models that match in the original csv from db2
+db2 = [folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()]
 
-if rank==0:
-    wildcard_path = a.models_path.replace('\\', '')
-    folders = glob.glob(wildcard_path)
-    folders = [folder for folder in folders if '.tar' in folder]
-    all_models = [case.split('.')[0] for case in folders]
-    # all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/models/BA_1/*/*")
-    # all_models = glob.glob(f'/projects/0/einf2380/data/pMHCI/models/BA_1')
-    # all_models = glob.glob(f'')
-    # filter out the models that match in the original csv from db2
-    db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
-    # split folders in equal chunks based on number of tasks (parallel processes) running
-    db2 = np.array_split(db2, size)
-else:
-    db2 = None
+n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 
-db2 = comm.scatter(db2, root=0)
+all_paths_lists = []
+chunk = math.ceil(len(db2)/n_cores)
+# cut the process into pieces to prevent spawning too many parallel processing
+for i in range(0, len(db2), chunk):
+    all_paths_lists.append(db2[i:min(i+chunk, len(db2))])
+# let each inner list be handled by exactly one thread
+Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
 
-with np.printoptions(threshold=np.inf):
-    print(db2)
-# EXECUTE TASK
-# ------------
-
-# For each db2 cases, get the best structures:
-db2_targets = []
-for case in db2:
-        molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
-        try:
-            molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
-        except pd.errors.EmptyDataError:
-            print(f"empty df: {molpdf_path}")
-            continue
-        target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
-        target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
-        target_ids = molpdf_df[target_mask].iloc[:,0]
-        targets = [f"{case}/{structure}" for structure in target_ids]
-        db2_targets.extend(targets)
-
-# Copy each target:
-for case, structure in zip(db2, db2_targets):
-        # extract model from tar so it can be copied
-        basename_structure = os.path.basename(structure)
-        structure_path = extract_member(case, basename_structure)
-
-        # building the output path
-        case_path = "/".join(structure.split("/")[-4:-1])
-        pdb_file = structure.split("/")[-1].split('.')
-        pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
-        destination_dir = f"{db2_selected_models_path}/{case_path}/pdb"
-        destination_file = f"{destination_dir}/{pdb_file}"
-
-        if not os.path.isdir(destination_dir):
-            try: # create remaining subfolders:
-                os.makedirs(destination_dir)
-            except:
-                print('Something went wrong in creating', destination_dir)
-        else:
-            print(f"Directory {destination_dir} already exists")
-        try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
-            subprocess.run(f'cp {structure_path} {destination_file}', check=True, shell=True)
-            subprocess.run(f'cp {structure_path} {destination_file}.origin', check=True, shell=True)
-            # now remove the temp files
-            subprocess.run(f'rm -r {os.path.split(structure_path)[0]}', check=True, shell=True)
-        except Exception as e:
-            print(f'The following error occurred: {e}')
-
-# retrieve all db2 to make sure everything is modelled:
-print(f"Finished copying on rank {rank} for {db2.shape[0]} cases.")
-db2 = comm.gather(db2.shape[0], root=0)
-if rank == 0:
-    db2 = np.array(db2)
-    print(f"Total structures copied: {db2.sum()}")
-
-# remove all the files in the newly created temp folder
-# subprocess.run(f"rm -r {temp}", shell=True)
