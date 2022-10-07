@@ -35,15 +35,14 @@ test_clusters = [6]
 
 # trainer
 net = GINet
-nn_task = 'class'
+task = 'classif'
 batch_size = 8
 optimizer = torch.optim.Adam
 lr = 0.01
 weight_decay = 1e-05
-epochs = 50
+epochs = 10
+save_model = 'best'
 ####################
-
-# save main exp settings in a master file, with exp_id
 
 #################### Folders and logger
 
@@ -58,6 +57,11 @@ else:
     exp_id = 'exp0'
     exp_path = os.path.join('./experiments', exp_id)
     os.makedirs(exp_path)
+
+data_path = os.path.join(exp_path, 'data')
+metrics_path = os.path.join(exp_path, 'metrics')
+os.makedirs(data_path)
+os.makedirs(metrics_path)
 
 # Loggers
 _log = logging.getLogger('')
@@ -105,7 +109,7 @@ with h5py.File(hdf5_path, 'r') as hdf5:
 df_summ = pd.DataFrame(data=summary)
 
 df_summ.to_hdf(
-    os.path.join(exp_path, 'summary_data.hdf5'),
+    os.path.join(metrics_path, 'summary_data.hdf5'),
     key='summary',
     mode='w')
 
@@ -133,34 +137,58 @@ for cl in sorted(df_summ.cluster.unique(), reverse=True):
     else:
         _log.info(f'Cluster {int(cl)} not present!')
 
-save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'train'].entry.to_list(), os.path.join(exp_path, 'train.hdf5'), hardcopy = True)
-save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'valid'].entry.to_list(), os.path.join(exp_path, 'valid.hdf5'), hardcopy = True)
-save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'test'].entry.to_list(), os.path.join(exp_path, 'test.hdf5'), hardcopy = True)
+save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'train'].entry.to_list(), os.path.join(data_path, 'train.hdf5'), hardcopy = True)
+save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'valid'].entry.to_list(), os.path.join(data_path, 'valid.hdf5'), hardcopy = True)
+save_hdf5_keys(hdf5_path, df_summ[df_summ.phase == 'test'].entry.to_list(), os.path.join(data_path, 'test.hdf5'), hardcopy = True)
 ####################
 
 #################### HDF5DataSet
 
 _log.info(f'HDF5DataSet loading...\n')
-
+# REMEMBER TO MODIFY hdf5_path !!!!!!!!!!!!!!!!!!!!!
 # to change: pass in only list of keys
 dataset_train = HDF5DataSet(
-    hdf5_path = os.path.join(exp_path, 'train.hdf5'),
+    hdf5_path = [
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),],
     target = y,
+    task = task,
     node_feature = node_features,
     edge_feature = edge_features
 )
 dataset_val = HDF5DataSet(
-    hdf5_path = os.path.join(exp_path, 'valid.hdf5'),
+    hdf5_path = [
+        os.path.join(data_path, 'valid.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5')],
     target = y,
+    task = task,
     node_feature = node_features,
     edge_feature = edge_features
 )
 dataset_test = HDF5DataSet(
-    hdf5_path = os.path.join(exp_path, 'test.hdf5'),
+    hdf5_path = [
+        os.path.join(data_path, 'test.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'train.hdf5'),
+        os.path.join(data_path, 'valid.hdf5')],
     target = y,
+    task = task,
     node_feature = node_features,
     edge_feature = edge_features
 )
+_log.info(f'Len df train: {len(dataset_train)}')
+_log.info(f'Len df valid: {len(dataset_val)}')
+_log.info(f'Len df test: {len(dataset_test)}')
 ####################
 
 #################### Trainer
@@ -172,17 +200,17 @@ trainer = Trainer(
     dataset_val,
     dataset_test,
     net,
-    task = nn_task,
     batch_size = batch_size,
-    output_dir = exp_path
+    output_dir = metrics_path
 )
 trainer.configure_optimizers(optimizer, lr, weight_decay)
-trainer.train(nepoch = epochs, validate = True, save_model = 'best')
+trainer.train(nepoch = epochs, validate = True, save_model = save_model)
 trainer.test()
 
 # Remember to install pytables
 _log.info("Saving model...")
 trainer.save_model(filename = os.path.join(exp_path, 'model.tar'))
+_log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
 _log.info("Done!")
 
 ####################
