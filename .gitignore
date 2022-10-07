@@ -25,6 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.tar
 MANIFEST
 
 # PyInstaller
@@ -130,3 +131,5 @@ dmypy.json
 
 # MAC
 .DS_store
+
+/src/4_train_models/GNN/I/classification/struct/experiments
