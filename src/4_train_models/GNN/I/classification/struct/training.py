@@ -18,7 +18,7 @@ from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '22082022'
+run_day_data = '13072022'
 # Target/s
 target_group = 'score/'
 target_dataset = 'binary'
@@ -41,7 +41,8 @@ weight_decay = 1e-05
 epochs = 7
 save_model = 'best'
 # Paths
-project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/'
+#project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
+project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
 ####################
@@ -80,6 +81,8 @@ fh.setFormatter(formatter_fh)
 _log.addHandler(fh)
 _log.addHandler(sh)
 ####################
+
+_log.info(f'Created folder {exp_path}\n')
 
 _log.info("training.py has started!\n")
 
@@ -134,8 +137,8 @@ _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100
 for cl in sorted(df_summ.cluster.unique(), reverse=True):
     if len(df_summ[df_summ.cluster == cl]):
         _log.info(f'\t\tCluster {int(cl)}: {len(df_summ[df_summ.cluster == cl])} samples, {round(100*len(df_summ[df_summ.cluster == cl])/len(df_summ))}%')
-        _log.info(f'\t\t\t- Class 0: {len(df_summ[df_summ.cluster == cl].target == 0)} samples, {round(100*len(df_summ[df_summ.cluster == cl].target == 0)/len(df_summ))}%')
-        _log.info(f'\t\t\t- Class 1: {len(df_summ[df_summ.cluster == cl].target == 1)} samples, {round(100*len(df_summ[df_summ.cluster == cl].target == 1)/len(df_summ))}%')
+        _log.info(f'\t\t\t- Class 0: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])/len(df_summ[df_summ.cluster == cl]))}%')
+        _log.info(f'\t\t\t- Class 1: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])/len(df_summ[df_summ.cluster == cl]))}%')
     else:
         _log.info(f'Cluster {int(cl)} not present!')
 
@@ -144,118 +147,118 @@ save_hdf5_keys(input_data_path, df_summ[df_summ.phase == 'valid'].entry.to_list(
 save_hdf5_keys(input_data_path, df_summ[df_summ.phase == 'test'].entry.to_list(), os.path.join(data_path, 'test.hdf5'), hardcopy = True)
 ####################
 
-#################### HDF5DataSet
+# #################### HDF5DataSet
 
-_log.info(f'HDF5DataSet loading...\n')
-# REMEMBER TO MODIFY hdf5_path !!!!!!!!!!!!!!!!!!!!!
-# to change: pass in only list of keys
-dataset_train = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'train.hdf5') for _ in range(7)],
-    target = target_dataset,
-    task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
-)
-dataset_val = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'valid.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5')],
-    target = target_dataset,
-    task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
-)
-dataset_test = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'test.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'train.hdf5'),
-        os.path.join(data_path, 'valid.hdf5')],
-    target = target_dataset,
-    task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
-)
-_log.info(f'Len df train: {len(dataset_train)}')
-_log.info(f'Len df valid: {len(dataset_val)}')
-_log.info(f'Len df test: {len(dataset_test)}')
-####################
+# _log.info(f'HDF5DataSet loading...\n')
+# # REMEMBER TO MODIFY hdf5_path !!!!!!!!!!!!!!!!!!!!!
+# # to change: pass in only list of keys
+# dataset_train = HDF5DataSet(
+#     hdf5_path = [
+#         os.path.join(data_path, 'train.hdf5') for _ in range(7)],
+#     target = target_dataset,
+#     task = task,
+#     node_feature = node_features,
+#     edge_feature = edge_features
+# )
+# dataset_val = HDF5DataSet(
+#     hdf5_path = [
+#         os.path.join(data_path, 'valid.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5')],
+#     target = target_dataset,
+#     task = task,
+#     node_feature = node_features,
+#     edge_feature = edge_features
+# )
+# dataset_test = HDF5DataSet(
+#     hdf5_path = [
+#         os.path.join(data_path, 'test.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'train.hdf5'),
+#         os.path.join(data_path, 'valid.hdf5')],
+#     target = target_dataset,
+#     task = task,
+#     node_feature = node_features,
+#     edge_feature = edge_features
+# )
+# _log.info(f'Len df train: {len(dataset_train)}')
+# _log.info(f'Len df valid: {len(dataset_val)}')
+# _log.info(f'Len df test: {len(dataset_test)}')
+# ####################
 
-#################### Trainer
+# #################### Trainer
 
-_log.info(f'Instantiating Trainer...\n')
+# _log.info(f'Instantiating Trainer...\n')
 
-trainer = Trainer(
-    dataset_train,
-    dataset_val,
-    dataset_test,
-    net,
-    batch_size = batch_size,
-    output_dir = metrics_path
-)
-trainer.configure_optimizers(optimizer, lr, weight_decay)
-trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
-trainer.test()
+# trainer = Trainer(
+#     dataset_train,
+#     dataset_val,
+#     dataset_test,
+#     net,
+#     batch_size = batch_size,
+#     output_dir = metrics_path
+# )
+# trainer.configure_optimizers(optimizer, lr, weight_decay)
+# trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
+# trainer.test()
 
-_log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
-_log.info("Done! Saving metadata in experiments_log.xlsx ...\n")
+# _log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
+# _log.info("Done! Saving metadata in experiments_log.xlsx ...\n")
 
-#################### Metadata saving
-exp_json = {}
-exp_json['exp_id'] = exp_id
-exp_json['input_data_path'] = input_data_path
-exp_json['protein_class'] = protein_class
-exp_json['target_data'] = target_data
-exp_json['res_data'] = resolution_data
-exp_json['target_data'] = target_data
-exp_json['task'] = task
-exp_json['node_features'] = [node_features]
-exp_json['edge_features'] = [edge_features]
-exp_json['net'] = str(net)
-exp_json['batch_size'] = batch_size
-exp_json['optimizer'] = str(optimizer)
-exp_json['lr'] = lr
-exp_json['weight_decay'] = weight_decay
-exp_json['epoch'] = 3
-exp_json['train_loss'] = np.nan
-exp_json['valid_loss'] = np.nan
-exp_json['test_loss'] = np.nan
-exp_json['train_accuracy'] = np.nan
-exp_json['valid_accuracy'] = np.nan
-exp_json['test_accuracy'] = np.nan
-exp_json['train_mcc'] = np.nan
-exp_json['valid_mcc'] = np.nan
-exp_json['test_mcc'] = np.nan
-exp_json['train_f1'] = np.nan
-exp_json['valid_f1'] = np.nan
-exp_json['test_f1'] = np.nan
-exp_json['train_rmse'] = np.nan
-exp_json['valid_rmse'] = np.nan
-exp_json['test_rmse'] = np.nan
-exp_df = pd.DataFrame(exp_json, index=[0])
+# #################### Metadata saving
+# exp_json = {}
+# exp_json['exp_id'] = exp_id
+# exp_json['input_data_path'] = input_data_path
+# exp_json['protein_class'] = protein_class
+# exp_json['target_data'] = target_data
+# exp_json['res_data'] = resolution_data
+# exp_json['target_data'] = target_data
+# exp_json['task'] = task
+# exp_json['node_features'] = [node_features]
+# exp_json['edge_features'] = [edge_features]
+# exp_json['net'] = str(net)
+# exp_json['batch_size'] = batch_size
+# exp_json['optimizer'] = str(optimizer)
+# exp_json['lr'] = lr
+# exp_json['weight_decay'] = weight_decay
+# exp_json['epoch'] = 3
+# exp_json['train_loss'] = np.nan
+# exp_json['valid_loss'] = np.nan
+# exp_json['test_loss'] = np.nan
+# exp_json['train_accuracy'] = np.nan
+# exp_json['valid_accuracy'] = np.nan
+# exp_json['test_accuracy'] = np.nan
+# exp_json['train_mcc'] = np.nan
+# exp_json['valid_mcc'] = np.nan
+# exp_json['test_mcc'] = np.nan
+# exp_json['train_f1'] = np.nan
+# exp_json['valid_f1'] = np.nan
+# exp_json['test_f1'] = np.nan
+# exp_json['train_rmse'] = np.nan
+# exp_json['valid_rmse'] = np.nan
+# exp_json['test_rmse'] = np.nan
+# exp_df = pd.DataFrame(exp_json, index=[0])
 
-filename = Path('experiments_log.xlsx')
-file_exists = filename.is_file()
+# filename = Path('experiments_log.xlsx')
+# file_exists = filename.is_file()
 
-with pd.ExcelWriter(
-    filename,
-    engine="openpyxl",
-    mode="a" if file_exists else "w",
-    if_sheet_exists='overlay' if file_exists else None,
-) as writer:
-    if file_exists:
-        startrow=writer.sheets['All'].max_row
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=False)
-    else:
-        startrow = 0
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=True)
+# with pd.ExcelWriter(
+#     filename,
+#     engine="openpyxl",
+#     mode="a" if file_exists else "w",
+#     if_sheet_exists='overlay' if file_exists else None,
+# ) as writer:
+#     if file_exists:
+#         startrow=writer.sheets['All'].max_row
+#         exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=False)
+#     else:
+#         startrow = 0
+#         exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=True)
 
-_log.info("Saved! End of the training script")
+# _log.info("Saved! End of the training script")
 
-####################
+# ####################
