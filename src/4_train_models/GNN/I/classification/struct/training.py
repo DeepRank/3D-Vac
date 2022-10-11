@@ -34,11 +34,11 @@ test_clusters = [6]
 # Trainer
 net = GINet
 task = 'classif'
-batch_size = 4
+batch_size = 16
 optimizer = torch.optim.Adam
 lr = 0.001
 weight_decay = 1e-05
-epochs = 7
+epochs = 10
 save_model = 'best'
 # Paths
 #project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
@@ -197,7 +197,6 @@ trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_p
 trainer.test()
 
 _log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
-_log.info("Done! Saving metadata in experiments_log.xlsx ...\n")
 
 #################### Metadata saving
 exp_json = {}
@@ -242,10 +241,13 @@ with pd.ExcelWriter(
     mode="a" if file_exists else "w",
     if_sheet_exists='overlay' if file_exists else None,
 ) as writer:
+
     if file_exists:
+        _log.info("Updating metadata in experiments_log.xlsx ...\n")
         startrow=writer.sheets['All'].max_row
         exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=False)
     else:
+        _log.info("Creating metadata in experiments_log.xlsx ...\n")
         startrow = 0
         exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=True)
 
