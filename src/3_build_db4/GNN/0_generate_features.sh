@@ -9,4 +9,4 @@
 
 source activate deeprank
 
-python -u 0_generate_hdf5.py
+python -u 0_generate_features.py
