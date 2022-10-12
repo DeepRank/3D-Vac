@@ -9,6 +9,7 @@ import numpy as np
 import logging
 from deeprankcore.Trainer import Trainer
 from deeprankcore.ginet import GINet
+from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
 
 # set random seed!!!
@@ -32,12 +33,12 @@ train_clusters = [0, 1, 2, 3, 4, 7, 9]
 val_clusters = [5, 8]
 test_clusters = [6]
 # Trainer
-net = GINet
+net = NaiveNetwork
 task = 'classif'
 batch_size = 16
 optimizer = torch.optim.Adam
-lr = 0.001
-weight_decay = 1e-05
+lr = 1e-3
+weight_decay = 0
 epochs = 10
 save_model = 'best'
 # Paths
