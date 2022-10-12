@@ -32,6 +32,11 @@ arg_parser.add_argument("--batch-size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
+arg_parser.add_argument("--node-index", "-i",
+    help="Node id used for parallelization, when not passed serial case is assumed.",
+    required=False,
+    default= 0
+)
 
 a = arg_parser.parse_args()
 CASES_PER_HOUR_PER_CORE = 10
@@ -40,8 +45,8 @@ print(f'INFO: \n cases per hour per node :{CASES_PER_HOUR_PER_CORE*a.num_cores} 
 running time:{a.running_time}\nbatch: {a.batch_size}')
 
 # determine node index so we don't do the same chunk multiple times
-node_index = int(os.getenv('SLURM_NODEID'))
-
+# node_index = int(os.getenv('SLURM_NODEID'))
+node_index = int(a.node_index)
 # check if there are cases to model
 df = pd.read_csv(f"{a.csv_path}")
 if df.empty:
