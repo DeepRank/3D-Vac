@@ -27,13 +27,13 @@ arg_parser.add_argument(
 )
 
 arg_parser.add_argument(
-    "--peptide-length", "-P",
+    "--peptide-length", "-p",
     help="Length of peptides.",
     default=0,
     type=int
 )
 arg_parser.add_argument(
-    "--allele", "-A",
+    "--allele", "-a",
     default=[],
     help="Name of the allele(s) to filter. \n \
         More than one allele have to be separated by spaces: -A HLA-A HLA-B. \n \
@@ -42,15 +42,27 @@ arg_parser.add_argument(
     nargs="+",
 )
 arg_parser.add_argument("--prefix", "-i",
-    help="The prefix for the ID",
+    help="The prefix for the ID in the output csv",
     choices=["EL", "BA"],
     required=True
 )
-arg_parser.add_argument("--inequality", "-e",
-    help='flag to make sure measurements with inequalities are also included',
+arg_parser.add_argument("--measurement_type", "-t",
+    help='The type of measurement to filter from the input csv. Choices: "BA" or "MS"',
+    choices=["MS", "BA"],
+    required=True
+)
+arg_parser.add_argument("--include_inequality", "-e",
+    help='flag to make sure measurements with inequalities (> or <) are also included',
     default=False,
     type=bool,
-    action=argparse.BooleanOptionalAction)
+    action=argparse.BooleanOptionalAction
+)
+arg_parser.add_argument("--include_qualitative", "-q",
+    help='flag to make sure qualitative measurements are also included',
+    default=False,
+    type=bool,
+    action=argparse.BooleanOptionalAction
+)
 
 a = arg_parser.parse_args();
 
@@ -63,19 +75,28 @@ input_csv_df.insert(0, column="ID", value=[f"{a.prefix}_{id+1}" for id in ids]) 
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
 input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
-# filter only discrete and quantitative measurements. This filter is applied for pilot study 
-# as a pre-filder (before filtering alleles and peptide length):
-
-
-if not a.inequality:
-    input_csv_df = input_csv_df.query("measurement_inequality == '=' & measurement_type == 'quantitative' & \
-    measurement_kind == 'affinity' & measurement_value >= 2")
-    # input_csv_df = input_csv_df.query("(measurement_inequality == '=' | (measurement_inequality == '>' & measurement_value > 499) | \
-    #  (measurement_inequality == '<' & measurement_value < 500)) & measurement_type == 'quantitative' & \
-    # measurement_kind == 'affinity' & measurement_value >= 2")
+# filter based on user input
+query = []
+if a.measurement_type == "BA":
+    query.append("measurement_kind == 'affinity'")
 else:
-    input_csv_df = input_csv_df.query("measurement_type == 'quantitative' & measurement_kind == 'affinity' & measurement_value >= 2")
+    query.append("measurement_kind == 'mass_spec'")
 
+if not a.include_qualitative:
+    query.append("measurement_type == 'quantitative'")
+if not a.include_inequality:
+    query.append("measurement_inequality == '='")
+
+# construct the complete query
+query_string = "&".join(query)
+
+print(f"filtering the following: {query_string}")
+# filter the dataframe
+input_csv_df = input_csv_df.query(query_string)
+
+#     # input_csv_df = input_csv_df.query("(measurement_inequality == '=' | (measurement_inequality == '>' & measurement_value > 499) | \
+#     #  (measurement_inequality == '<' & measurement_value < 500)) & measurement_type == 'quantitative' & \
+#     # measurement_kind == 'affinity' & measurement_value >= 2")
 
 # apply the allele and length of peptide filter:
 output_csv_df = input_csv_df
