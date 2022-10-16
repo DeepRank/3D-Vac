@@ -68,21 +68,12 @@ outdir_col = df.columns.to_list().index('db2_folder')
 # DEBUG
 print(f"INFO:\n path: {a.csv_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
 
-#Create targets
-t1 = time.time()
-wrap = Wrapper.Wrapper()
-wrap.create_targets(a.csv_path, db, 
-    MHC_class=a.mhc_class, header=True, delimiter=',', IDs_col=0,
-    peptides_col=2, allele_col=1, outdir_col=outdir_col, benchmark=False, 
-    verbose=True, start_row=start_row, end_row=end_row, use_netmhcpan=True
-)
-
 t2 = time.time()
-print('Wrapper created')
-print(f"Time to predict anchors: {t2-t1}")
-
-# Run the models
-wrap.run_pandora(num_cores=a.num_cores, n_loop_models=20, clip_C_domain=True, 
-    benchmark=False, archive=True)
+## B. Create all Target Objects based on peptides in the .tsv file
+wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class, 
+                    IDs_col=0, peptides_col=2, allele_name_col=1,
+                    benchmark=True, verbose=True, 
+                    header=True, num_cores=a.num_cores, n_loop_models=5,
+                    start_row=start_row, end_row=end_row)
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
