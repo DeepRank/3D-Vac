@@ -3,8 +3,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --job-name modelling
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/db2/3D_modelling_job-%J.out
-#SBATCH --exclusive
-#SBATCH --cpus-per-task=128
+# #SBATCH --exclusive
 #SBATCH --no-kill
 
 ## the number of nodes for the job is provided in the dispatch_modeling_jobs_parallelized.py script

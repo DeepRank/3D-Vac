@@ -3,6 +3,7 @@ import argparse
 import math
 import datetime
 import subprocess
+from copy import deepcopy
 import re
 
 arg_parser = argparse.ArgumentParser(
@@ -17,8 +18,8 @@ arg_parser.add_argument("--running-time", "-t",
     default="01",
 )
 arg_parser.add_argument("--num-nodes", "-n",
-    help = "Number of nodes to use. Should be in format 00. Default 00 (will use running-time instead).",
-    default = "00",
+    help = "Number of nodes to use. Default 0 (will use running-time instead).",
+    default = "0",
 )
 arg_parser.add_argument("--input-csv", "-i",
     help="This argument allows to keep track of the db1 after modelling to check how many models are left."
@@ -45,7 +46,7 @@ running_time_hms = datetime.timedelta(hours=int(a.running_time))
 NUM_CORES = 128
 CASES_PER_HOUR_PER_CORE = 10
 
-if a.num_nodes == "00":
+if a.num_nodes == "0":
     #no number of nodes given, compute nodes from running_time
     #total number of cases per hour for each node: (3600/(time for modeling a case for a core))*num_cores
     #10 is an optimized factor representing 3600/(time for modeling a case for a core)
@@ -70,27 +71,47 @@ if (running_time_hms) < datetime.timedelta(minutes=15): # run at least 15 minute
 # sbatch_hours = str(int(a.running_time) + additional_hours).zfill(2) 
 print("total running time (in hours):", str(sbatch_hours))
 
-
-modelling_job_cmd = [
+modelling_job_cmd_temp = [
     "sbatch",
-    f"--nodes={a.num_nodes}",
     f"--time={sbatch_hours}",
+    "--cpus-per-task={}",
     "modelling_job.sh",
+    "--node-index={}",
     '--running-time', str(running_time_hms), 
     '--mhc-class', a.mhc_class,
     '--csv-path', csv_path,
     '--batch-size', str(batch)
 ]
-print(f"running:\n {modelling_job_cmd}")
 
-modeling_job_stdout = subprocess.check_output(modelling_job_cmd).decode("ASCII")
+# queue the jobs in serial based on the number of nodes needed
+job_ids = []
+for n in range(int(a.num_nodes)):
+    # check if we can use less cores in the last batch
+    n_cores = NUM_CORES
+    if n == int(a.num_nodes)-1: # last one of the batches
+        rest = tot_cases % batch
+        assert tot_cases >= batch
+        if not int(rest) == 0:
+            n_cores = math.ceil(rest/CASES_PER_HOUR_PER_CORE) # compute cores based on batch rest
+        elif batch < n_cores:
+            n_cores = batch
 
-modelling_job_id = int(re.search(r"\d+", modeling_job_stdout).group())
+    modelling_job_cmd = deepcopy(modelling_job_cmd_temp)
+    # fill in missing parameters
+    modelling_job_cmd[4] = modelling_job_cmd[4].format(n)
+    modelling_job_cmd[2] = modelling_job_cmd[2].format(n_cores)
+
+    print(f"running:\n {modelling_job_cmd}")
+
+    modeling_job_stdout = subprocess.check_output(modelling_job_cmd).decode("ASCII")
+
+    modelling_job_id = re.search(r"\d+", modeling_job_stdout).group()
+    job_ids.append(modelling_job_id)
 
 # after the modelling job ended, run the cleaning job:
 clean_output_job_stdout = subprocess.check_output([
     "sbatch",
-    f"--dependency=afterany:{modelling_job_id}",
+    f"--dependency=afterany:{','.join(job_ids)}",
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
