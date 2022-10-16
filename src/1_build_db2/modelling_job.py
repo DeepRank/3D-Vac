@@ -77,7 +77,8 @@ t2 = time.time()
 ## B. Create all Target Objects based on peptides in the .tsv file
 wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class, 
                     IDs_col=0, peptides_col=2, allele_name_col=1,
-                    benchmark=True, verbose=True, 
+                    outdir_col=outdir_col, archive=True,
+                    benchmark=True, verbose=True, delimiter=',',
                     header=True, num_cores=a.num_cores, n_loop_models=5,
                     start_row=start_row, end_row=end_row)
 t3 = time.time()
