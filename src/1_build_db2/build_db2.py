@@ -28,20 +28,24 @@ arg_parser.add_argument("--input-csv", "-i",
     help = "db1 file path. No default value. Required.",
     required = True,
 )
-arg_parser.add_argument("--skip-check", "-s",
+arg_parser.add_argument("--skip-check", "-c",
     help = "Skip the verification of unmodelled cases. By default, if this argument is not provided, models \
     are checked.",
     default = False,
     action = "store_true"
 )
-arg_parser.add_argument("--models-dir", "-m",
+arg_parser.add_argument("--models-dir", "-d",
     help="Path to the BA or EL folder where the models are generated",
     default="/projects/0/einf2380/data/pMHCI/3D_models/BA",
 )
-arg_parser.add_argument("--mhc-class", "-c",
+arg_parser.add_argument("--mhc-class", "-m",
     help="MHC class of the cases",
     choices=['I','II'],
     required=True,
+)
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    default=20,
 )
 a = arg_parser.parse_args();
 
@@ -78,6 +82,7 @@ if a.skip_check == False:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
+            "--n_structures", a.n_structures
         ]
     )
 else: 
@@ -90,5 +95,6 @@ else:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
+            "--n_structures", a.n_structures
         ]
     )

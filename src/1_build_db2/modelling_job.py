@@ -32,6 +32,10 @@ arg_parser.add_argument("--batch-size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    default=20,
+)
 arg_parser.add_argument("--node-index", "-i",
     help="Node id used for parallelization, when not passed serial case is assumed.",
     required=False,
@@ -87,7 +91,7 @@ print('Wrapper created')
 print(f"Time to predict anchors: {t2-t1}")
 
 # Run the models
-wrap.run_pandora(num_cores=a.num_cores, n_loop_models=20, clip_C_domain=True, 
+wrap.run_pandora(num_cores=a.num_cores, n_loop_models=a.n_structures, clip_C_domain=True, 
     benchmark=False, archive=True)
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
