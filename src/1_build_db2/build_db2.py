@@ -1,5 +1,6 @@
 import subprocess
 import re
+import os
 import argparse
 
 arg_parser = argparse.ArgumentParser(
@@ -53,12 +54,18 @@ a = arg_parser.parse_args();
 running_time = a.running_time; #in hour
 to_model = ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
 
+# check if the output dir is empty, so the running time can be reduced for get_unmodelled_cases
+time_get_unmod = '01:00:00'
+if len(os.listdir(a.models_dir.split('*')[0])) == 0:
+    time_get_unmod = '00:01:00'
+
 # generate the to_model.csv containing all unmodelled cases from the input csv.  
 
 if a.skip_check == False:
     command_output = subprocess.check_output(
         [
-            "sbatch", 
+            "sbatch",
+            "--time", time_get_unmod, 
             "get_unmodelled_cases.sh",
             "--csv-file", a.input_csv,
             "--update-csv", # this argument is mandatory to overwrite `to_model.csv`
@@ -82,7 +89,7 @@ if a.skip_check == False:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
-            "--n_structures", a.n_structures
+            "--n-structures", a.n_structures
         ]
     )
 else: 
@@ -95,6 +102,6 @@ else:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
-            "--n_structures", a.n_structures
+            "--n-structures", a.n_structures
         ]
     )

@@ -32,7 +32,7 @@ arg_parser.add_argument("--update-csv", "-u",
 )
 arg_parser.add_argument("--models-dir", "-m",
     help="Path to the BA or EL folder where the models are generated",
-    default="/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
+    default="/projects/0/einf2380/data/pMHCI/models/BA/\*/\*",
 )
 arg_parser.add_argument("--parallel", "-p",
     action='store_true',
@@ -44,6 +44,7 @@ arg_parser.add_argument("--archived", "-a",
 )
 arg_parser.add_argument("--n-structures", "-s",
     help="Number of structures to let PANDORA model",
+    type=int,
     default=20,
 )
 
@@ -87,7 +88,7 @@ def check_molpdf(fold):
         with tarfile.open(f'{fold}.tar', 'r') as archive:
             molpdf = archive.extractfile(f'{fold[1:]}/molpdf_DOPE.tsv')
             molpdf_df = pd.read_csv(molpdf, sep='\t', header=None)
-            if molpdf_df.shape[0] >= 19:
+            if molpdf_df.shape[0] >= n_struc_per_case-1:
                 df_types = []
                 for idx, row in molpdf_df.iterrows():
                     df_types.append(pd.isna(row[1]))
@@ -105,7 +106,7 @@ def check_molpdf(fold):
 
 def search_folders(folder):
     try:
-        # Open output folder. If the folder doesn't have 20 pdb files, it is considered as unmodelled.     #
+        # Open output folder. If the folder doesn't have n_struc_per_case pdb files, it is considered as unmodelled.     #
         if a.archived:
             members = get_archive_members(folder)
             if not members:
@@ -114,11 +115,11 @@ def search_folders(folder):
             n_structures = sum((i is not None for i in search_pdb))
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
-        if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= 20 is to be sure that no more than 20 structures are
+        if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= n_struc_per_case is to be sure that no more than n_struc_per_case structures are
             case = "_".join(folder.split("/")[-1].split("_")[0:2])
             molpdf_present = [re.search('molpdf_DOPE.tsv', mem) for mem in members]
             
-            # return True if 19 or 20 models present AND molpdf present AND check molpdf has valid values
+            # return True if n_struc_per_case or n_struc_per_case -1 models present AND molpdf present AND check molpdf has valid values
             if molpdf_present:
                 if check_molpdf(folder):
                     return case
