@@ -32,6 +32,16 @@ arg_parser.add_argument("--batch-size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=int,
+    default=20,
+)
+arg_parser.add_argument("--node-index", "-i",
+    help="Node id used for parallelization, when not passed serial case is assumed.",
+    required=False,
+    default= 0
+)
 
 a = arg_parser.parse_args()
 CASES_PER_HOUR_PER_CORE = 10
@@ -40,8 +50,8 @@ print(f'INFO: \n cases per hour per node :{CASES_PER_HOUR_PER_CORE*a.num_cores} 
 running time:{a.running_time}\nbatch: {a.batch_size}')
 
 # determine node index so we don't do the same chunk multiple times
-node_index = int(os.getenv('SLURM_NODEID'))
-
+# node_index = int(os.getenv('SLURM_NODEID'))
+node_index = int(a.node_index)
 # check if there are cases to model
 df = pd.read_csv(f"{a.csv_path}")
 if df.empty:
@@ -68,21 +78,16 @@ outdir_col = df.columns.to_list().index('db2_folder')
 # DEBUG
 print(f"INFO:\n path: {a.csv_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
 
-#Create targets
-t1 = time.time()
-wrap = Wrapper.Wrapper()
-wrap.create_targets(a.csv_path, db, 
-    MHC_class=a.mhc_class, header=True, delimiter=',', IDs_col=0,
-    peptides_col=2, allele_col=1, outdir_col=outdir_col, benchmark=False, 
-    verbose=True, start_row=start_row, end_row=end_row, use_netmhcpan=True
-)
-
 t2 = time.time()
-print('Wrapper created')
-print(f"Time to predict anchors: {t2-t1}")
 
-# Run the models
-wrap.run_pandora(num_cores=a.num_cores, n_loop_models=20, clip_C_domain=True, 
-    benchmark=False, archive=True)
+## B. Create all Target Objects based on peptides in the .tsv file
+wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class, 
+                    IDs_col=0, peptides_col=2, allele_name_col=1,
+                    outdir_col=outdir_col, archive=True,
+                    benchmark=True, verbose=True, delimiter=',',
+                    header=True, num_cores=a.num_cores, use_netmhcpan=True,
+                    n_loop_models=a.n_structures, clip_C_domain=True,
+                    start_row=start_row, end_row=end_row)
+
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
