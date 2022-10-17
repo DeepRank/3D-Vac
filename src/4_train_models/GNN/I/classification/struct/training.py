@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import logging
 from deeprankcore.Trainer import Trainer
-from deeprankcore.ginet import GINet
 from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
 
@@ -19,14 +18,33 @@ from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '13072022'
+run_day_data = '17102022'
 # Target/s
-target_group = 'score/'
+target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
 # Features
-node_features = ['bsa', 'depth', 'hb_acceptors', 'hb_donors', 'hse', 'ic', 'polarity', 'pos', 'pssm', 'sasa', 'size', 'type']
-edge_features = ['coulomb', 'covalent', 'dist', 'vanderwaals']
+node_features = [
+    "res_type",
+    "res_charge",
+    "res_size",
+    "polarity",
+    "hb_donors",
+    "hb_acceptors",
+    "pssm", 
+    "info_content",
+    "bsa",
+    "hse",
+    "sasa",
+    "res_depth"]
+
+edge_features = [
+    "same_chain",
+    "distance",
+    "covalent",
+    "electrostatic",
+    "vanderwaals"]
+
 # Clusters
 cluster_dataset = 'cluster'
 train_clusters = [0, 1, 2, 3, 4, 7, 9]
@@ -42,8 +60,8 @@ weight_decay = 0
 epochs = 10
 save_model = 'best'
 # Paths
-#project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
-project_folder = '/projects/0/einf2380/'
+project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
+# project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
 ####################
