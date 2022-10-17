@@ -42,6 +42,10 @@ arg_parser.add_argument("--archived", "-a",
     action='store_true',
     help="Flag to be used when folders are archived",
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    default=20,
+)
 
 def zip_and_remove(case):    
     # remove the old archive, but only if already unzipped
@@ -110,7 +114,7 @@ def search_folders(folder):
             n_structures = sum((i is not None for i in search_pdb))
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
-        if n_structures >= 19 and n_structures <= 20: # the n_structures <= 20 is to be sure that no more than 20 structures are
+        if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= 20 is to be sure that no more than 20 structures are
             case = "_".join(folder.split("/")[-1].split("_")[0:2])
             molpdf_present = [re.search('molpdf_DOPE.tsv', mem) for mem in members]
             
@@ -129,6 +133,9 @@ def search_folders(folder):
         print(traceback.format_exc())
 
 a = arg_parser.parse_args()
+
+# global variabel with number of structures per case (per folder)
+n_struc_per_case = a.n_structures
 
 #1. Open cases file
 df = pd.read_csv(f"{a.csv_file}")

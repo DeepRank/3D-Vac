@@ -32,6 +32,11 @@ arg_parser.add_argument("--batch-size", "-b",
     help="Batch size calculated by allocate_nodes.py.",
     required=True
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=int,
+    default=20,
+)
 arg_parser.add_argument("--node-index", "-i",
     help="Node id used for parallelization, when not passed serial case is assumed.",
     required=False,
@@ -74,12 +79,15 @@ outdir_col = df.columns.to_list().index('db2_folder')
 print(f"INFO:\n path: {a.csv_path}\n MHC_class={a.mhc_class}\n outdir_col={outdir_col} start_row={start_row}, end_row={end_row}\n num_cores={a.num_cores}")
 
 t2 = time.time()
+
 ## B. Create all Target Objects based on peptides in the .tsv file
 wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class, 
                     IDs_col=0, peptides_col=2, allele_name_col=1,
                     outdir_col=outdir_col, archive=True,
                     benchmark=True, verbose=True, delimiter=',',
-                    header=True, num_cores=a.num_cores, n_loop_models=5,
+                    header=True, num_cores=a.num_cores, use_netmhcpan=True,
+                    n_loop_models=a.n_structures, clip_C_domain=True,
                     start_row=start_row, end_row=end_row)
+
 t3 = time.time()
 print(f"Time to model: {t3-t2}")

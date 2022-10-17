@@ -33,6 +33,10 @@ arg_parser.add_argument("--models-dir", "-p",
     help= "path of the models directory",
     default="/projects/0/einf2380/data/pMHCI/models/BA"
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    default=20,
+)
 
 a = arg_parser.parse_args()
 
@@ -80,7 +84,8 @@ modelling_job_cmd_temp = [
     '--running-time', str(running_time_hms), 
     '--mhc-class', a.mhc_class,
     '--csv-path', csv_path,
-    '--batch-size', str(batch)
+    '--batch-size', str(batch),
+    "--n-structures", a.n_structures,
 ]
 
 # queue the jobs in serial based on the number of nodes needed
@@ -125,6 +130,7 @@ subprocess.run([
     "get_unmodelled_cases.sh",
     "--csv-file", a.input_csv,
     "--models-dir", a.models_dir,
+    "--n-structures", a.n_structures,
     "--parallel",
     "--archived", 
 ])
