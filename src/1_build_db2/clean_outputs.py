@@ -34,10 +34,11 @@ arg_parser.add_argument("--structure-rank", "-r",
     default=1,
     type=int,
 )
-arg_parser.add_argument("--single-path", "-s",
-    help="Give the path of a single case, for debugging",
-    type=str,
-    required=False)
+arg_parser.add_argument("--sequential", "-s",
+    help="Run the program sequentially instead of in parallel",
+    action='store_true',
+    default=False
+)
 
 # check if case was modelled:
 def check_exist(case):
@@ -96,24 +97,20 @@ def clean_target_dir(case):
                 except Exception as e:
                     print(e)
 
-def zip_and_remove(case):
-    try:    
-        # remove the old archive, but only if already unzipped
-        if os.path.exists(f'{case}.tar') and os.path.exists(case):
-            subprocess.run(f"rm {case}.tar", shell=True, check=True)
-        # create new archive of the folder
-        with tarfile.open(f'{case}.tar', 'w') as archive: # create new tarfile to gather files in
-            case_files = glob.glob(os.path.join(case, '*'))
-            for case_file in case_files:
-                archive.add(case_file)
-        # check if tar was created correctly and remove the original files from the folder
-        if os.path.exists(f'{case}.tar'):
-            subprocess.run(f"rm -r {case}", shell=True, check=True)
-            return True
-        else:
-            print(f'Error creating archive: {case}.tar')
-    except subprocess.CalledProcessError as e:
-        print('In zip and remove: ')
+def archive_and_remove(case):
+    """archives the case folder as a .tar file to save inode space
+
+    Args:
+        case str: directory name of case to be archived
+    """ 
+    prefix_case_folder = os.path.split(case.rstrip('/'))[0]
+    case_folder = os.path.split(case.rstrip('/'))[1]   
+    try:
+        subprocess.run(f"tar -cf {case}.tar -C {prefix_case_folder} {case_folder} \
+                       --remove-files", shell=True, check=True)
+    except subprocess.CalledProcessError as cpe:
+        print(f"Something went wrong in archive case: {case}\n{cpe}")
+    except Exception as e:
         print(e)
 
 def clean_copy_target_files(sub_folders):
@@ -126,35 +123,35 @@ def clean_copy_target_files(sub_folders):
                 if not unpack_archive(folder): # skip case if files are not valid
                     return 
                 clean_target_dir(folder)     
-                zip_and_remove(folder)
+                archive_and_remove(folder)
         except:
                 print(f'Cleaning failed for case {folder}')
                 print(traceback.format_exc())
                 try:
                     # try to archive folder and remove unarchived files after an exception has occured
-                    zip_and_remove(folder)
+                    archive_and_remove(folder)
                 except:
                     print(traceback.format_exc())
 
 a = arg_parser.parse_args()
 
 # find the paths of the models inside the model_path folder
-if a.single_path:
-    folders = [a.single_path.split('.')[0]]
+if a.sequential:
     n_cores = 1
 else:
     # path should be string and contain an asterisk
     if type(a.models_dir)!=str or "*" not in a.models_dir:
         raise Exception("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
     # clean the whole models folder
-    wildcard_path = a.models_dir.replace('\\', '')
-    folders = glob.glob(wildcard_path)
-    folders = [folder for folder in folders if '.tar' in folder]
-    folders = [case.split('.')[0] for case in folders]
     n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 
+wildcard_path = a.models_dir.replace('\\', '')
+folders = glob.glob(wildcard_path)
+folders = [folder for folder in folders if '.tar' in folder]
+folders = [case.split('.')[0] for case in folders]
+
 # run the cleaning
-if not a.single_path:
+if not a.sequential:
     # create list of lists (inner lists are list of paths), there are n_cores inner lists of approx equal length
     all_paths_lists = []
     chunk = math.ceil(len(folders)/n_cores)
