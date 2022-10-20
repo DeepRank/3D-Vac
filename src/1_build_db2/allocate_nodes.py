@@ -114,13 +114,13 @@ for n in range(int(a.num_nodes)):
     job_ids.append(modelling_job_id)
 
 # after the modelling job ended, run the cleaning job:
-clean_output_job_stdout = subprocess.check_output([
+clean_output_job_stdout = subprocess.run([
     "sbatch",
     f"--dependency=afterany:{','.join(job_ids)}",
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
-]).decode("ASCII")
+], check=True).decode("ASCII")
 
 clean_output_job_id = int(re.search(r"\d+", clean_output_job_stdout).group())
 
@@ -133,4 +133,4 @@ subprocess.run([
     "--n-structures", a.n_structures,
     "--parallel",
     "--archived", 
-])
+], check=True)
