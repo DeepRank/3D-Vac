@@ -50,7 +50,6 @@ print(f'INFO: \n cases per hour per node :{CASES_PER_HOUR_PER_CORE*a.num_cores} 
 running time:{a.running_time}\nbatch: {a.batch_size}')
 
 # determine node index so we don't do the same chunk multiple times
-# node_index = int(os.getenv('SLURM_NODEID'))
 node_index = int(a.node_index)
 # check if there are cases to model
 df = pd.read_csv(f"{a.csv_path}")
