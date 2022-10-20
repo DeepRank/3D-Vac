@@ -83,25 +83,27 @@ def get_archive_members(dir):
     except:
         print(traceback.print_exc())
 
-def check_molpdf(fold):
+def check_molpdf(case):
     try:
-        with tarfile.open(f'{fold}.tar', 'r') as archive:
-            molpdf = archive.extractfile(f'{fold[1:]}/molpdf_DOPE.tsv')
+        case_folder = os.path.split(case.rstrip('/'))[1]   
+        with tarfile.open(f'{case}.tar', 'r') as archive:
+            molpdf = archive.extractfile(f'{case_folder}/molpdf_DOPE.tsv')
             molpdf_df = pd.read_csv(molpdf, sep='\t', header=None)
             if molpdf_df.shape[0] >= n_struc_per_case-1:
                 df_types = []
                 for idx, row in molpdf_df.iterrows():
-                    df_types.append(pd.isna(row[1]))
-                    df_types.append(pd.isna(row[2]))
+                    # will add True to the list if the score is a Nan
+                    df_types.append(pd.isna(row[1])) # Molpdf score
+                    df_types.append(pd.isna(row[2])) # other score
                 # allow 4 faulty scores in the molpdf file (2 models)
                 if df_types.count(True) <= 4:
                     return True
     except tarfile.ReadError as e:
         print(e)
     except KeyError as e:
-        print(f'Molpdf.tsv not present: {fold}')
+        print(f'Molpdf.tsv not present: {case}')
     except pd.errors.EmptyDataError:
-        print(f'Molpdf empty: {fold}')
+        print(f'Molpdf empty: {case}')
 
 
 def search_folders(folder):
