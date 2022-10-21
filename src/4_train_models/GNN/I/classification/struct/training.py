@@ -1,5 +1,4 @@
 import h5py
-import glob
 import os
 import sys
 from pathlib import Path
@@ -8,7 +7,6 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime
-import re
 from deeprankcore.Trainer import Trainer
 from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
@@ -67,25 +65,27 @@ project_folder = './local_data/' # local resized df path
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
 # Experiment naming
-exp_date = True
-exp_name = 'test'
+exp_name = 'exp'
+exp_date = True # bool
+exp_suffix = ''
 ####################
 
 #################### Folders and logger
 # Outputs folder
-exp_basepath = 'experiments/'
-exp_list = [f for f in glob.glob(exp_basepath+"exp*")]
-if len(exp_list) > 0:
-    nums = [int(re.split('/exp|_',w)[1]) for w in exp_list]
-    exp_id = 'exp' + str(max(nums) + 1)
-else:
-    exp_id = 'exp0'
+exp_basepath = os.path.dirname(__file__) + '/experiments/'
+exp_id = exp_name + '0'
+if os.path.exists(exp_basepath):
+    exp_list = [f for f in os.listdir(exp_basepath) if f.lower().startswith(exp_name.lower())]
+    if len(exp_list) > 0:
+        last_id = max([int(w[len(exp_name):].split('_')[0]) for w in exp_list])
+        print(last_id)
+        exp_id = exp_name + str(last_id + 1)
 exp_path = os.path.join(exp_basepath, exp_id)
 if exp_date:
     today = datetime.now().strftime('%y%m%d')
     exp_path += '_' + today
-if exp_name:
-    exp_path += '_' + exp_name
+if exp_suffix:
+    exp_path += '_' + exp_suffix
 os.makedirs(exp_path)
 
 data_path = os.path.join(exp_path, 'data')
