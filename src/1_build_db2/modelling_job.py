@@ -44,7 +44,7 @@ arg_parser.add_argument("--node-index", "-i",
 )
 
 a = arg_parser.parse_args()
-CASES_PER_HOUR_PER_CORE = 10
+CASES_PER_HOUR_PER_CORE = 24
 
 print(f'INFO: \n cases per hour per node :{CASES_PER_HOUR_PER_CORE*a.num_cores} \n num of cores: {a.num_cores}\n \
 running time:{a.running_time}\nbatch: {a.batch_size}')
