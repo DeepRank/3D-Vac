@@ -7,6 +7,8 @@ import torch
 import pandas as pd
 import numpy as np
 import logging
+from datetime import datetime
+import re
 from deeprankcore.Trainer import Trainer
 from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
@@ -64,20 +66,27 @@ project_folder = './local_data/' # local resized df path
 # project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
+# Experiment naming
+exp_date = True
+exp_name = 'test'
 ####################
 
 #################### Folders and logger
 # Outputs folder
-exp_list = [f for f in glob.glob("experiments/exp*")]
+exp_path = 'experiments/'
+exp_list = [f for f in glob.glob(exp_path+"exp*")]
 if len(exp_list) > 0:
-    nums = [int(w.split('/exp')[1]) for w in exp_list]
+    nums = [int(re.split('/exp|_',w)[1]) for w in exp_list]
     exp_id = 'exp' + str(max(nums) + 1)
-    exp_path = os.path.join('./experiments', exp_id)
-    os.makedirs(exp_path)
 else:
     exp_id = 'exp0'
-    exp_path = os.path.join('./experiments', exp_id)
-    os.makedirs(exp_path)
+exp_path = os.path.join(exp_path, exp_id)
+if exp_date:
+    today = datetime.now().strftime('%y%m%d')
+    exp_path += '_' + today
+if exp_name:
+    exp_path += '_' + exp_name
+os.makedirs(exp_path)
 
 data_path = os.path.join(exp_path, 'data')
 metrics_path = os.path.join(exp_path, 'metrics')
@@ -220,6 +229,8 @@ _log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
 #################### Metadata saving
 exp_json = {}
 exp_json['exp_id'] = exp_id
+exp_json['exp_fullname'] = exp_path.split('/')[-1]
+exp_json['exp_path'] = exp_path
 exp_json['input_data_path'] = input_data_path
 exp_json['protein_class'] = protein_class
 exp_json['target_data'] = target_data
