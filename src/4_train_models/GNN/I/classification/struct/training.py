@@ -73,14 +73,14 @@ exp_name = 'test'
 
 #################### Folders and logger
 # Outputs folder
-exp_path = 'experiments/'
-exp_list = [f for f in glob.glob(exp_path+"exp*")]
+exp_basepath = 'experiments/'
+exp_list = [f for f in glob.glob(exp_basepath+"exp*")]
 if len(exp_list) > 0:
     nums = [int(re.split('/exp|_',w)[1]) for w in exp_list]
     exp_id = 'exp' + str(max(nums) + 1)
 else:
     exp_id = 'exp0'
-exp_path = os.path.join(exp_path, exp_id)
+exp_path = os.path.join(exp_basepath, exp_id)
 if exp_date:
     today = datetime.now().strftime('%y%m%d')
     exp_path += '_' + today
@@ -227,6 +227,7 @@ trainer.test()
 _log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
 
 #################### Metadata saving
+print(exp_path.split('/')[-1])
 exp_json = {}
 exp_json['exp_id'] = exp_id
 exp_json['exp_fullname'] = exp_path.split('/')[-1]
@@ -262,9 +263,11 @@ exp_json['valid_rmse'] = np.nan
 exp_json['test_rmse'] = np.nan
 exp_df = pd.DataFrame(exp_json, index=[0])
 
-filename = Path('experiments_log.xlsx')
+filename = Path(exp_basepath+'experiments_log.xlsx')
 file_exists = filename.is_file()
 
+# Output to excel file
+# Note that this gives a column headers will not match stored data if new headers are added or removed between experiments  
 with pd.ExcelWriter(
     filename,
     engine="openpyxl",
