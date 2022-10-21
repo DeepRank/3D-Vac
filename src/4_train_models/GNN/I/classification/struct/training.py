@@ -57,10 +57,10 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 10
+epochs = 2
 save_model = 'best'
 # Paths
-project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
+project_folder = './local_data/' # local resized df path
 # project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
