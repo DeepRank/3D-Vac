@@ -263,7 +263,7 @@ exp_json['valid_rmse'] = np.nan
 exp_json['test_rmse'] = np.nan
 exp_df = pd.DataFrame(exp_json, index=[0])
 
-filename = Path(exp_basepath+'experiments_log.xlsx')
+filename = Path(exp_basepath+'_experiments_log.xlsx')
 file_exists = filename.is_file()
 
 # Output to excel file
