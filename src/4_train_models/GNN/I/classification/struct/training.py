@@ -10,6 +10,16 @@ from datetime import datetime
 from deeprankcore.Trainer import Trainer
 from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
+from sklearn.metrics import (
+    roc_curve,
+    precision_recall_curve,
+    auc,
+    average_precision_score,
+    precision_score,
+    recall_score,
+    accuracy_score,
+    f1_score,
+    matthews_corrcoef)
 
 # set random seed!!!
 
@@ -78,7 +88,6 @@ if os.path.exists(exp_basepath):
     exp_list = [f for f in os.listdir(exp_basepath) if f.lower().startswith(exp_name.lower())]
     if len(exp_list) > 0:
         last_id = max([int(w[len(exp_name):].split('_')[0]) for w in exp_list])
-        print(last_id)
         exp_id = exp_name + str(last_id + 1)
 exp_path = os.path.join(exp_basepath, exp_id)
 if exp_date:
@@ -227,8 +236,9 @@ trainer.test()
 _log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
 
 #################### Metadata saving
-print(exp_path.split('/')[-1])
 exp_json = {}
+
+## store input settings
 exp_json['exp_id'] = exp_id
 exp_json['exp_fullname'] = exp_path.split('/')[-1]
 exp_json['exp_path'] = exp_path
@@ -241,33 +251,67 @@ exp_json['task'] = task
 exp_json['node_features'] = [node_features]
 exp_json['edge_features'] = [edge_features]
 exp_json['net'] = str(net)
+exp_json['max_epochs'] = epochs
+exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
 exp_json['batch_size'] = batch_size
 exp_json['optimizer'] = str(optimizer)
 exp_json['lr'] = lr
 exp_json['weight_decay'] = weight_decay
-exp_json['epoch'] = trainer.epoch_saved_model
-exp_json['train_loss'] = np.nan
-exp_json['valid_loss'] = np.nan
-exp_json['test_loss'] = np.nan
-exp_json['train_accuracy'] = np.nan
-exp_json['valid_accuracy'] = np.nan
-exp_json['test_accuracy'] = np.nan
-exp_json['train_mcc'] = np.nan
-exp_json['valid_mcc'] = np.nan
-exp_json['test_mcc'] = np.nan
-exp_json['train_f1'] = np.nan
-exp_json['valid_f1'] = np.nan
-exp_json['test_f1'] = np.nan
-exp_json['train_rmse'] = np.nan
-exp_json['valid_rmse'] = np.nan
-exp_json['test_rmse'] = np.nan
+
+
+## load output and retrieve metrics
+epoch = trainer.epoch_saved_model
+exp_json['epoch'] = epoch
+
+# d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'phase': []}
+metrics_df = pd.read_hdf(os.path.join(metrics_path, 'metrics.hdf5'), 'metrics')
+d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'phase': []}
+thr_df = pd.DataFrame(data=d)
+df_epoch = metrics_df[(metrics_df.epoch == epoch) | ((metrics_df.epoch == 0) & (metrics_df.phase == 'testing'))]
+
+for phase in ['training', 'validation', 'testing']:
+    df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
+    y_true = df_epoch_phase.target
+    y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
+
+    thrs = np.linspace(0,1,100)
+    precision = []
+    recall = []
+    accuracy = []
+    f1 = []
+    mcc = []
+    auc_score = []
+    
+    for thr in thrs:
+        y_pred = (y_score > thr)*1
+        precision.append(precision_score(y_true, y_pred))
+        recall.append(recall_score(y_true, y_pred))
+        accuracy.append(accuracy_score(y_true, y_pred))
+        f1.append(f1_score(y_true, y_pred))
+        mcc.append(matthews_corrcoef(y_true, y_pred))
+        # auc_score.append(auc(y_true, y_pred))
+    # phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'phase': phase})
+    phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'phase': phase})
+    thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
+
+idx_mcc_max = thr_df.mcc.idxmax()
+sel_thr = thr_df.loc[idx_mcc_max].thr
+
+## store output
+for phase in ('training','validation','testing'): # check which of these actually make sense for testing
+    exp_json[phase + '_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == phase)].loss.mean()
+    exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
+    exp_json[phase + '_mcc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].mcc), 3)
+    exp_json[phase + '_f1'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].f1), 3)
+    # exp_json[phase + '_auc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].auc), 3)
 exp_df = pd.DataFrame(exp_json, index=[0])
 
-filename = Path(exp_basepath+'_experiments_log.xlsx')
-file_exists = filename.is_file()
+
 
 # Output to excel file
-# Note that this gives a column headers will not match stored data if new headers are added or removed between experiments  
+filename = Path(exp_basepath + '_experiments_log.xlsx')
+file_exists = filename.is_file()
+
 with pd.ExcelWriter(
     filename,
     engine="openpyxl",
@@ -277,12 +321,12 @@ with pd.ExcelWriter(
 
     if file_exists:
         _log.info("Updating metadata in experiments_log.xlsx ...\n")
-        startrow=writer.sheets['All'].max_row
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=False)
+        old_df = pd.read_excel(filename)
+        old_df.append(exp_df)
+        old_df.to_excel(writer, sheet_name='All', index=False, header=True)
     else:
         _log.info("Creating metadata in experiments_log.xlsx ...\n")
-        startrow = 0
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=True)
+        exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
 
 _log.info("Saved! End of the training script")
 
