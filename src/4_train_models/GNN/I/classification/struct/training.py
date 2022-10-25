@@ -12,7 +12,6 @@ from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
 from sklearn.metrics import (
     roc_curve,
-    precision_recall_curve,
     auc,
     average_precision_score,
     precision_score,
@@ -263,9 +262,8 @@ exp_json['weight_decay'] = weight_decay
 epoch = trainer.epoch_saved_model
 exp_json['epoch'] = epoch
 
-# d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'phase': []}
 metrics_df = pd.read_hdf(os.path.join(metrics_path, 'metrics.hdf5'), 'metrics')
-d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'phase': []}
+d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
 thr_df = pd.DataFrame(data=d)
 df_epoch = metrics_df[(metrics_df.epoch == epoch) | ((metrics_df.epoch == 0) & (metrics_df.phase == 'testing'))]
 
@@ -280,7 +278,6 @@ for phase in ['training', 'validation', 'testing']:
     accuracy = []
     f1 = []
     mcc = []
-    auc_score = []
     
     for thr in thrs:
         y_pred = (y_score > thr)*1
@@ -289,9 +286,12 @@ for phase in ['training', 'validation', 'testing']:
         accuracy.append(accuracy_score(y_true, y_pred))
         f1.append(f1_score(y_true, y_pred, zero_division=0))
         mcc.append(matthews_corrcoef(y_true, y_pred))
-        # auc_score.append(auc(y_true, y_pred))
-    # phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'phase': phase})
-    phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'phase': phase})
+
+    fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
+    auc_score = auc(fpr_roc, tpr_roc)
+    aucpr = average_precision_score(y_true, y_score)
+
+    phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
     thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
 
 idx_mcc_max = thr_df.mcc.idxmax()
@@ -301,13 +301,14 @@ sel_thr = thr_df.loc[idx_mcc_max].thr
 for phase in ['training', 'validation', 'testing']:
     exp_json[phase + '_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == phase)].loss.mean()
     exp_json[phase + '_mcc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].mcc), 3)
-    # exp_json[phase + '_auc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].auc), 3)
+    exp_json[phase + '_auc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].auc), 3)
+    exp_json[phase + '_aucpr'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].aucpr), 3)
     exp_json[phase + '_f1'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].f1), 3)
     exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
     exp_json[phase + '_precision'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].precision), 3)
     exp_json[phase + '_recall'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].recall), 3)
-exp_df = pd.DataFrame(exp_json, index=[0])
 
+exp_df = pd.DataFrame(exp_json, index=[0])
 
 
 # Output to excel file
