@@ -294,8 +294,16 @@ for phase in ['training', 'validation', 'testing']:
     phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
     thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
 
-idx_mcc_max = thr_df.mcc.idxmax()
-sel_thr = thr_df.loc[idx_mcc_max].thr
+# find max mcc of test set
+test_df = thr_df.loc[thr_df.phase == 'testing']
+test_mcc_idxmax = test_df.mcc.idxmax()
+if thr_df.loc[test_mcc_idxmax].mcc > 0:
+    sel_thr = thr_df.loc[test_mcc_idxmax].thr
+# use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
+else:
+    mcc_idxmax = thr_df.mcc.idxmax()
+    sel_thr = thr_df.loc[mcc_idxmax].thr
+    _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
 
 ## store output
 for phase in ['training', 'validation', 'testing']:
