@@ -66,7 +66,7 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 2
+epochs = 10
 save_model = 'best'
 # Paths
 project_folder = './local_data/' # local resized df path
