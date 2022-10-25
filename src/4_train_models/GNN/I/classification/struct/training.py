@@ -300,10 +300,12 @@ sel_thr = thr_df.loc[idx_mcc_max].thr
 ## store output
 for phase in ['training', 'validation', 'testing']:
     exp_json[phase + '_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == phase)].loss.mean()
-    exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
     exp_json[phase + '_mcc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].mcc), 3)
-    exp_json[phase + '_f1'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].f1), 3)
     # exp_json[phase + '_auc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].auc), 3)
+    exp_json[phase + '_f1'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].f1), 3)
+    exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
+    exp_json[phase + '_precision'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].precision), 3)
+    exp_json[phase + '_recall'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].recall), 3)
 exp_df = pd.DataFrame(exp_json, index=[0])
 
 
