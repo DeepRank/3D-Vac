@@ -284,10 +284,10 @@ for phase in ['training', 'validation', 'testing']:
     
     for thr in thrs:
         y_pred = (y_score > thr)*1
-        precision.append(precision_score(y_true, y_pred))
-        recall.append(recall_score(y_true, y_pred))
+        precision.append(precision_score(y_true, y_pred, zero_division=0))
+        recall.append(recall_score(y_true, y_pred, zero_division=0))
         accuracy.append(accuracy_score(y_true, y_pred))
-        f1.append(f1_score(y_true, y_pred))
+        f1.append(f1_score(y_true, y_pred, zero_division=0))
         mcc.append(matthews_corrcoef(y_true, y_pred))
         # auc_score.append(auc(y_true, y_pred))
     # phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'phase': phase})
@@ -298,7 +298,7 @@ idx_mcc_max = thr_df.mcc.idxmax()
 sel_thr = thr_df.loc[idx_mcc_max].thr
 
 ## store output
-for phase in ('training','validation','testing'): # check which of these actually make sense for testing
+for phase in ['training', 'validation', 'testing']:
     exp_json[phase + '_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == phase)].loss.mean()
     exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
     exp_json[phase + '_mcc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].mcc), 3)
@@ -322,11 +322,10 @@ with pd.ExcelWriter(
     if file_exists:
         _log.info("Updating metadata in experiments_log.xlsx ...\n")
         old_df = pd.read_excel(filename)
-        old_df.append(exp_df)
-        old_df.to_excel(writer, sheet_name='All', index=False, header=True)
+        exp_df = pd.concat([old_df, exp_df])
     else:
         _log.info("Creating metadata in experiments_log.xlsx ...\n")
-        exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
+    exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
 
 _log.info("Saved! End of the training script")
 
