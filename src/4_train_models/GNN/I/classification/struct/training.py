@@ -232,7 +232,8 @@ trainer.configure_optimizers(optimizer, lr, weight_decay)
 trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
 trainer.test()
 
-_log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
+epoch = trainer.epoch_saved_model
+_log.info(f"Model saved at epoch {epoch}")
 
 #################### Metadata saving
 exp_json = {}
@@ -244,23 +245,25 @@ exp_json['exp_path'] = exp_path
 exp_json['input_data_path'] = input_data_path
 exp_json['protein_class'] = protein_class
 exp_json['target_data'] = target_data
-exp_json['res_data'] = resolution_data
+exp_json['resolution'] = resolution_data
 exp_json['target_data'] = target_data
 exp_json['task'] = task
 exp_json['node_features'] = [node_features]
 exp_json['edge_features'] = [edge_features]
 exp_json['net'] = str(net)
-exp_json['max_epochs'] = epochs
-exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
-exp_json['batch_size'] = batch_size
 exp_json['optimizer'] = str(optimizer)
+exp_json['max_epochs'] = epochs
+exp_json['batch_size'] = batch_size
 exp_json['lr'] = lr
 exp_json['weight_decay'] = weight_decay
-
+exp_json['save_state'] = [save_model]
+exp_json['train_clusters'] = [train_clusters]
+exp_json['val_clusters'] = [val_clusters]
+exp_json['test_clusters'] = [test_clusters]
 
 ## load output and retrieve metrics
-epoch = trainer.epoch_saved_model
-exp_json['epoch'] = epoch
+exp_json['saved_epoch'] = epoch
+exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
 
 metrics_df = pd.read_hdf(os.path.join(metrics_path, 'metrics.hdf5'), 'metrics')
 d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
