@@ -309,20 +309,16 @@ else:
     _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
 
 ## store output
-for phase in ['training', 'validation', 'testing']:
-    exp_json[phase + '_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == phase)].loss.mean()
-    exp_json[phase + '_mcc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].mcc), 3)
-    exp_json[phase + '_auc'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].auc), 3)
-    exp_json[phase + '_aucpr'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].aucpr), 3)
-    exp_json[phase + '_f1'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].f1), 3)
-    exp_json[phase + '_accuracy'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].accuracy), 3)
-    exp_json[phase + '_precision'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].precision), 3)
-    exp_json[phase + '_recall'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)].recall), 3)
-
-exp_df = pd.DataFrame(exp_json, index=[0])
+exp_json['training_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'training')].loss.mean()
+exp_json['validation_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'validation')].loss.mean()
+exp_json['testing_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'testing')].loss.mean()
+for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
+    for phase in ['training', 'validation', 'testing']:
+        exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
 
 
 # Output to excel file
+exp_df = pd.DataFrame(exp_json, index=[0])
 filename = Path(exp_basepath + '_experiments_log.xlsx')
 file_exists = filename.is_file()
 
@@ -336,7 +332,7 @@ with pd.ExcelWriter(
     if file_exists:
         _log.info("Updating metadata in experiments_log.xlsx ...\n")
         old_df = pd.read_excel(filename)
-        exp_df = pd.concat([old_df, exp_df])
+        exp_df = pd.concat([exp_df, old_df]) # newest experiment on top
     else:
         _log.info("Creating metadata in experiments_log.xlsx ...\n")
     exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
