@@ -20,8 +20,9 @@ from sklearn.metrics import (
     f1_score,
     matthews_corrcoef)
 
-# set random seed!!!
+# initialize
 starttime = datetime.now()
+torch.manual_seed(22)
 
 #################### To fill
 # Input data
