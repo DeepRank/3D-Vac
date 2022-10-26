@@ -1,6 +1,10 @@
 import argparse
 import glob
 import h5py
+from matplotlib import pyplot as plt
+import pandas as pd
+import numpy as np
+import os
 
 arg_parser = argparse.ArgumentParser(description="""
     Plots the distribution of each feature in report/figures/h5explorer/{name_of_exploration}
@@ -19,13 +23,36 @@ a = arg_parser.parse_args()
 
 # Retrieve all hdf5 files with a simple command:
 h5_files = glob.glob(f"{a.path_to_h5}/*.hdf5")
-print(len(h5_files))
 
-features = []
-values = []
+# k_mv_d = {} # key_max_value_dictionary
+k_mv_d = {} # key_max_value_dictionary
+#populating the k_mv_d with values from each hdf5 file:
 for i,f in enumerate(h5_files):
-    if i ==0:
         h5 = h5py.File(f)
         for m in h5.keys():
-            features.append(h5[m].keys())
-print(features)
+            if i == 0:
+                keys = list(h5[f"{m}/mapped_features/Feature_ind"].keys())
+                k_mv_d = {k:[] for k in keys}
+            for k in keys:
+                values = h5[f"{m}/mapped_features/Feature_ind/{k}/value"][()]
+                if values.shape[0] == 0:
+                    k_mv_d[k].append(0)
+                else:
+                    k_mv_d[k].append(values.max())
+
+# make the dir if not already existing:
+plot_dir = f"../../reports/figures/h5explorer/{a.name}"
+if not os.path.isdir(plot_dir):
+    os.mkdir(plot_dir)
+
+# plot each feature:
+for feature in k_mv_d.keys():
+    values = np.array(k_mv_d[feature])
+    plt.hist(values, bins=100, log=True)
+    plt.title(f"Distribution of max {feature} values, mapped on the grid")
+    plt.xlabel("Max values for each model")
+    plt.ylabel("Log of bin count")
+
+    # save the plot:
+    plt.savefig(f"{plot_dir}/{feature}.png")
+    plt.close()
