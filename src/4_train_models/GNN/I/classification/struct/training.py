@@ -21,6 +21,7 @@ from sklearn.metrics import (
     matthews_corrcoef)
 
 # set random seed!!!
+starttime = datetime.now()
 
 #################### To fill
 # Input data
@@ -90,7 +91,7 @@ if os.path.exists(exp_basepath):
         exp_id = exp_name + str(last_id + 1)
 exp_path = os.path.join(exp_basepath, exp_id)
 if exp_date:
-    today = datetime.now().strftime('%y%m%d')
+    today = starttime.strftime('%y%m%d')
     exp_path += '_' + today
 if exp_suffix:
     exp_path += '_' + exp_suffix
@@ -242,6 +243,8 @@ exp_json = {}
 exp_json['exp_id'] = exp_id
 exp_json['exp_fullname'] = exp_path.split('/')[-1]
 exp_json['exp_path'] = exp_path
+exp_json['start_time'] = starttime.strftime("%d/%m/%Y, %H:%M:%S")
+exp_json['end_time'] = '_' #placeholder to keep location
 exp_json['input_data_path'] = input_data_path
 exp_json['protein_class'] = protein_class
 exp_json['target_data'] = target_data
@@ -258,8 +261,12 @@ exp_json['lr'] = lr
 exp_json['weight_decay'] = weight_decay
 exp_json['save_state'] = save_model
 exp_json['train_clusters'] = [train_clusters]
+exp_json['train_datapoints'] = len(df_train)
 exp_json['val_clusters'] = [val_clusters]
+exp_json['val_datapoints'] = len(df_valid)
 exp_json['test_clusters'] = [test_clusters]
+exp_json['test_datapoints'] = len(df_test)
+exp_json['total_datapoints'] = len(df_summ)
 
 ## load output and retrieve metrics
 exp_json['saved_epoch'] = epoch
@@ -318,6 +325,7 @@ for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
 
 
 # Output to excel file
+exp_json['end_time'] = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
 exp_df = pd.DataFrame(exp_json, index=[0])
 filename = Path(exp_basepath + '_experiments_log.xlsx')
 file_exists = filename.is_file()
