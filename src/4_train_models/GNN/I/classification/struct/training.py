@@ -243,7 +243,7 @@ exp_json = {}
 exp_json['exp_id'] = exp_id
 exp_json['exp_fullname'] = exp_path.split('/')[-1]
 exp_json['exp_path'] = exp_path
-exp_json['start_time'] = starttime.strftime("%d/%m/%Y, %H:%M:%S")
+exp_json['start_time'] = starttime.strftime("%d/%b/%Y_%H:%M:%S")
 exp_json['end_time'] = '_' #placeholder to keep location
 exp_json['input_data_path'] = input_data_path
 exp_json['protein_class'] = protein_class
@@ -325,7 +325,7 @@ for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
 
 
 # Output to excel file
-exp_json['end_time'] = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+exp_json['end_time'] = datetime.now().strftime("%d/%b/%Y_%H:%M:%S")
 exp_df = pd.DataFrame(exp_json, index=[0])
 filename = Path(exp_basepath + '_experiments_log.xlsx')
 file_exists = filename.is_file()
