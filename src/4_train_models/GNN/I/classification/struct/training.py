@@ -1,5 +1,4 @@
 import h5py
-import glob
 import os
 import sys
 from pathlib import Path
@@ -7,11 +6,23 @@ import torch
 import pandas as pd
 import numpy as np
 import logging
+from datetime import datetime
 from deeprankcore.Trainer import Trainer
 from deeprankcore.naive_gnn import NaiveNetwork
 from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
+from sklearn.metrics import (
+    roc_curve,
+    auc,
+    average_precision_score,
+    precision_score,
+    recall_score,
+    accuracy_score,
+    f1_score,
+    matthews_corrcoef)
 
-# set random seed!!!
+# initialize
+starttime = datetime.now()
+torch.manual_seed(22)
 
 #################### To fill
 # Input data
@@ -60,24 +71,32 @@ weight_decay = 0
 epochs = 10
 save_model = 'best'
 # Paths
-project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/' # local resized df path
+project_folder = './local_data/' # local resized df path
 # project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = folder_data + '/' + resolution_data + '.hdf5'
+# Experiment naming
+exp_name = 'exp'
+exp_date = True # bool
+exp_suffix = ''
 ####################
 
 #################### Folders and logger
 # Outputs folder
-exp_list = [f for f in glob.glob("experiments/exp*")]
-if len(exp_list) > 0:
-    nums = [int(w.split('/exp')[1]) for w in exp_list]
-    exp_id = 'exp' + str(max(nums) + 1)
-    exp_path = os.path.join('./experiments', exp_id)
-    os.makedirs(exp_path)
-else:
-    exp_id = 'exp0'
-    exp_path = os.path.join('./experiments', exp_id)
-    os.makedirs(exp_path)
+exp_basepath = os.path.dirname(__file__) + '/experiments/'
+exp_id = exp_name + '0'
+if os.path.exists(exp_basepath):
+    exp_list = [f for f in os.listdir(exp_basepath) if f.lower().startswith(exp_name.lower())]
+    if len(exp_list) > 0:
+        last_id = max([int(w[len(exp_name):].split('_')[0]) for w in exp_list])
+        exp_id = exp_name + str(last_id + 1)
+exp_path = os.path.join(exp_basepath, exp_id)
+if exp_date:
+    today = starttime.strftime('%y%m%d')
+    exp_path += '_' + today
+if exp_suffix:
+    exp_path += '_' + exp_suffix
+os.makedirs(exp_path)
 
 data_path = os.path.join(exp_path, 'data')
 metrics_path = os.path.join(exp_path, 'metrics')
@@ -215,43 +234,101 @@ trainer.configure_optimizers(optimizer, lr, weight_decay)
 trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
 trainer.test()
 
-_log.info(f"Model saved at epoch {trainer.epoch_saved_model}")
+epoch = trainer.epoch_saved_model
+_log.info(f"Model saved at epoch {epoch}")
 
 #################### Metadata saving
 exp_json = {}
+
+## store input settings
 exp_json['exp_id'] = exp_id
+exp_json['exp_fullname'] = exp_path.split('/')[-1]
+exp_json['exp_path'] = exp_path
+exp_json['start_time'] = starttime.strftime("%d/%b/%Y_%H:%M:%S")
+exp_json['end_time'] = '_' #placeholder to keep location
 exp_json['input_data_path'] = input_data_path
 exp_json['protein_class'] = protein_class
 exp_json['target_data'] = target_data
-exp_json['res_data'] = resolution_data
+exp_json['resolution'] = resolution_data
 exp_json['target_data'] = target_data
 exp_json['task'] = task
 exp_json['node_features'] = [node_features]
 exp_json['edge_features'] = [edge_features]
 exp_json['net'] = str(net)
-exp_json['batch_size'] = batch_size
 exp_json['optimizer'] = str(optimizer)
+exp_json['max_epochs'] = epochs
+exp_json['batch_size'] = batch_size
 exp_json['lr'] = lr
 exp_json['weight_decay'] = weight_decay
-exp_json['epoch'] = trainer.epoch_saved_model
-exp_json['train_loss'] = np.nan
-exp_json['valid_loss'] = np.nan
-exp_json['test_loss'] = np.nan
-exp_json['train_accuracy'] = np.nan
-exp_json['valid_accuracy'] = np.nan
-exp_json['test_accuracy'] = np.nan
-exp_json['train_mcc'] = np.nan
-exp_json['valid_mcc'] = np.nan
-exp_json['test_mcc'] = np.nan
-exp_json['train_f1'] = np.nan
-exp_json['valid_f1'] = np.nan
-exp_json['test_f1'] = np.nan
-exp_json['train_rmse'] = np.nan
-exp_json['valid_rmse'] = np.nan
-exp_json['test_rmse'] = np.nan
-exp_df = pd.DataFrame(exp_json, index=[0])
+exp_json['save_state'] = save_model
+exp_json['train_clusters'] = [train_clusters]
+exp_json['train_datapoints'] = len(df_train)
+exp_json['val_clusters'] = [val_clusters]
+exp_json['val_datapoints'] = len(df_valid)
+exp_json['test_clusters'] = [test_clusters]
+exp_json['test_datapoints'] = len(df_test)
+exp_json['total_datapoints'] = len(df_summ)
 
-filename = Path('experiments_log.xlsx')
+## load output and retrieve metrics
+exp_json['saved_epoch'] = epoch
+exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
+
+metrics_df = pd.read_hdf(os.path.join(metrics_path, 'metrics.hdf5'), 'metrics')
+d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
+thr_df = pd.DataFrame(data=d)
+df_epoch = metrics_df[(metrics_df.epoch == epoch) | ((metrics_df.epoch == 0) & (metrics_df.phase == 'testing'))]
+
+for phase in ['training', 'validation', 'testing']:
+    df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
+    y_true = df_epoch_phase.target
+    y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
+
+    thrs = np.linspace(0,1,100)
+    precision = []
+    recall = []
+    accuracy = []
+    f1 = []
+    mcc = []
+    
+    for thr in thrs:
+        y_pred = (y_score > thr)*1
+        precision.append(precision_score(y_true, y_pred, zero_division=0))
+        recall.append(recall_score(y_true, y_pred, zero_division=0))
+        accuracy.append(accuracy_score(y_true, y_pred))
+        f1.append(f1_score(y_true, y_pred, zero_division=0))
+        mcc.append(matthews_corrcoef(y_true, y_pred))
+
+    fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
+    auc_score = auc(fpr_roc, tpr_roc)
+    aucpr = average_precision_score(y_true, y_score)
+
+    phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
+    thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
+
+# find max mcc of test set
+test_df = thr_df.loc[thr_df.phase == 'testing']
+test_mcc_idxmax = test_df.mcc.idxmax()
+if thr_df.loc[test_mcc_idxmax].mcc > 0:
+    sel_thr = thr_df.loc[test_mcc_idxmax].thr
+# use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
+else:
+    mcc_idxmax = thr_df.mcc.idxmax()
+    sel_thr = thr_df.loc[mcc_idxmax].thr
+    _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
+
+## store output
+exp_json['training_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'training')].loss.mean()
+exp_json['validation_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'validation')].loss.mean()
+exp_json['testing_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'testing')].loss.mean()
+for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
+    for phase in ['training', 'validation', 'testing']:
+        exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
+
+
+# Output to excel file
+exp_json['end_time'] = datetime.now().strftime("%d/%b/%Y_%H:%M:%S")
+exp_df = pd.DataFrame(exp_json, index=[0])
+filename = Path(exp_basepath + '_experiments_log.xlsx')
 file_exists = filename.is_file()
 
 with pd.ExcelWriter(
@@ -263,12 +340,11 @@ with pd.ExcelWriter(
 
     if file_exists:
         _log.info("Updating metadata in experiments_log.xlsx ...\n")
-        startrow=writer.sheets['All'].max_row
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=False)
+        old_df = pd.read_excel(filename)
+        exp_df = pd.concat([exp_df, old_df]) # newest experiment on top
     else:
         _log.info("Creating metadata in experiments_log.xlsx ...\n")
-        startrow = 0
-        exp_df.to_excel(writer, sheet_name='All', startrow=startrow, index=False, header=True)
+    exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
 
 _log.info("Saved! End of the training script")
 
