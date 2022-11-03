@@ -4,7 +4,7 @@ from db1_to_db2_path import assign_outfolder
 
 # list of arguments:
 arg_parser = argparse.ArgumentParser(
-    description='Build a p:MHC Binding Affinity csv file for BA only with a precise value ("=" inequallity) from MHCFlurry dataset. For NetMHCpan dataset or MHCflurry EL, use another script. \n \
+    description='Step 2 of db1. Build a p:MHC Binding Affinity csv file. Optimized for MHCFlurry dataset. For NetMHCpan dataset or MHCflurry EL, use another script. \n \
     This script can be used to explore data by giving allele name and peptide length. Please provide the -d directive if you want to create a csv. This script is used to generate the DB1. \n \
     The output csv file will have extended number of columns with the ID column (position 0) and the location of generated model in DB2 as the last column \n \
     The database can be generated using https://github.com/openvax/mhcflurry/tree/master/downloads-generation/data_curated curate.py script. \
@@ -16,8 +16,9 @@ arg_parser = argparse.ArgumentParser(
     ')
 arg_parser.add_argument(
     "--source-csv", "-f",
-    help="Name of the MHCflurry dataset csv file in data/external/unprocessed if different from the default.",
-    default="../../data/external/unprocessed/curated_training_data.no_additional_ms.csv"
+    help="Name of the MHCflurry dataset csv file that has id's already added to it (with shell script 1_*.sh), usually found in: projectfolder/data/external/unprocessed.",
+    default="../../data/external/unprocessed/BA_pMHCI_human_nonhuman.csv",
+    #default="../../data/external/unprocessed/curated_training_data.no_additional_ms.csv"
 )
 arg_parser.add_argument(
     "--output-csv", "-d",
@@ -25,7 +26,11 @@ arg_parser.add_argument(
     Otherwise this script can be used to visualize the applied filters.",
     default = None
 )
-
+arg_parser.add_argument("--prefix", "-i",
+    help="The prefix for the ID in the ouput path column of the csv. e.g. /projectfolder/3d_models/prefix",
+    default="BA",
+    required=True
+)
 arg_parser.add_argument(
     "--peptide-length", "-p",
     help="Length of peptides.",
@@ -41,12 +46,7 @@ arg_parser.add_argument(
         If no allele is provided, every alleles will be returned.",
     nargs="+",
 )
-arg_parser.add_argument("--prefix", "-i",
-    help="The prefix for the ID in the output csv",
-    choices=["EL", "BA"],
-    required=True
-)
-arg_parser.add_argument("--measurement_type", "-t",
+arg_parser.add_argument("--measurement-type", "-t",
     help='The type of measurement to filter from the input csv. Choices: "BA" or "MS"',
     choices=["MS", "BA"],
     required=True
@@ -66,14 +66,11 @@ arg_parser.add_argument("--include_qualitative", "-q",
 
 a = arg_parser.parse_args();
 
-# build the authorized alleles list based on arguments provided
-rows = [];
-
-input_csv_df = pd.read_csv(f"{a.source_csv}")
-ids = list(range(len(input_csv_df)))
-input_csv_df.insert(0, column="ID", value=[f"{a.prefix}_{id+1}" for id in ids]) # give an ID to each entry
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
-input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
+
+input_csv_df = pd.read_csv(a.source_csv, header=0)
+ids = input_csv_df['ID'].apply(lambda x: int(x.split('_')[1])).tolist()
+input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/3d_models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
 # filter based on user input
 query = []
