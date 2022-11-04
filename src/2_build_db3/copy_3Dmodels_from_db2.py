@@ -42,7 +42,7 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 a = arg_parser.parse_args()
 
-db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models"
+db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_test"
 
 csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path)
@@ -52,7 +52,7 @@ df = pd.read_csv(csv_path)
 
 if rank==0:
     # Look only at db2 cases and not every cases:
-    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/3D_models//BA/*/*")
+    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/models/BA_test/*/*")
     db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
     db2 = np.array_split(db2, size)
 else:
