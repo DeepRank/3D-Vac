@@ -116,7 +116,7 @@ for n in range(int(a.num_nodes)):
 
 # compute how long the cleaning script needs to run
 NUM_CLEANED_PER_HOUR_PER_NODE = 140 # found by testing
-running_time_frac = tot_cases/(NUM_CLEANED_PER_HOUR_PER_NODE * NUM_CORES)
+running_time_frac = tot_cases/(NUM_CLEANED_PER_HOUR_PER_NODE * NUM_CORES) # use same num of cores as modelling job
 running_time_min = math.ceil(running_time_frac * 60)
 running_time_hms = datetime.timedelta(minutes=running_time_min)
 
@@ -124,7 +124,8 @@ running_time_hms = datetime.timedelta(minutes=running_time_min)
 clean_out = subprocess.run([
     "sbatch",
     f"--dependency=afterany:{','.join(job_ids)}",
-    f"--cpus-per-task={str(running_time_hms)}", 
+    f"--time={str(running_time_hms)}",
+    f"--cpus-per-task", str(NUM_CORES), 
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
