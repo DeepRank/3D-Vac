@@ -114,10 +114,17 @@ for n in range(int(a.num_nodes)):
     modelling_job_id = re.search(r"\d+", modeling_job_out.stdout.decode("ASCII")).group()
     job_ids.append(modelling_job_id)
 
+# compute how long the cleaning script needs to run
+NUM_CLEANED_PER_HOUR_PER_NODE = 140 # found by testing
+running_time_frac = tot_cases/(NUM_CLEANED_PER_HOUR_PER_NODE * NUM_CORES)
+running_time_min = math.ceil(running_time_frac * 60)
+running_time_hms = datetime.timedelta(minutes=running_time_min)
+
 # after the modelling job ended, run the cleaning job:
 clean_out = subprocess.run([
     "sbatch",
     f"--dependency=afterany:{','.join(job_ids)}",
+    f"--cpus-per-task={str(running_time_hms)}", 
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
