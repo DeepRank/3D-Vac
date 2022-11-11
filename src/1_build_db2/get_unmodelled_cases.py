@@ -48,22 +48,21 @@ arg_parser.add_argument("--n-structures", "-s",
     default=20,
 )
 
-def zip_and_remove(case):    
-    # remove the old archive, but only if already unzipped
-    if os.path.exists(f'{case}.tar') and os.path.exists(case):
-        subprocess.check_call(f"rm {case}.tar", shell=True)   
-    # create new archive of the folder
-    with tarfile.open(f'{case}.tar', 'w') as archive: # create new tarfile to gather files in
-        case_files = glob.glob(os.path.join(case, '*'))
-        for case_file in case_files:
-            archive.add(case_file)
-    # check if tar was created correctly and remove the original files from the folder
-    if os.path.exists(f'{case}.tar'):
-        subprocess.check_call(f"rm -r {case}", shell=True)
-        return True
-    else:
-        print(f'Error creating archive: {case}.tar, skipping the file removal')
-        return False
+def archive_and_remove(case):
+    """archives the case folder as a .tar file to save inode space
+
+    Args:
+        case str: directory name of case to be archived
+    """ 
+    prefix_case_folder = os.path.split(case.rstrip('/'))[0]
+    case_folder = os.path.split(case.rstrip('/'))[1]   
+    try:
+        subprocess.run(f"tar -cf {case}.tar -C {prefix_case_folder} {case_folder} \
+                       --remove-files", shell=True, check=True)
+    except subprocess.CalledProcessError as cpe:
+        print(f"Something went wrong in archive case: {case}\n{cpe}")
+    except Exception as e:
+        print(e)
 
 def get_archive_members(dir):
     try:
@@ -78,7 +77,7 @@ def get_archive_members(dir):
     except FileNotFoundError:
         if os.path.exists(dir):
             print(f"No tar found but directory exists: {dir}\n trying to archive again")
-            if zip_and_remove(dir):
+            if archive_and_remove(dir):
                 return get_archive_members(dir)
     except:
         print(traceback.print_exc())
