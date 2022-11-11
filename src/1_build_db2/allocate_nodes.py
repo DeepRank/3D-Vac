@@ -38,6 +38,11 @@ arg_parser.add_argument("--n-structures", "-s",
     type=str,
     default='20',
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=str,
+    default='20',
+)
 
 a = arg_parser.parse_args()
 
