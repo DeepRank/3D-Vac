@@ -30,7 +30,7 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 arg_parser.add_argument("--models-dir", "-p",
     help= "path of the models directory",
-    default="/projects/0/einf2380/data/pMHCI/models/BA"
+    default="/projects/0/einf2380/data/pMHCI/models/BA/\*/\*"
 )
 
 a = arg_parser.parse_args()
