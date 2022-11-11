@@ -1,5 +1,5 @@
 # 3D-Vac
-Repository of the eScience Center and RadbouduMC "Personalized cancer vaccine design through 3D modelling boosted geometric learning" collaboartive project (OEC 2021).
+Repository of the eScience Center and Radboudumc "Personalized cancer vaccine design through 3D modelling boosted geometric learning" collaboartive project (OEC 2021).
 
 Note that the 3D pMHC models (which are input for both deeprank and deeprank-gnn-2) have been generated using [PANDORA](https://github.com/X-lab-3D/PANDORA).
 
@@ -99,10 +99,21 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
 └──
 ```
 
-## How to run the pipeline for the pilot dataset:
+## Databases
+
+In the code and in the repo we often refer to numbered databases. Data can refer to either pMHC class I complexes, or pMHC class II complexes. The suffix is -I in the first case and -II in the latter. 
+
+- **DB1** - Sequences of pMHC and their experimental Binding Affinities (BAs). These data are input of [PANDORA](https://github.com/X-lab-3D/PANDORA).
+- **DB2** - Structural 3D models for pMHC in DB1. These data are output of PANDORA.
+- **DB3** - PSSMs for pMHC. These data are derived from BLAST database.
+- **DB4** - Interface grids for CNNs (deeprank) or interface graphs for GNNs (deeprankcore) in the form of hdf5 files. DB3 and DB2 are used the generation of DB4.
+
+## How to run the pipeline:
+### Scripts Guidelines:
 In general, the folders are ordered per ste number (0, 1, 2, etc.). Every folder contains both `.py` and `.sh` scripts that do not need to be manually submitted. The only scripts that need to be submitted, and eventually changed depending on the experiment, are the scripts ordered by number (e.g. `1_build_db2_II.sh`). When multiple scripts have the same number, they refer to the same job but for different experiments / mhc-class / mode. (e.g. `1_build_db2_I.sh` and `1_build_db2_II.sh` ), so only one should be run depending on the expeirment.
 
 If you perform a new experiment, please use a new `.sh` script and write a comment in it explaining what it does (i.e. what it does differently from the other identical scripts, like "Generates db2 only for HLA-C").
+
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 DB1 contains all sequences of pMHC-I (DB1-I) and pMHC-II (DB1-II) and their experimental Binding Affinities (BAs).
@@ -133,6 +144,8 @@ python src/1_build_db2/build_db2.py -i BA_pMHCI.csv --running-time 02
 * Output: models in the `models` folder.
 * Run `python src/1_build_db2/build_db2.py --help` for more details on how the script works.
 Output folder structure (after cleaning with clean_outputs.sh):
+
+```
 │── <target_id>_<template_id>
 │   │
 │   ├── <template_id>.pdb           Template pdb file used for the modelling
@@ -157,6 +170,127 @@ Output folder structure (after cleaning with clean_outputs.sh):
 │   │
 │   ├── *IL*.pdb                    Initial loop model based on the .ini model. Might be marked as best model when the target is identicatl to a template
 │
+└──
+```
+
+### Step 2: Generating db3
+#### 2.1: Selecting which PANDORA-generated 3D-models to use
+```
+sbatch 1_copy_3Dmodels_from_db2.sh
+```
+* PANDORA generates 20 pdb structures per cases. They are ranked based on the global energy of the complex.
+* The first 5 pdb in this ranking contain the most plausible structure.
+* For now, only the first structure is being used. The script `src/2_build_db3/symlink_targets_from_db2.py` is written in a way that it will be possible to select more than 1 structure in the future.
+* Run `python src/2_build_db3/copy_3Dmodels_from_db2.py --help` for more information on how the script works.
+
+#### 2.2: Aligning structures
+```
+sbatch 2_align_pdb.sh
+```
+* Aligns every structures to one template.
+* Add `--help` to see additional information.
+
+#### 2.3: Build PSSM for M chain (MHC protein) and pseudo-PSSM encoding for the P chain (peptide)
+##### 2.3.1: Build the blast database
+* Make sure `blast` is installed.
+  The conda installation does not work on Snellius (on other systems should be ok). In that case, download and extract the package from https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/, add the `bin` folder to your `PATH`. Make sure also `psiblast` is in your PATH and callable by terminal.
+* Copy the human MHC sequence fasta file from `/<PANDORA_installation_folder>/Databases/default/mhcseqs/hla_prot.fasta` into `data/pssm/blast_dbs/`.
+  
+Run: 
+```
+sbatch 3_build_blastdb.sh
+```
+
+##### 2.3.2: Calculate raw PSSM for M chain:
+```
+sbatch 4_create_raw_pssm.sh
+```
+* Run `python src/2_build_db3/create_raw_pssm.py --help` for more information.
+
+##### 2.3.3: Map generated raw PSSM to the PDB:
+```
+sbatch 5_map_pssm2pdb.sh
+```
+* Mapping raw PSSM to the pdb alleviate problems such as gaps in sequences.
+* Only mapped PSSM for the M chain are used to generate the PSSM db3 feature.
+
+##### 2.3.4: Generate fake PSSM for the peptide
+```
+sbatch 6_peptide2onehot.sh
+```
+* Run `python src/2_build_db3/peptide2onehot.py --help` for more information.
+
+
+### Step 3: Generating db4
+#### Step 3.1: Populating the features_input_folder.
+```
+sbatch 1_populate_features_input_folder.sh
+```
+* The way DeepRank feature generator works for now requires all .pssm and .pdb files to be in the same folder.
+* This script creates symlinks for every `db2_selected_models` .pssm and .pdb files into the feature_input_folder
+* Run `python src/3_build_db4/populate_features_input_folder.py --help` for more information
+
+#### Step 3.2: building db4
+```
+sbatch 2_generate_features.sh
+```
+IMPORTANT NOTE: the path to the .csv with the targets needs to be changed in threshold_classification.py, line 15.
+
+* Build db4 output files into h5out (the path is hardcoded)
+* The list of features and targets can be modified inside the file. More information available on https://deeprank.readthedocs.io/en/latest/tutorial2_dataGeneration.html
+
+### Step 4: Training MLP and CNN models
+#### Step 4.1: Split db4 into train, validation and test 10 times for shuffled and clustered CNN dataset
+```
+sbatch split_h5.sh
+```
+* To generate the clustered dataset, add `--cluster` argument.
+* Add `--help` for more information.
+
+#### Step 4.2: Perform 10 fold cross-validated CNN training on shuffled and clustered dataset
+```
+python src/4_train_models/CNN/I/classification/struct/cnn_baseline.py -o cnn_test
+```
+* Add `--cluster` to train CNN on clustered dataset.
+* Add `--help` for detailed information and available parameters.
+
+#### Step 4.3: Generate metrics for best CNN model
+```
+python src/4/train_models/CNN/I/classification/struct/cnn_performances.py -o cnn_test
+```
+* Custom made script had to be written to obtain metrics from DeepRank's best model. This problem is not present with MLP.
+* For a fair comparison between CNN and MLP, only best models are used.
+* This step generates metrics on test dataset (clustered and shuffled) from the best model. 
+* Add `--help` for more info.
+* Add `--cluster` to generate metrics for the clustered model
+
+#### Step 4.4: Perform 10 fold cross-validated MLP training on shuffled and clustered dataset
+```
+python src/4/train_models/CNN/I/classification/seq/mlp_baseline.py -o mlp_test
+```
+* Add `--help` for more info.
+* Add `--cluster` for clustered dataset.
+
+### Exploration
+#### draw_cluster_motifs.ipynb
+* Enables visualization of sequence motifs in clusters of peptides generated using `src/0_build_db1/cluster_peptides.py`.
+* Gives the number of **unique** peptides as well as the distribution of binders/non binders for each cluster.
+
+#### draw_grid.py
+* Create a .vmd file to visualize the grid at the interface of a given case id in hdf5 file.
+* Run `src/exploration/draw_grid.py --help` for more information.
+
+#### explore_class_seq_xvalidation.ipynb
+* Visualize performances of the MLP on clustered and shuffled dataset.
+* Open the file for instructions.
+
+#### explore_class_struct_xvalidaiton.ipynb
+* Visualize performances of the CNN on clustered and shuffled dataset.
+* Open the file for instructions.
+
+#### explore_best_models.ipynb
+* Plots metrics from CNN and MLP best models.
+* Open the notebook file for instructions.
 
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`

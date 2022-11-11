@@ -1,11 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name build_db2_I
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/build_db2_I.out
-#SBATCH -n 1
-#SBATCH -c 1
 
-source activate deeprank
-
-python -u build_db2.py -i ../../data/external/processed/I/BA_pMHCI.csv \
-    -m /projects/0/einf2380/data/pMHCI/models/BA \
-    -c I
+python -u build_db2.py --input-csv /projects/0/einf2380/data/external/processed/I/BA_pMHCI.csv  \
+    --models-dir /projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\* \
+    --mhc-class I \
+    --num-nodes 10
+    
