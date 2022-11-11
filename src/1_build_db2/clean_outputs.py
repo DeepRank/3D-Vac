@@ -1,4 +1,5 @@
 import os
+import re
 import argparse
 import glob
 import math
@@ -41,7 +42,16 @@ arg_parser.add_argument("--sequential", "-s",
 )
 
 # check if case was modelled:
-def check_exist(case):
+def check_exist(case:str):
+    """check if the case was modelled, also make sure that an open folder 
+    and tar do not exist at the same time
+
+    Args:
+        case (str): path of case folder (without .tar suffix)
+
+    Returns:
+        case (str): path of case folder (without .tar suffix)
+    """    
     try:
         # if both the folder and the tar exist, remove the folder and extract tar again (we expect the tar not to be touched)
         if os.path.exists(f'{case}.tar') and os.path.exists(case):
@@ -79,7 +89,12 @@ def unpack_archive(case):
     return True
 
 # cleaning of target directories, to be called in parallel
-def clean_target_dir(case):
+def clean_target_dir(case:str):
+    """clean case directory: remove redundant files/folder produced by PANDORA
+
+    Args:
+        case (str): path of case folder without suffix (.tar)
+    """    
     for dir_wild in ['/*.DL*', '/*.B99990001.pdb', '/*.V99990001', '/*.D00000001', 
                     '/__pycache__/', '/*.lrsr', '/*.rsr', '/*.sch']:
         wild_paths = glob.glob(f'{case}{dir_wild}')
@@ -97,7 +112,7 @@ def clean_target_dir(case):
                 except Exception as e:
                     print(e)
 
-def archive_and_remove(case):
+def archive_and_remove(case:str):
     """archives the case folder as a .tar file to save inode space
 
     Args:
@@ -112,14 +127,53 @@ def archive_and_remove(case):
         print(f"Something went wrong in archive case: {case}\n{cpe}")
     except Exception as e:
         print(e)
+        
+def quick_check_cleaned(case:str):
+    """quick checking to determine if folder was already cleaned by a previous invocation of this module,
+    the check is based on the output of the command line tar -tf output. This check avoids the unneeded opening of the case archive
 
-def clean_copy_target_files(sub_folders):
+    Args:
+        case (str): path of case folder without suffix (.tar)
 
+    Returns:
+        True,False (bool): true if folder is cleaned, false otherwise
+    """    
+    try:
+        output = subprocess.run(f'tar -tf {case}.tar', shell=True, capture_output=True)
+        files = output.stdout.decode("ASCII")
+        files_list = files.split('\n')
+    except subprocess.CalledProcessError as cpe:
+        print('Error in quick_check_cleaned\n{cpe}')
+        return False
+    except Exception as e:
+        print(e)
+        return False
+    to_remove = ['.*\.DL*', '.*.B99990001.pdb', '.*.V99990001', '.*.D00000001', 
+                    '.*/__pycache__/.*', '.*.lrsr', '.*.rsr', '.*.sch']
+    
+    for file in files_list:    
+        for file_to_remove in to_remove:
+            if re.search(file_to_remove, file):
+                return False
+    # if no match was found, the case folder is cleaned       
+    return True
+    
+
+def clean_copy_target_files(sub_folders:list):
+    """main process where each case folder goes through a number of steps 
+    to be opened, cleaned and archived again
+
+    Args:
+        sub_folders (list): list of case folders obtained with glob
+    """    
     for folder in sub_folders:
         try:
             case_dir = check_exist(folder)
             # if case was modelled, do the next steps
             if case_dir:
+                if quick_check_cleaned(folder):
+                    # skip directly to next folder in the forloop
+                    continue
                 if not unpack_archive(folder): # skip case if files are not valid
                     return 
                 clean_target_dir(folder)     
