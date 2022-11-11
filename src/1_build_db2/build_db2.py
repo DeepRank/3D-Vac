@@ -1,5 +1,6 @@
 import subprocess
 import re
+import os
 import argparse
 
 arg_parser = argparse.ArgumentParser(
@@ -28,20 +29,25 @@ arg_parser.add_argument("--input-csv", "-i",
     help = "db1 file path. No default value. Required.",
     required = True,
 )
-arg_parser.add_argument("--skip-check", "-s",
+arg_parser.add_argument("--skip-check", "-c",
     help = "Skip the verification of unmodelled cases. By default, if this argument is not provided, models \
     are checked.",
     default = False,
     action = "store_true"
 )
-arg_parser.add_argument("--models-dir", "-m",
+arg_parser.add_argument("--models-dir", "-d",
     help="Path to the BA or EL folder where the models are generated",
     default="/projects/0/einf2380/data/pMHCI/3D_models/BA",
 )
-arg_parser.add_argument("--mhc-class", "-c",
+arg_parser.add_argument("--mhc-class", "-m",
     help="MHC class of the cases",
     choices=['I','II'],
     required=True,
+)
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=str,
+    default='20',
 )
 a = arg_parser.parse_args();
 
@@ -49,12 +55,18 @@ a = arg_parser.parse_args();
 running_time = a.running_time; #in hour
 to_model = ('/').join(a.input_csv.split('/')[:-1]) + "/to_model.csv"
 
+# check if the output dir is empty, so the running time can be reduced for get_unmodelled_cases
+time_get_unmod = '01:00:00'
+if len(os.listdir(a.models_dir.split('*')[0])) == 0:
+    time_get_unmod = '00:01:00'
+
 # generate the to_model.csv containing all unmodelled cases from the input csv.  
 
 if a.skip_check == False:
-    command_output = subprocess.check_output(
+    command_output = subprocess.run(
         [
-            "sbatch", 
+            "sbatch",
+            "--time", time_get_unmod, 
             "get_unmodelled_cases.sh",
             "--csv-file", a.input_csv,
             "--update-csv", # this argument is mandatory to overwrite `to_model.csv`
@@ -62,10 +74,10 @@ if a.skip_check == False:
             "--to-model", to_model,
             '--parallel',
             "--archived"
-        ]
-    ).decode("ASCII");
+        ],
+    capture_output=True, check=True)
 
-    jid_get_unmod = int(re.search(r"\d+", command_output).group())
+    jid_get_unmod = int(re.search(r"\d+", command_output.stdout.decode("ASCII")).group())
 
     # run the parallel modeling on n nodes
     subprocess.run(
@@ -78,7 +90,9 @@ if a.skip_check == False:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
-        ]
+            "--n-structures", a.n_structures
+        ],
+        check=True
     )
 else: 
     subprocess.run(
@@ -90,5 +104,7 @@ else:
             "--mhc-class", a.mhc_class,
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
-        ]
+            "--n-structures", a.n_structures
+        ],
+        check=True
     )

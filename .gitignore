@@ -25,6 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.tar
 MANIFEST
 
 # PyInstaller
@@ -127,3 +128,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# MAC
+.DS_store
+
+# experiments folders
+/src/4_train_models/GNN/I/classification/struct/experiments
+/src/4_train_models/GNN/I/classification/struct/experiments_log.xlsx
+/experiments
+experiments_log.xlsx
+
+# notebooks
+src/4_train_models/GNN/I/classification/struct/playground.ipynb
