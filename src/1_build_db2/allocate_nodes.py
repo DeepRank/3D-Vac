@@ -31,7 +31,12 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 arg_parser.add_argument("--models-dir", "-p",
     help= "path of the models directory",
-    default="/projects/0/einf2380/data/pMHCI/models/BA"
+    default="/projects/0/einf2380/data/pMHCI/models/BA/\*/\*"
+)
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=str,
+    default='20',
 )
 arg_parser.add_argument("--n-structures", "-s",
     help="Number of structures to let PANDORA model",
