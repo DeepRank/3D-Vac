@@ -42,23 +42,27 @@ arg_parser.add_argument("--archived", "-a",
     action='store_true',
     help="Flag to be used when folders are archived",
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=int,
+    default=20,
+)
 
-def zip_and_remove(case):    
-    # remove the old archive, but only if already unzipped
-    if os.path.exists(f'{case}.tar') and os.path.exists(case):
-        subprocess.check_call(f"rm {case}.tar", shell=True)   
-    # create new archive of the folder
-    with tarfile.open(f'{case}.tar', 'w') as archive: # create new tarfile to gather files in
-        case_files = glob.glob(os.path.join(case, '*'))
-        for case_file in case_files:
-            archive.add(case_file)
-    # check if tar was created correctly and remove the original files from the folder
-    if os.path.exists(f'{case}.tar'):
-        subprocess.check_call(f"rm -r {case}", shell=True)
-        return True
-    else:
-        print(f'Error creating archive: {case}.tar, skipping the file removal')
-        return False
+def archive_and_remove(case):
+    """archives the case folder as a .tar file to save inode space
+
+    Args:
+        case str: directory name of case to be archived
+    """ 
+    prefix_case_folder = os.path.split(case.rstrip('/'))[0]
+    case_folder = os.path.split(case.rstrip('/'))[1]   
+    try:
+        subprocess.run(f"tar -cf {case}.tar -C {prefix_case_folder} {case_folder} \
+                       --remove-files", shell=True, check=True)
+    except subprocess.CalledProcessError as cpe:
+        print(f"Something went wrong in archive case: {case}\n{cpe}")
+    except Exception as e:
+        print(e)
 
 def get_archive_members(dir):
     try:
@@ -73,35 +77,37 @@ def get_archive_members(dir):
     except FileNotFoundError:
         if os.path.exists(dir):
             print(f"No tar found but directory exists: {dir}\n trying to archive again")
-            if zip_and_remove(dir):
+            if archive_and_remove(dir):
                 return get_archive_members(dir)
     except:
         print(traceback.print_exc())
 
-def check_molpdf(fold):
+def check_molpdf(case):
     try:
-        with tarfile.open(f'{fold}.tar', 'r') as archive:
-            molpdf = archive.extractfile(f'{fold[1:]}/molpdf_DOPE.tsv')
+        case_folder = os.path.split(case.rstrip('/'))[1]   
+        with tarfile.open(f'{case}.tar', 'r') as archive:
+            molpdf = archive.extractfile(f'{case_folder}/molpdf_DOPE.tsv')
             molpdf_df = pd.read_csv(molpdf, sep='\t', header=None)
-            if molpdf_df.shape[0] >= 19:
+            if molpdf_df.shape[0] >= n_struc_per_case-1:
                 df_types = []
                 for idx, row in molpdf_df.iterrows():
-                    df_types.append(pd.isna(row[1]))
-                    df_types.append(pd.isna(row[2]))
+                    # will add True to the list if the score is a Nan
+                    df_types.append(pd.isna(row[1])) # Molpdf score
+                    df_types.append(pd.isna(row[2])) # other score
                 # allow 4 faulty scores in the molpdf file (2 models)
                 if df_types.count(True) <= 4:
                     return True
     except tarfile.ReadError as e:
         print(e)
     except KeyError as e:
-        print(f'Molpdf.tsv not present: {fold}')
+        print(f'Molpdf.tsv not present: {case}')
     except pd.errors.EmptyDataError:
-        print(f'Molpdf empty: {fold}')
+        print(f'Molpdf empty: {case}')
 
 
 def search_folders(folder):
     try:
-        # Open output folder. If the folder doesn't have 20 pdb files, it is considered as unmodelled.     #
+        # Open output folder. If the folder doesn't have n_struc_per_case pdb files, it is considered as unmodelled.     #
         if a.archived:
             members = get_archive_members(folder)
             if not members:
@@ -110,11 +116,11 @@ def search_folders(folder):
             n_structures = sum((i is not None for i in search_pdb))
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
-        if n_structures >= 19 and n_structures <= 20: # the n_structures <= 20 is to be sure that no more than 20 structures are
+        if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= n_struc_per_case is to be sure that no more than n_struc_per_case structures are
             case = "_".join(folder.split("/")[-1].split("_")[0:2])
             molpdf_present = [re.search('molpdf_DOPE.tsv', mem) for mem in members]
             
-            # return True if 19 or 20 models present AND molpdf present AND check molpdf has valid values
+            # return True if n_struc_per_case or n_struc_per_case -1 models present AND molpdf present AND check molpdf has valid values
             if molpdf_present:
                 if check_molpdf(folder):
                     return case
@@ -129,6 +135,9 @@ def search_folders(folder):
         print(traceback.format_exc())
 
 a = arg_parser.parse_args()
+
+# global variabel with number of structures per case (per folder)
+n_struc_per_case = a.n_structures
 
 #1. Open cases file
 df = pd.read_csv(f"{a.csv_file}")
