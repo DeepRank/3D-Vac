@@ -69,8 +69,9 @@ def extract_member(case, member_name):
         print(e)
         # remove complete directory so that get_unmodelled cases sees it as unmodelled
         print(f"(extract_member) Tar file is not valid, removing: {case}")
-        # subprocess.run(f'rm -r {case}.tar', shell=True, check=True)
         return False
+    except KeyError as ke:
+        print(f'In extract_member: molpdf not found for {case}:\n{ke}')
     except subprocess.CalledProcessError as e:
         print('In extract_member: ')
         print(e)
@@ -79,11 +80,15 @@ def extract_member(case, member_name):
 
 def retrieve_best_model(case):
     molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
-    try:
-        molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
-    except pd.errors.EmptyDataError:
-        print(f"empty df: {molpdf_path}")
-        return
+    if molpdf_path:
+        try:
+            molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
+        except pd.errors.EmptyDataError:
+            print(f"empty df: {molpdf_path}")
+            return
+    else:
+        # go back to the run function to break processing case and print traceback
+        raise Exception
     target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
     target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
     target_ids = molpdf_df[target_mask].iloc[:,0]
@@ -128,6 +133,7 @@ def run(case_paths):
         except:
             print(traceback.format_exc())
             print(f'Copying best models of case: {case} not succesful')
+            return case
 
 
 a = arg_parser.parse_args()
@@ -166,5 +172,7 @@ chunk = math.ceil(len(db2)/n_cores)
 for i in range(0, len(db2), chunk):
     all_paths_lists.append(db2[i:min(i+chunk, len(db2))])
 # let each inner list be handled by exactly one thread
-Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
+failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
 
+failed_cases_str = '\n'.join(failed_cases)
+print(f'List of cases that could not be processed:\n{failed_cases_str}')
