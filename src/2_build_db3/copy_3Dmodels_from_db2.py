@@ -36,6 +36,10 @@ arg_parser.add_argument("--models-path", "-p",
     /projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
     default = "/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*"
 )
+arg_parser.add_argument("--best-models-path", "-b",
+    type = str,                    
+    default = "/projects/0/einf2380/data/pMHCI/db2_selected_models_1"
+)
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
     MHC class
@@ -103,8 +107,9 @@ def copy_best_model(case, pdb_names):
         if not os.path.isdir(destination_dir):
             try: # create remaining subfolders:
                 os.makedirs(destination_dir)
-            except:
+            except Exception as e:
                 print('Something went wrong in creating', destination_dir)
+                print(e)
         else:
             print(f"Directory {destination_dir} already exists")
         try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
@@ -127,7 +132,7 @@ def run(case_paths):
 
 a = arg_parser.parse_args()
 
-db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1"
+db2_selected_models_path = a.best_models_path
 # TMP dir to write temporary files to 
 base_tmp = os.environ["TMPDIR"]
 temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
@@ -148,11 +153,14 @@ folders = glob.glob(wildcard_path)
 folders = [folder for folder in folders if '.tar' in folder]
 all_models = [case.split('.')[0] for case in folders]
 # filter out the models that match in the original csv from db2
-db2 = [folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()]
+db2 = [folder for folder in all_models if "_".join(folder.split("/")[-1].split("-")[0:2]) in df["ID"].tolist()]
 
 n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+# n_cores = 2
 
 all_paths_lists = []
+print(f'len db2 {len(db2)}')
+print(f'n_cores {n_cores}')
 chunk = math.ceil(len(db2)/n_cores)
 # cut the process into pieces to prevent spawning too many parallel processing
 for i in range(0, len(db2), chunk):

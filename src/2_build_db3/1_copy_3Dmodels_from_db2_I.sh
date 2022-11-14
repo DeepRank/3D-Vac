@@ -12,6 +12,7 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-srun python ./copy_3Dmodels_from_db2.py  --mhc-class I \
-     --csv-file /projects/0/einf2380/data/external/processed/I/BA_pMHCI_all.csv \
-     --models-path /projects/0/einf2380/data/pMHCI/models/BA_1/\*/\*
+python copy_3Dmodels_from_db2.py  --mhc-class I \
+     --csv-file /projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative.csv \
+     --models-path /projects/0/einf2380/data/pMHCI/3d_models/BA_1/\*/\* \
+     --best-models-path /projects/0/einf2380/data/pMHCI/db2_selected_models_1
