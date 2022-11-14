@@ -63,17 +63,24 @@ def getPilotTargets(pdbs_list, csv_file_path):
 if __name__ == "__main__":
 
 	####### please modify here #######
-	run_day = '13072022'
-	project_folder = '/projects/0/einf2380/'
+	#run_day = '13072022'
+	run_day = '17102022'
+	#project_folder = '/projects/0/einf2380/'
+	project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/'
 	data = 'pMHCI'
 	task = 'BA'
 	resolution = 'residue' # either 'residue' or 'atomic'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
 	interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-	process_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+	#process_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+	process_count = 8
 	##################################
 
-	pdb_models_folder = f'{project_folder}data/{data}/3D_models/{task}/'
+	# pdb_models_folder = f'{project_folder}data/{data}/3D_models/{task}/'
+	# csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
+	# output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
+	
+	pdb_models_folder = f'{project_folder}data/{data}/models/{task}/'
 	csv_file_path = f'{project_folder}data/binding_data/{task}_{data}.csv'
 	output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
 	

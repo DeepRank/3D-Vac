@@ -31,8 +31,10 @@ def add_hdf5(input_hdf5, key, output_hdf5):
 if __name__ == "__main__":
 
 	####### please modify here #######
-	run_day = '13072022'
-	project_folder = '/projects/0/einf2380/'
+	# run_day = '13072022'
+	run_day = '17102022'
+	# project_folder = '/projects/0/einf2380/'
+	project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_50/'
 	data = 'pMHCI'
 	task = 'BA'
 	resolution = 'residue' # either 'residue' or 'atomic'
