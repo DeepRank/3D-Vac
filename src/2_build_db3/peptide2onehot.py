@@ -1,5 +1,6 @@
 # this script should be runned after map_pssm2pdb.py
 import glob
+import os
 from pdb2sql import pdb2sql
 from mpi4py import MPI
 import pandas as pd
@@ -28,10 +29,23 @@ arg_parser.add_argument("--mhc-class", "-m",
     default="I",
     choices=["I", "II"],
 )
+arg_parser.add_argument("--models-dir", "-d",
+    help="Name of the directory where the selected models reside in data/... \
+          Should look like: /data/selected_modelels/BA/*",
+    type=str
+)
+
+def fast_load_dirs(globpath):
+    all_models = []
+    all_models_first = glob.glob(globpath)
+    for folder in all_models_first:
+        all_models.extend(glob.glob(os.path.join(folder, '*')))
+    return all_models
 
 a = arg_parser.parse_args()
 
-pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*/*")
+# pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1/BA/*/*")
+pssm_folders = fast_load_dirs(a.models_dir.replace('\\', ''))
 pssm_template_path = "/projects/0/einf2380/data/templates/M_chain_mapped_template.pssm"
 
 # make the peptide_sequences
@@ -51,10 +65,10 @@ else:
 
 IDs = comm.scatter(IDs, root=0)
 
-for idx in IDs:
+for i_id, idx in enumerate(IDs):
     #if idx == 0:
     sequence = df.loc[idx,"peptide"]
-    sequence_id = df.loc[idx, "ID"]
+    sequence_id = df.loc[idx, "ID"].replace('_', '-')
     peptide_pssm_rows = [pssm_template]
     for i,res in enumerate(sequence):
         pdbresi = str(i+1)
@@ -66,7 +80,12 @@ for idx in IDs:
         peptide_pssm_row[onehot_pos] = str(1)
         peptide_pssm_rows.append(peptide_pssm_row) 
     #write the file
-    peptide_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]][0] + "/pssm"
+    search_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]]
+    if search_pssm_path:
+        peptide_pssm_path = search_pssm_path[0] + "/pssm"
+    else:
+        print(f'ID {sequence_id} is not found in models dir, skipping')
+        break
     peptide_pssm_file = glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm")[0].split("/")[-1].replace("M","P")
     peptide_pssm_complete_path = f"{peptide_pssm_path}/{peptide_pssm_file}"
     print(peptide_pssm_complete_path)
