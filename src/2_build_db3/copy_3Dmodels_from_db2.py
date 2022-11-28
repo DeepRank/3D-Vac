@@ -160,7 +160,7 @@ folders = [folder for folder in folders if '.tar' in folder]
 all_models = [case.split('.')[0] for case in folders]
 # filter out the models that match in the original csv from db2
 db2 = [folder for folder in all_models if "_".join(folder.split("/")[-1].split("-")[0:2]) in df["ID"].tolist()]
-
+db2 = all_models
 n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 # n_cores = 2
 
@@ -175,4 +175,5 @@ for i in range(0, len(db2), chunk):
 failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
 
 failed_cases_str = '\n'.join(failed_cases)
-print(f'List of cases that could not be processed:\n{failed_cases_str}')
+if failed_cases_str:    
+    print(f'List of cases that could not be processed:\n{failed_cases_str}')
