@@ -1,15 +1,11 @@
 # this script should be runned after map_pssm2pdb.py
 import glob
 import os
-from pdb2sql import pdb2sql
-from mpi4py import MPI
+import math
 import pandas as pd
 import argparse
 import numpy as np
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+from joblib import Parallel, delayed
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -42,54 +38,64 @@ def fast_load_dirs(globpath):
         all_models.extend(glob.glob(os.path.join(folder, '*')))
     return all_models
 
-a = arg_parser.parse_args()
+def generate_onehot(IDs: np.array):
+    """generate onehot encoding for entire peptide sequence set of db2
 
-# pssm_folders = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1/BA/*/*")
-pssm_folders = fast_load_dirs(a.models_dir.replace('\\', ''))
-pssm_template_path = "/projects/0/einf2380/data/templates/M_chain_mapped_template.pssm"
+    Args:
+        IDs (numpy.array): indices of all the cases in db2
+    """    
+    for _, idx in enumerate(IDs):
+        sequence = db2.loc[idx,"peptide"]
+        sequence_id = db2.loc[idx, "ID"].replace('_', '-')
+        peptide_pssm_rows = [pssm_template]
+        for i,res in enumerate(sequence):
+            pdbresi = str(i+1)
+            pdbresn = res
+            seqresi = pdbresi
+            seqresn = pdbresn
+            peptide_pssm_row = [pdbresi,pdbresn,seqresi,seqresn,*[str(0)]*21]
+            onehot_pos = pssm_template.index(res.strip())
+            peptide_pssm_row[onehot_pos] = str(1)
+            peptide_pssm_rows.append(peptide_pssm_row) 
+        #write the file
+        search_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]]
+        if search_pssm_path:
+            peptide_pssm_path = search_pssm_path[0] + "/pssm"
+        else:
+            print(f'ID {sequence_id} is not found in models dir, skipping')
+            break
+        peptide_pssm_file = glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm")[0].split("/")[-1].replace("M","P")
+        peptide_pssm_complete_path = f"{peptide_pssm_path}/{peptide_pssm_file}"
+        print(peptide_pssm_complete_path)
+        to_write= "\n".join(["\t".join(row) for row in peptide_pssm_rows])
+        with open(peptide_pssm_complete_path, "wb") as peptide_f:
+            to_write = to_write.encode("utf8").strip()
+            peptide_f.write(to_write)
 
-# make the peptide_sequences
-df = pd.read_csv(f"{a.input_csv}")
+if __name__ == "__main__":
+    n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    a = arg_parser.parse_args()
 
-# retrieve the first row of the pssm_template to make the template for the pseudo-PSSM
-pssm_template = []
-with open(pssm_template_path) as template_f:
-    rows = [row.replace("\n", "").split() for row in template_f]
-    pssm_template = rows[0]
+    pssm_folders = fast_load_dirs(a.models_dir.replace('\\', ''))
+    pssm_template_path = "/projects/0/einf2380/data/templates/M_chain_mapped_template.pssm"
 
-if rank == 0:
-    IDs = np.array(list(range(len(df))))
-    IDs = np.array_split(IDs, size)
-else:
-    IDs = None
+    # retrieve the first row of the pssm_template to make the template for the pseudo-PSSM
+    pssm_template = []
+    with open(pssm_template_path) as template_f:
+        rows = [row.replace("\n", "").split() for row in template_f]
+        pssm_template = rows[0]
 
-IDs = comm.scatter(IDs, root=0)
+    # make the peptide_sequences
+    db2 = pd.read_csv(f"{a.input_csv}")
+    # IDs = comm.scatter(IDs, root=0)
+    IDs = np.array(list(range(len(db2))))
 
-for i_id, idx in enumerate(IDs):
-    #if idx == 0:
-    sequence = df.loc[idx,"peptide"]
-    sequence_id = df.loc[idx, "ID"].replace('_', '-')
-    peptide_pssm_rows = [pssm_template]
-    for i,res in enumerate(sequence):
-        pdbresi = str(i+1)
-        pdbresn = res
-        seqresi = pdbresi
-        seqresn = pdbresn
-        peptide_pssm_row = [pdbresi,pdbresn,seqresi,seqresn,*[str(0)]*21]
-        onehot_pos = pssm_template.index(res.strip())
-        peptide_pssm_row[onehot_pos] = str(1)
-        peptide_pssm_rows.append(peptide_pssm_row) 
-    #write the file
-    search_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]]
-    if search_pssm_path:
-        peptide_pssm_path = search_pssm_path[0] + "/pssm"
-    else:
-        print(f'ID {sequence_id} is not found in models dir, skipping')
-        break
-    peptide_pssm_file = glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm")[0].split("/")[-1].replace("M","P")
-    peptide_pssm_complete_path = f"{peptide_pssm_path}/{peptide_pssm_file}"
-    print(peptide_pssm_complete_path)
-    to_write= "\n".join(["\t".join(row) for row in peptide_pssm_rows])
-    with open(peptide_pssm_complete_path, "wb") as peptide_f:
-        to_write = to_write.encode("utf8").strip()
-        peptide_f.write(to_write)
+    all_ids_lists = []
+    print(f'len db2 {len(IDs)}')
+    print(f'n_cores {n_cores}')
+    chunk = math.ceil(len(IDs)/n_cores)
+    # cut the process into pieces to prevent spawning too many parallel processing
+    for i in range(0, len(IDs), chunk):
+        all_ids_lists.append(IDs[i:min(i+chunk, len(IDs))])
+    # let each inner list be handled by exactly one thread
+    failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(generate_onehot)(case_id) for case_id in all_ids_lists)
