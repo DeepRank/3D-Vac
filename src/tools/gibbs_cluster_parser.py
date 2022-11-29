@@ -28,6 +28,10 @@ arg_parser.add_argument("--n-clusters", "-c",
     default=10,
     type=int
 )
+arg_parser.add_argument("--cluster-column-name", "-n",
+    help="Name of the newly added (or updated) column for the gibbs cluster. Default gibbs_cluster.",
+    default="gibbs_cluster"
+)
 
 a = arg_parser.parse_args()
 
@@ -55,13 +59,13 @@ print("UPDATING `gibss_cluster` COLUMN...")
 for i in range(len(clusters)):
     for c in clusters[i].keys():
         for p in clusters[i][c]["peptides"]:
-            df.loc[df["peptide"] == p, "gibbs_cluster"] = c
-        print(f"Number of peptides in cluster {c}: {len(df.loc[df['gibbs_cluster'] == c])}")
-    # df.to_csv(a.file, index=False)
+            df.loc[df["peptide"] == p, a.cluster_column_name] = c
+        print(f"Number of peptides in cluster {c}: {len(df.loc[df[a.cluster_column_name] == c])}")
+    df.to_csv(a.file, index=False)
 
 # Get proportional distribution of each clsusters from neg and pos:
 # Generate a pandas series of positive clusters and negative ones:
-clusters_g = df.groupby("gibbs_cluster")
+clusters_g = df.groupby(a.cluster_column_name)
 
 neg_clusters = []
 neg_clusters_count = []
@@ -97,7 +101,7 @@ neg_clusters_count_indices = neg_clusters_count_indices + pos_clusters_count_ind
 pos_neg_clusters_count_indices = []
 
 # This loop populates the pos_neg_clusters_count_indices in 1-1 pairs, one for pos and one from negatives,
-# both with sorted indices
+# based on sorted indices obtained before concatenating positive and negatives clusters count.
 for i in range(pos_neg_clusters.shape[0]):
     if i%2==0:
         to_append = pos_clusters_count_indices[-1] # Add the last element of the array
