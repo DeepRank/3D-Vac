@@ -43,7 +43,9 @@ def generate_onehot(IDs: np.array):
 
     Args:
         IDs (numpy.array): indices of all the cases in db2
-    """    
+    """
+    failed_cases = []
+    succesful_cases = []    
     for _, idx in enumerate(IDs):
         sequence = db2.loc[idx,"peptide"]
         sequence_id = db2.loc[idx, "ID"].replace('_', '-')
@@ -63,15 +65,22 @@ def generate_onehot(IDs: np.array):
             peptide_pssm_path = search_pssm_path[0] + "/pssm"
         else:
             print(f'ID {sequence_id} is not found in models dir, skipping')
-            break
+            failed_cases.append(f'{sequence_id} not found in models dir, skipping')
+            continue
+        if not glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm"):
+            failed_cases.append(f'{sequence_id} M chain pssm not found, cannot create path, skipping')
+            continue
         peptide_pssm_file = glob.glob(f"{peptide_pssm_path}/*.M.pdb.pssm")[0].split("/")[-1].replace("M","P")
         peptide_pssm_complete_path = f"{peptide_pssm_path}/{peptide_pssm_file}"
         print(peptide_pssm_complete_path)
         to_write= "\n".join(["\t".join(row) for row in peptide_pssm_rows])
+        succesful_cases.append(sequence_id)
+        # write the output file
         with open(peptide_pssm_complete_path, "wb") as peptide_f:
             to_write = to_write.encode("utf8").strip()
             peptide_f.write(to_write)
-
+    return succesful_cases, failed_cases
+    
 if __name__ == "__main__":
     n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
     a = arg_parser.parse_args()
@@ -98,4 +107,12 @@ if __name__ == "__main__":
     for i in range(0, len(IDs), chunk):
         all_ids_lists.append(IDs[i:min(i+chunk, len(IDs))])
     # let each inner list be handled by exactly one thread
-    failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(generate_onehot)(case_id) for case_id in all_ids_lists)
+    succesful_cases, failed_cases = zip(*Parallel(n_jobs = n_cores, verbose = 1)(delayed(generate_onehot)(case_id) for case_id in all_ids_lists))
+    
+    failed_cases_list = np.array(failed_cases, dtype=object).flatten().tolist()
+    failed_cases_format = '\n'.join('\n'.join(l) for l in failed_cases_list)
+    
+    succesful_cases_list = np.array(succesful_cases, dtype=object).flatten().tolist()
+    succesful_cases_format = '\n'.join('\n'.join(l) for l in succesful_cases_list)
+    
+    print(f'succesful_cases: {succesful_cases_format}\n\n failed_cases: {failed_cases_format}')
