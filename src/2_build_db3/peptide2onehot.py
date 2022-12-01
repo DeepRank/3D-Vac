@@ -60,8 +60,8 @@ def generate_onehot(IDs: np.array):
             peptide_pssm_row[onehot_pos] = str(1)
             peptide_pssm_rows.append(peptide_pssm_row) 
         #write the file
-        search_pssm_path = [path for path in pssm_folders if sequence_id in path.split("/")[-1]]
-        if search_pssm_path:
+        search_pssm_path = [path for path in pssm_folders if sequence_id == path.split("/")[-1]]
+        if search_pssm_path and len(search_pssm_path) == 1:
             peptide_pssm_path = search_pssm_path[0] + "/pssm"
         else:
             print(f'ID {sequence_id} is not found in models dir, skipping')
