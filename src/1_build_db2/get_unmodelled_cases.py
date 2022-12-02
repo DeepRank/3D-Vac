@@ -104,16 +104,24 @@ def check_molpdf(case):
     except pd.errors.EmptyDataError:
         print(f'Molpdf empty: {case}')
 
+def remove_case(folder, reason):
+    try:
+        print(f'Removing case from models folder: {folder}, reason: {reason}')
+        subprocess.run(f'rm -r {folder}.tar', shell=True)
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
 
 def search_folders(folder):
     try:
         # Open output folder. If the folder doesn't have n_struc_per_case pdb files, it is considered as unmodelled.     #
         if a.archived:
             members = get_archive_members(folder)
-            if not members:
-                return
-            search_pdb = [re.search(r'BL.*\.pdb$', member) for member in members]
-            n_structures = sum((i is not None for i in search_pdb))
+            if members:
+                search_pdb = [re.search(r'BL.*\.pdb$', member) for member in members]
+                n_structures = sum((i is not None for i in search_pdb))
+            else:
+                remove_case(folder, "no files in tar")
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
         if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= n_struc_per_case is to be sure that no more than n_struc_per_case structures are
@@ -124,12 +132,8 @@ def search_folders(folder):
             if molpdf_present:
                 if check_molpdf(folder):
                     return case
-        try:
-            print(f'Removing case from models folder: {folder}')
-            subprocess.Popen(f'rm -r {folder}.tar', shell=True).wait()
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
+        # remove case if the n_structures check failed
+        remove_case(folder, "not enough structures in folder")
     except:
         print(f'Failed to search folder for case {folder}')
         print(traceback.format_exc())
@@ -180,7 +184,7 @@ for bcase, casedir in zip(cases, model_dirs):
 if a.update_csv:
     df.to_csv(a.to_model, index=False) # the initial list of cases without the modelled cases
 else:
-    print('Unmodelled cases (excluding removed cases):')
+    print('Unmodelled cases (including removed cases):')
     not_modelled_ids = df['ID'].tolist()
     for mod_id in not_modelled_ids:
         print(mod_id)
