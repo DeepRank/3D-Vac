@@ -7,13 +7,13 @@ import logging
 
 ####### please modify here #######
 run_day = '02122022'
-project_folder = '/home/ccrocion/snellius_data_sample/'
+project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 8 # 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+cpu_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
 ##################################
 
 # Loggers
