@@ -175,7 +175,7 @@ else:
 
 #4. gather the indices of the IDs that were found to have complete models
 # first change the delimiter so that it matches the pattern of the output folders
-df['ID'] = df['ID'].apply(lambda x: '-'.join(x.split('_')))
+df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
 # then check if the ids match the ones in the output folder
 cases_indices = df[df["ID"].isin(cases)].index.tolist()
 #5. Drop the cases from the original dataframe
