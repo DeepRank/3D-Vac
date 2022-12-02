@@ -14,8 +14,8 @@ arg_parser = argparse.ArgumentParser(
     the number of cases being modeled by each core."
 )
 arg_parser.add_argument("--running-time", "-t",
-    help="Number of hours spawned jobs will run. default 01.",
-    default="01",
+    help="Number of hours spawned jobs will run. default 1.",
+    default="1",
 )
 arg_parser.add_argument("--num-nodes", "-n",
     help = "Number of nodes to use. Default 0 (will use running-time instead).",
@@ -31,11 +31,17 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 arg_parser.add_argument("--models-dir", "-p",
     help= "path of the models directory",
-    default="/projects/0/einf2380/data/pMHCI/models/BA"
+    default="/projects/0/einf2380/data/pMHCI/models/BA/\*/\*"
 )
 arg_parser.add_argument("--n-structures", "-s",
     help="Number of structures to let PANDORA model",
-    default=20,
+    type=str,
+    default='20',
+)
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=str,
+    default='20',
 )
 
 a = arg_parser.parse_args()
@@ -48,7 +54,7 @@ tot_cases = len(df)
 running_time_hms = datetime.timedelta(hours=int(a.running_time))
 
 NUM_CORES = 128
-CASES_PER_HOUR_PER_CORE = 10
+CASES_PER_HOUR_PER_CORE = 24
 
 if a.num_nodes == "0":
     #no number of nodes given, compute nodes from running_time
@@ -97,8 +103,9 @@ for n in range(int(a.num_nodes)):
         rest = tot_cases % batch
         assert tot_cases >= batch
         if not int(rest) == 0:
-            n_cores = math.ceil(rest/CASES_PER_HOUR_PER_CORE) # compute cores based on batch rest
-        elif batch < n_cores:
+            n_cores_per_hour = math.ceil(rest/CASES_PER_HOUR_PER_CORE) # compute cores based on batch rest
+            n_cores = math.ceil(n_cores_per_hour/running_time_frac) # divide by running_time 
+        elif batch < n_cores: # if the batch is really small, take one node per case
             n_cores = batch
 
     modelling_job_cmd = deepcopy(modelling_job_cmd_temp)
@@ -114,10 +121,18 @@ for n in range(int(a.num_nodes)):
     modelling_job_id = re.search(r"\d+", modeling_job_out.stdout.decode("ASCII")).group()
     job_ids.append(modelling_job_id)
 
+# compute how long the cleaning script needs to run
+NUM_CLEANED_PER_HOUR_PER_NODE = 140 # found by testing
+running_time_frac = tot_cases/(NUM_CLEANED_PER_HOUR_PER_NODE * NUM_CORES) # use same num of cores as modelling job
+running_time_min = math.ceil(running_time_frac * 60)
+running_time_hms = datetime.timedelta(minutes=running_time_min)
+
 # after the modelling job ended, run the cleaning job:
 clean_out = subprocess.run([
     "sbatch",
     f"--dependency=afterany:{','.join(job_ids)}",
+    f"--time={str(running_time_hms)}",
+    f"--cpus-per-task", str(NUM_CORES), 
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class

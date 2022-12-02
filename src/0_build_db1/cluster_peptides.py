@@ -293,13 +293,14 @@ if __name__=='__main__':
             n_clusters = a.clusters,
             frag_len = a.peptides_length
         )
+        pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_{method}_clusters.pkl", "wb"))
     else:
         method = 'gibbscluster'
         clusters = gibbscluster_peptides(peptides, n_jobs=a.njobs, 
                     pept_length=a.peptides_length, n_clusters=a.clusters,
                     rm_outputs=False)
-
-        #raise Exception('This function is not complete yet.')
+        pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_{method}_clusters.pkl", "wb"))
+        clusters = {key : clusters[key]['peptides'] for key in clusters}
 
     if a.update_csv: 
         for idx,cluster in enumerate(clusters.keys()):
@@ -307,4 +308,4 @@ if __name__=='__main__':
                 df.loc[df["peptide"] == peptide, "cluster"] = int(idx)
         df.to_csv(csv_path, index=False)
 
-    pickle.dump(clusters, open(f"../../data/external/processed/{filename}_{a.matrix}_{a.clusters}_{method}_clusters.pkl", "wb"))
+    
