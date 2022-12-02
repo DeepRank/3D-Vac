@@ -34,6 +34,11 @@ arg_parser.add_argument("--models-dir", "-m",
     help="Path to the BA or EL folder where the models are generated",
     default="/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
 )
+arg_parser.add_argument("--n-structures", "-s",
+    help="Number of structures to let PANDORA model",
+    type=int,
+    default=20,
+)
 arg_parser.add_argument("--parallel", "-p",
     action='store_true',
     help="Run script in parallel on a slurm cluster with multiple nodes",
@@ -42,10 +47,10 @@ arg_parser.add_argument("--archived", "-a",
     action='store_true',
     help="Flag to be used when folders are archived",
 )
-arg_parser.add_argument("--n-structures", "-s",
-    help="Number of structures to let PANDORA model",
-    type=int,
-    default=20,
+arg_parser.add_argument("--delete-cases", "-d",
+    action='store_true',
+    default=False,
+    help="Flag to be used when cases should be removed if they fail to pass the critera defined in this module",
 )
 
 def archive_and_remove(case):
@@ -104,16 +109,26 @@ def check_molpdf(case):
     except pd.errors.EmptyDataError:
         print(f'Molpdf empty: {case}')
 
+def remove_case(folder, reason):
+    if a.delete_cases:
+        try:
+            print(f'Removing case from models folder: {folder}, reason: {reason}')
+            subprocess.run(f'rm -r {folder}.tar', shell=True)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
 
 def search_folders(folder):
     try:
         # Open output folder. If the folder doesn't have n_struc_per_case pdb files, it is considered as unmodelled.     #
         if a.archived:
             members = get_archive_members(folder)
-            if not members:
+            if members:
+                search_pdb = [re.search(r'BL.*\.pdb$', member) for member in members]
+                n_structures = sum((i is not None for i in search_pdb))
+            else:
+                remove_case(folder, "no files in tar")
                 return
-            search_pdb = [re.search(r'BL.*\.pdb$', member) for member in members]
-            n_structures = sum((i is not None for i in search_pdb))
         else:
             n_structures = len(glob.glob(f"{folder}/*.BL*.pdb"))
         if n_structures >= n_struc_per_case-1 and n_structures <= n_struc_per_case: # the n_structures <= n_struc_per_case is to be sure that no more than n_struc_per_case structures are
@@ -124,12 +139,8 @@ def search_folders(folder):
             if molpdf_present:
                 if check_molpdf(folder):
                     return case
-        try:
-            print(f'Removing case from models folder: {folder}')
-            subprocess.Popen(f'rm -r {folder}.tar', shell=True).wait()
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
+        # remove case if the n_structures check failed
+        remove_case(folder, "not enough structures in folder")
     except:
         print(f'Failed to search folder for case {folder}')
         print(traceback.format_exc())
@@ -163,6 +174,9 @@ else:
         cases.append(search_folders(folder))
 
 #4. gather the indices of the IDs that were found to have complete models
+# first change the delimiter so that it matches the pattern of the output folders
+df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
+# then check if the ids match the ones in the output folder
 cases_indices = df[df["ID"].isin(cases)].index.tolist()
 #5. Drop the cases from the original dataframe
 df.drop(cases_indices, inplace=True) # the initial list of cases is reduced with the case.
@@ -170,7 +184,9 @@ df.drop(cases_indices, inplace=True) # the initial list of cases is reduced with
 print(f"Initial number of cases: {all_cases}")
 print(f'Unmodelled: {len(df)}')
 
-print('List of cases that were present in output folder but were not valid, these are now removed:')
+msg_removed_cases = 'these are now removed' if a.delete_cases else 'these should be removed according to the criteria,\
+check these case folders by hand and run this module again with --delete-cases flag (or -d) to remove them'
+print(f'List of cases that were present in output folder but were not valid, {msg_removed_cases}')
 unmodelled_cases = [False for case in cases if case==None]
 for bcase, casedir in zip(cases, model_dirs):
     if not bcase:
@@ -180,7 +196,7 @@ for bcase, casedir in zip(cases, model_dirs):
 if a.update_csv:
     df.to_csv(a.to_model, index=False) # the initial list of cases without the modelled cases
 else:
-    print('Unmodelled cases (excluding removed cases):')
+    print('Unmodelled cases (including removed cases):')
     not_modelled_ids = df['ID'].tolist()
     for mod_id in not_modelled_ids:
         print(mod_id)
