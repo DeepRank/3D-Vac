@@ -1,8 +1,11 @@
-import glob
+from glob import glob
 import pdb2sql
 from sklearn.decomposition import PCA
+from joblib import Parallel, delayed
+import numpy as np
 import pickle
 import sys
+import os
 import argparse
 
 arg_parser = argparse.ArgumentParser(
@@ -23,31 +26,48 @@ arg_parser.add_argument("--template", "-t",
     required=True
 )
 
+def get_coords(aligned_pdbs_list:list):
+    """get coordinates of the peptides out of the pdbs
 
-a = arg_parser.parse_args()
+    Args:
+        aligned_pdbs_list (list): a sublist of pdb paths (size of sublist is optimized for number of cores)
 
-all_coords = []
-#TODO: this should be parallelized to optimize the resources usage
-for model in [ x for x in glob.glob(a.pdbs_path) if '_origin' not in x]:
-    sql = pdb2sql.pdb2sql(model)
-    coords = sql.get('resSeq, x,y,z', chainID=['P'])
-    # TODO: What is this if doing? Does it check for the peptide length?
-    if coords[-1][0] == 15:
+    Returns:
+        all_coords (list): list of x,y,z coordinates for each pdb
+    """    
+    all_coords = []
+    for model in [ x for x in aligned_pdbs_list if '_origin' not in x]:
+        sql = pdb2sql.pdb2sql(model)
+        coords = sql.get('resSeq, x,y,z', chainID=['P'])
         all_coords.append(coords)
+    return all_coords
 
-coords = [[x[1:] for x in y] for y in all_coords]
-pca = PCA(n_components=3)
-all_coords = []
 
-for x in coords:
-    all_coords.extend(x)
-    
-pca.fit(all_coords)
+if __name__ == "__main__":
+    a = arg_parser.parse_args()
+    # n_cores = n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    n_cores = 2
 
-sql = pdb2sql.pdb2sql(a.template)
-sql_coords = sql.get('x,y,z')
+    paths = glob(a.pdbs_path.replace('\\', ''))
+    print(f'Found {len(paths)} pdbs in orient_on_pept_PCA')
+    assert len(paths) > 0
+    # get the peptides coordinates in parallel
+    all_coords = Parallel(n_jobs = n_cores, verbose = 1)(delayed(get_coords)(sublist) for sublist in np.array_split(glob(a.pdbs_path), n_cores))
+    # flatten nested list to get a (n,3) dim list
+    flatten_coords = [item for sublist in all_coords for item in sublist]
+    # just keep x,y,z values
+    coords = [[x[1:] for x in y] for y in flatten_coords]
 
-sql.update('x,y,z', pca.transform(sql_coords))
-
-#sql.exportpdb('/projects/0/einf2380/data/pMHCII/3D_models/alignment/alignment_template.pdb')
-sql.exportpdb(a.template)
+    pca = PCA(n_components=3)
+    all_coords = []
+    # put all coordinates in a flat list
+    for x in coords:
+        all_coords.extend(x)
+    # fit PCA
+    pca.fit(all_coords)
+    # get the coordinates of the template pdb
+    sql = pdb2sql.pdb2sql(a.template)
+    sql_coords = sql.get('x,y,z')
+    # upate the coordinates of the template pdb and write new template pdb file
+    sql.update('x,y,z', pca.transform(sql_coords))
+    sql.exportpdb(a.template)
