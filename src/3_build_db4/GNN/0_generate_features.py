@@ -6,24 +6,15 @@ from deeprankcore.query import QueryCollection
 import logging
 
 ####### please modify here #######
-run_day = '02122022'
+run_day = '05122022'
 project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+cpu_count = 64 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
 ##################################
-
-# Loggers
-_log = logging.getLogger('')
-_log.setLevel(logging.INFO)
-sh = logging.StreamHandler(sys.stdout)
-sh.setLevel(logging.INFO)
-_log.addHandler(sh)
-
-_log.info('Script running has started ...')
 
 if resolution == 'atomic':
 	from deeprankcore.query import ProteinProteinInterfaceAtomicQuery as PPIQuery
@@ -42,12 +33,30 @@ if not os.path.exists(output_folder):
 else:
 	sys.exit(f'{output_folder} already exists, please update output_folder name!')
 
-_log.info(f'pdbs files paths loaded, {len(pdb_files)} pdbs found.')
+# Loggers
+_log = logging.getLogger('')
+_log.setLevel(logging.INFO)
+
+fh = logging.FileHandler(os.path.join(output_folder, 'query_process.log'))
+sh = logging.StreamHandler(sys.stdout)
+fh.setLevel(logging.INFO)
+sh.setLevel(logging.INFO)
+formatter_fh = logging.Formatter('[%(asctime)s] - %(name)s - %(message)s',
+                               datefmt='%a, %d %b %Y %H:%M:%S')
+fh.setFormatter(formatter_fh)
+
+_log.addHandler(fh)
+_log.addHandler(sh)
+
+_log.info('Script running has started ...')
+
+_log.info(f'PDBs files paths loaded, {len(pdb_files)} PDBs found.')
 
 queries = QueryCollection()
+_log.info('Adding queries to the collection ...')
 
+n = 0
 for pdb_file in pdb_files:
-
     pdb_id = pdb_file.split('/')[-1].split('.')[0]
     pssm_m = glob.glob(os.path.join(models_folder_path + '/pssm', pdb_id + '.M.*.pssm'))
     pssm_p = glob.glob(os.path.join(models_folder_path + '/pssm', pdb_id + '.P.*.pssm'))
@@ -74,8 +83,12 @@ for pdb_file in pdb_files:
                 "P": pssm_p[0]
                 }))
 
-_log.info(f'Queries created and ready to be processed.\n')
+    n += 1
+    if n % 1000 == 0:
+        _log.info(f'Created {n} queries.')
+
+_log.info(f'Queries ready to be processed.')
 
 output_paths = queries.process(f'{output_folder}/processed-data')
 
-_log.info(f'Processing is done. hdf5 files generated are in {output_folder}.')
+_log.info(f'Queries processing is done. HDF5 files generated are in {output_folder}.')
