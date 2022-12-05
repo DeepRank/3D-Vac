@@ -45,8 +45,7 @@ def get_coords(aligned_pdbs_list:list):
 
 if __name__ == "__main__":
     a = arg_parser.parse_args()
-    # n_cores = n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
-    n_cores = 2
+    n_cores = n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 
     paths = glob(a.pdbs_path.replace('\\', ''))
     print(f'Found {len(paths)} pdbs in orient_on_pept_PCA')
