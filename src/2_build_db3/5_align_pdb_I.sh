@@ -19,12 +19,12 @@ export alignment_template='/projects/0/einf2380/data/pMHCI/alignment/alignment_t
 
 #Copy the template file
 cp $original_pdb $alignment_template
-# Align all the models to the template file
+# # Align all the models to the template file
 srun --job-name first_align \
     python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
-Orient the template file on the aligned peptides PCA
+# # Orient the template file on the aligned peptides PCA
 srun --job-name orient_peptides --dependency=afterok:first_align \
       python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --template $alignment_template
 # Align all the models to the re-oriented template file
-srun --dependency=afterok:first_align:orient_peptides 
+srun --dependency=afterok:first_align:orient_peptides \
       python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
