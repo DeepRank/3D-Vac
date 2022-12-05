@@ -100,37 +100,24 @@ class Rotation(nn.Module):
 # Class to process pdbs
 class PDB2dataset():
     
-    def __init__(self,pdbInpFolder, residues, chain='A', cores=-1): 
+    def __init__(self,pdbInpFolder, residues, chain='M', n_cores=-1): 
         self.chain = chain
         self.residues = [int(i) for i in residues]
         self.pdbInpFolder = pdbInpFolder
         #print(f"pdbInpFolder: {pdbInpFolder}")
         # self.pdbs = glob.glob(pdbInpFolder)
-        self.pdbs = _fastListingDirs(pdbInpFolder)
+        self.pdbs = glob.glob(self.pdbInpFolder)
         #print(f"self.pdbs: {self.pdbs}")
         print(f"Number of 3D Models: {len(self.pdbs)}")
         self.pdbs.append(a.template)
         self.pdbIds = [pdb for pdb in self.pdbs]
-        self.cores = cores
+        self.cores = n_cores
         print('Start loading data')
         t0 = time.time()
         coordinates, self.indiWeights = self.getData()
         print('Retrieved data, time: %.2f seconds' % (time.time()-t0))
         #coordinates, self.indiWeights = torch.rand(10000, 100, 3), 1
         self.rotator = Rotation(coordinates)
-  
-    def _fastListingDirs(self, pdbInpFolder):
-        """A faster method than using glob on a single deep wildcard path
-        Args:
-            pdbInpFolder (str): Wildcard path (containing *s) pointing to the pdbs
-        Returns:
-            list: all the paths with each path as 1 item of the list
-        """        
-        all_models = []
-        all_models_first = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1/BA/*")
-        for folder in all_models_first:
-            all_models.extend(glob.glob(os.path.join(folder, '*/pdb/*.pdb')))
-        return all_models
 
     # Extract all atom xyz coordinates
     def _extractPdbAtoms(self, fileName):
@@ -161,44 +148,45 @@ class PDB2dataset():
         return trainData, weights 
     
     # Rotates a single pdb
-    def _rotate(self, pdbIndex):
+    def _rotate(self, pdbIndices):
         with torch.no_grad():
-            pdbFile = self.pdbs[pdbIndex]
-            #print(f"rotating {pdbFile}")
-            #print('coordinates')
-            coordinates = torch.Tensor(self._extractPdbAtoms(pdbFile)).reshape(1, -1, 3)
-            #print('init rotator')
-            newRotator = Rotation(coordinates, self.rotator.mean[pdbIndex])
-            #print('Assign Euler angles')
-            newRotator.ar   = self.rotator.ar[pdbIndex]
-            newRotator.br   = self.rotator.br[pdbIndex]
-            newRotator.yr   = self.rotator.yr[pdbIndex]
-            newRotator.bias = self.rotator.bias[pdbIndex] + \
-                                self.rotator.mean[self.rotator.template]
-            #print('SQUEEEEEEZE')
-            newCts = newRotator().squeeze()
-            #print('Read pdb')
-            atomIndex = 0
-            pdb = open(pdbFile).read().split('\n')[:-1]
-            #print('Write pdb')
-            write = open(pdbFile, 'w')
-            for line in pdb:
-                if line.startswith('ATOM') or line.startswith('HETATM '):
-                    stringCoord = ['%.3f' % newCts[atomIndex, 0], \
-                                    '%.3f' % newCts[atomIndex, 1], \
-                                     '%.3f' % newCts[atomIndex, 2]] 
-                    stringCoord = ''.join([(' '*(8-len(i)))+i for i in stringCoord])
-                    line = line[:30] + stringCoord + line[54:]
-                    atomIndex += 1
-                write.write(line + '\n')	
-            write.close()
-            # if atomIndex > 200:			
-            # 	pass
-            # else:
-            # 	raise Exception(f'Something went wrong with pdb {pdbIndex}, path: {self.pdbs[pdbIndex]}')
+            for pdbIndex in pdbIndices:
+                pdbFile = self.pdbs[pdbIndex]
+                #print(f"rotating {pdbFile}")
+                #print('coordinates')
+                coordinates = torch.Tensor(self._extractPdbAtoms(pdbFile)).reshape(1, -1, 3)
+                #print('init rotator')
+                newRotator = Rotation(coordinates, self.rotator.mean[pdbIndex])
+                #print('Assign Euler angles')
+                newRotator.ar   = self.rotator.ar[pdbIndex]
+                newRotator.br   = self.rotator.br[pdbIndex]
+                newRotator.yr   = self.rotator.yr[pdbIndex]
+                newRotator.bias = self.rotator.bias[pdbIndex] + \
+                                    self.rotator.mean[self.rotator.template]
+                #print('SQUEEEEEEZE')
+                newCts = newRotator().squeeze()
+                #print('Read pdb')
+                atomIndex = 0
+                pdb = open(pdbFile).read().split('\n')[:-1]
+                #print('Write pdb')
+                write = open(pdbFile, 'w')
+                for line in pdb:
+                    if line.startswith('ATOM') or line.startswith('HETATM '):
+                        stringCoord = ['%.3f' % newCts[atomIndex, 0], \
+                                        '%.3f' % newCts[atomIndex, 1], \
+                                        '%.3f' % newCts[atomIndex, 2]] 
+                        stringCoord = ''.join([(' '*(8-len(i)))+i for i in stringCoord])
+                        line = line[:30] + stringCoord + line[54:]
+                        atomIndex += 1
+                    write.write(line + '\n')	
+                write.close()
+                # if atomIndex > 200:			
+                # 	pass
+                # else:
+                # 	raise Exception(f'Something went wrong with pdb {pdbIndex}, path: {self.pdbs[pdbIndex]}')
     
     # Rotate all, or a selection of pdbs
-    def rotateAll(self, nmbr=-1, n_cores=64):
+    def rotateAll(self, nmbr=-1):
         t0 = time.time()
         nmbr = min(nmbr, len(self.pdbs)) if nmbr != -1 else len(self.pdbs)
         print(f'self.pdbs len: {len(self.pdbs)}')
@@ -210,7 +198,8 @@ class PDB2dataset():
         self.rotator.mean = self.rotator.mean.detach()
         self.rotator.coordinates = self.rotator.coordinates.detach()
         
-        Parallel(n_jobs=n_cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in range(nmbr))
+        
+        Parallel(n_jobs=self.cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in np.array_split(list(range(nmbr)), self.cores))
         #pool = mp.Pool(n_cores)
         #pool.map(self._rotate, range(nmbr))
         
@@ -259,7 +248,7 @@ class PDB2dataset():
         print('Epochs:', epoch, ', train-time: %.2f seconds!' % (time.time()-t0))
         self.rotator.ar, self.rotator.br, self.rotator.yr, self.rotator.bias = ar, br, yr, bias
         
-def align(pdbInpFolder, residues, chain='M', template = -1, n_cores= 64):
+def align(pdbInpFolder, residues, chain='M', template = -1, n_cores=-1):
     pdbInpFolder = pdbInpFolder.replace('\\','')
     print('PROCESS DATA')
     dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, n_cores)	
