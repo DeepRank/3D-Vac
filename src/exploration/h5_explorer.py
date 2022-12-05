@@ -49,26 +49,32 @@ h5_files_bulk = conn.scatter(h5_files_bulk, root=0)
 
 feature_list = []
 feature_values = []
+unconverted_feats = set()
 
 #populating the k_mv_d or k_v_d with values from each hdf5 file:
-print(f"Populating features_values on {rank}")
+print(f"Populating features_values on {rank} with {h5_files_bulk.shape} files")
 for i,f in enumerate(h5_files_bulk):
-    h5 = h5py.File(f)
-    for m in h5.keys(): # iterating through cases
-        if i == 0:
-            features = list(h5[f"{m}/mapped_features/Feature_ind"].keys())
-            feature_list = [[]]*len(features)
-            feature_values = [[]]*len(features)
-        if i < 5:
-            for k,f in enumerate(features): # iterating through features
-                values = h5[f"{m}/mapped_features/Feature_ind/{f}/value"][()].flatten().tolist()
-                if a.plot_max:
-                    if values.shape[0] == 0:
-                        feature_values[k].append(0)
+    if i == 0:
+        h5 = h5py.File(f)
+        for k,m in enumerate(h5.keys()): # iterating through cases
+            if k == 0:
+                features = list(h5[f"{m}/mapped_features/Feature_ind"].keys())
+                feature_list = [[]]*len(features)
+                feature_values = [[]]*len(features)
+            if k < 5:
+                for j,f in enumerate(features): # iterating through features
+                    values = np.array(h5[f"{m}/mapped_features/Feature_ind/{f}/value"], dtype=np.float16)
+                    if a.plot_max:
+                        if values.shape[0] == 0:
+                            feature_values[j].append(0)
+                        else:
+                            feature_values[j].append(values.max())
                     else:
-                        feature_values[k].append(values.max())
-                else:
-                    feature_values[k].extend(values)
+                        feature_values[j].extend(values)
+            else:
+                break
+    else:
+        break
 print(f"Finished populating features_values on {rank}")
 # make the dir if not already existing:
 plot_dir = f"../../reports/figures/h5explorer/{a.name}"
@@ -76,25 +82,26 @@ if not os.path.isdir(plot_dir):
     os.mkdir(plot_dir)
 
 #Gather data from workers:
-all_values = conn.gather(feature_values)
+all_values = np.array(conn.gather(feature_values))
 if rank == 0:
     print(f"type of all_values: {type(all_values)}, len: {len(all_values)}")
     all_features = [[]]*len(features)
-    # pkl.dump(all_values, open("./all_feats.pkl", "wb"))
     for feature_groups in all_values:
         for i,values in enumerate(feature_groups):
             all_features[i].extend(values) 
-    print("Creating all_features np array..")
-    all_features = np.array(all_features)
-    print("Array created. Splitting into workers for ploting..")
-    features_bulk = np.array_split(all_features, size)
-else:
-    features_bulk = None
+    # pkl.dump(all_features, open("./all_feats.pkl", "wb"))
+    # print("all_feats saved in pickle file.")
+#     print("Creating all_features np array..")
+#     all_features = np.array(all_features)
+#     print("Array created. Splitting into workers for ploting..")
+#     features_bulk = np.array_split(all_features, size)
+# else:
+#     features_bulk = None
 
-features_bulk = conn.scatter(features_bulk, root=0)
-for f in features_bulk:
-    values_array = np.array(f)
-    print(f"values_array shape on {rank}: {values_array.shape}")
+# features_bulk = conn.scatter(features_bulk, root=0)
+# for f in features_bulk:
+#     values_array = np.array(f)
+#     print(f"values_array shape on {rank}: {values_array.shape}")
 
 # if a.plot_max:
 #     # plot each feature:
