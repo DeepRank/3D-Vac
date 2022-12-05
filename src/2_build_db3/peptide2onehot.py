@@ -48,7 +48,7 @@ def generate_onehot(IDs: np.array):
     succesful_cases = []    
     for _, idx in enumerate(IDs):
         sequence = db2.loc[idx,"peptide"]
-        sequence_id = db2.loc[idx, "ID"].replace('_', '-')
+        sequence_id = db2.loc[idx, "ID"].replace('-', '_')
         peptide_pssm_rows = [pssm_template]
         for i,res in enumerate(sequence):
             pdbresi = str(i+1)
