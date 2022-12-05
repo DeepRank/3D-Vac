@@ -52,7 +52,7 @@ if __name__ == "__main__":
     print(f'Found {len(paths)} pdbs in orient_on_pept_PCA')
     assert len(paths) > 0
     # get the peptides coordinates in parallel
-    all_coords = Parallel(n_jobs = n_cores, verbose = 1)(delayed(get_coords)(sublist) for sublist in np.array_split(glob(a.pdbs_path), n_cores))
+    all_coords = Parallel(n_jobs = n_cores, verbose = 1)(delayed(get_coords)(sublist) for sublist in np.array_split(paths, n_cores))
     # flatten nested list to get a (n,3) dim list
     flatten_coords = [item for sublist in all_coords for item in sublist]
     # just keep x,y,z values
