@@ -46,7 +46,8 @@ arg_parser.add_argument("--mhc-class", "-m",
 )
 arg_parser.add_argument("--n-structures", "-s",
     help="Number of structures to let PANDORA model",
-    default=20,
+    type=str,
+    default='20',
 )
 a = arg_parser.parse_args();
 
