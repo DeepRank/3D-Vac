@@ -17,6 +17,6 @@ def __compute_target__(pdb, targrp):
     df = pd.read_csv(in_csv)
     tarname = "BIN_CLASS"
     molname = targrp.parent.name.replace("/", "")
-    class_id = (0.,1.)[ df[df["ID"] == molname]["measurement_value"].values[0] < 500. ] 
+    class_id = (0.,1.)[ df[df["ID"] == molname]["measurement_value"].values[0] < 500. ]
     print(np.array(class_id).shape)
     targrp.create_dataset("BIN_CLASS", data=np.array(class_id))
