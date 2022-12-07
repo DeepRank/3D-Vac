@@ -4,9 +4,10 @@ import os
 import sys
 from deeprankcore.query import QueryCollection
 import logging
+from functools import partial
 
 ####### please modify here #######
-run_day = '05122022'
+run_day = '07122022'
 project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
@@ -24,10 +25,6 @@ else:
 csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 models_folder_path = f'{project_folder}data/{data}/features_input_folder/{models_folder_name}'
 output_folder = f'{project_folder}data/pMHCI/features_output_folder/GNN/{resolution}/{run_day}'
-pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
-csv_data = pd.read_csv(csv_file_path)
-csv_data.cluster = csv_data.cluster.fillna(-1)
-
 if not os.path.exists(output_folder):
 	os.makedirs(output_folder)
 else:
@@ -37,7 +34,7 @@ else:
 _log = logging.getLogger('')
 _log.setLevel(logging.INFO)
 
-fh = logging.FileHandler(os.path.join(output_folder, 'query_process.log'))
+fh = logging.FileHandler(os.path.join(output_folder, '0_generate_features.log'))
 sh = logging.StreamHandler(sys.stdout)
 fh.setLevel(logging.INFO)
 sh.setLevel(logging.INFO)
@@ -50,45 +47,68 @@ _log.addHandler(sh)
 
 _log.info('Script running has started ...')
 
-_log.info(f'PDBs files paths loaded, {len(pdb_files)} PDBs found.')
+pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
+_log.info(f'pdbs files paths loaded, {len(pdb_files)} pdbs found.')
+
+pssm_m = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.M.*.pssm'))[0] for pdb_file in pdb_files]
+pssm_p = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.P.*.pssm'))[0] for pdb_file in pdb_files]
+
+csv_data = pd.read_csv(csv_file_path)
+csv_data.cluster = csv_data.cluster.fillna(-1)
+clusters = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].cluster.values[0] for pdb_file in pdb_files]
+bas = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].measurement_value.values[0] for pdb_file in pdb_files]
+
+# verifying data consistency
+for i in range(len(pdb_files)):
+	assert len(pdb_files) == len(pssm_m) == len(pssm_p) == len(clusters) == len(bas)
+
+	try:
+		assert pdb_files[i].split('/')[-1].split('.')[0] == pssm_m[i].split('/')[-1].split('.')[0]
+	except AssertionError as e:
+		_log.error(e)
+		_log.warning(f'{pdb_files[i]} and {pssm_m[i]} ids mismatch.')
+
+	try:
+		assert pdb_files[i].split('/')[-1].split('.')[0] == pssm_p[i].split('/')[-1].split('.')[0]
+	except AssertionError as e:
+		_log.error(e)
+		_log.warning(f'{pdb_files[i]} and {pssm_p[i]} ids mismatch.')
+
+	try:
+		assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0].replace('-', '_')].cluster.values[0] == clusters[i]
+	except AssertionError as e:
+		_log.error(e)
+		_log.warning(f'{pdb_files[i]} and cluster id in the csv mismatch.')
+
+	try:
+		assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0].replace('-', '_')].measurement_value.values[0] == bas[i]
+	except AssertionError as e:
+		_log.error(e)
+		_log.warning(f'{pdb_files[i]} and measurement_value id in the csv mismatch.')
 
 queries = QueryCollection()
-_log.info('Adding queries to the collection ...')
 
-n = 0
-for pdb_file in pdb_files:
-    pdb_id = pdb_file.split('/')[-1].split('.')[0]
-    pssm_m = glob.glob(os.path.join(models_folder_path + '/pssm', pdb_id + '.M.*.pssm'))
-    pssm_p = glob.glob(os.path.join(models_folder_path + '/pssm', pdb_id + '.P.*.pssm'))
-    assert len(pssm_m) == 1
-    assert len(pssm_p) == 1
-    csv_id = pdb_id.replace('-', '_')
-    assert csv_data[csv_data.ID == csv_id].shape[0] == 1
-    cluster = csv_data[csv_data.ID == csv_id].cluster.values[0]
-    ba = csv_data[csv_data.ID == csv_id].measurement_value.values[0]
+for i in range(len(pdb_files)):
 
     queries.add(
         PPIQuery(
-            pdb_path = pdb_file, 
+            pdb_path = pdb_files[i], 
             chain_id1 = "M",
             chain_id2 = "P",
             distance_cutoff = interface_distance_cutoff,
             targets = {
-                'binary': int(float(ba) <= 500), # binary target value
-                'BA': ba, # continuous target value
-                'cluster': cluster
+                'binary': int(float(bas[i]) <= 500), # binary target value
+                'BA': bas[i], # continuous target value
+                'cluster': clusters[i]
                 },
             pssm_paths = {
-                "M": pssm_m[0],
-                "P": pssm_p[0]
-                }))
+                "M": pssm_m[i],
+                "P": pssm_p[i]
+                }),
+            verbose = True)
 
-    n += 1
-    if n % 1000 == 0:
-        _log.info(f'Created {n} queries.')
+_log.info(f'Queries created and ready to be processed.\n')
 
-_log.info(f'Queries ready to be processed.')
+output_paths = queries.process(f'{output_folder}/processed-data', verbose = True)
 
-output_paths = queries.process(f'{output_folder}/processed-data')
-
-_log.info(f'Queries processing is done. HDF5 files generated are in {output_folder}.')
+_log.info(f'Processing is done. hdf5 files generated are in {output_folder}.')
