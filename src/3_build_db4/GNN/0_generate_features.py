@@ -47,20 +47,26 @@ _log.addHandler(sh)
 
 _log.info('Script running has started ...')
 
-pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
-_log.info(f'pdbs files paths loaded, {len(pdb_files)} pdbs found.')
-
+pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb_renumbered', '*.pdb'))
+_log.info(f'{len(pdb_files)} pdbs found.')
 pssm_m = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.M.*.pssm'))[0] for pdb_file in pdb_files]
+_log.info(f'{len(pdb_files)} MHC pssms found.')
 pssm_p = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.P.*.pssm'))[0] for pdb_file in pdb_files]
-
+_log.info(f'{len(pdb_files)} peptide pssms found.')
 csv_data = pd.read_csv(csv_file_path)
 csv_data.cluster = csv_data.cluster.fillna(-1)
 clusters = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].cluster.values[0] for pdb_file in pdb_files]
 bas = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].measurement_value.values[0] for pdb_file in pdb_files]
+_log.info(f'Targets and clusters data loaded.')
 
+_log.info('Verifying data consistency...')
 # verifying data consistency
 for i in range(len(pdb_files)):
-	assert len(pdb_files) == len(pssm_m) == len(pssm_p) == len(clusters) == len(bas)
+
+	assert len(pdb_files) == len(pssm_m)
+	assert len(pdb_files) == len(pssm_p)
+	assert len(pdb_files) == len(clusters)
+	assert len(pdb_files) == len(bas)
 
 	try:
 		assert pdb_files[i].split('/')[-1].split('.')[0] == pssm_m[i].split('/')[-1].split('.')[0]
@@ -87,9 +93,9 @@ for i in range(len(pdb_files)):
 		_log.warning(f'{pdb_files[i]} and measurement_value id in the csv mismatch.')
 
 queries = QueryCollection()
-
+_log.info(f'Adding {len(pdb_files)} queries to the query collection ...')
+count = 0
 for i in range(len(pdb_files)):
-
     queries.add(
         PPIQuery(
             pdb_path = pdb_files[i], 
@@ -104,11 +110,11 @@ for i in range(len(pdb_files)):
             pssm_paths = {
                 "M": pssm_m[i],
                 "P": pssm_p[i]
-                }),
-            verbose = True)
+                }))
+    count +=1
+    if count % 10000 == 0:
+        _log.info(f'{count} queries added to the collection.')
 
-_log.info(f'Queries created and ready to be processed.\n')
-
-output_paths = queries.process(f'{output_folder}/processed-data', verbose = True)
-
-_log.info(f'Processing is done. hdf5 files generated are in {output_folder}.')
+_log.info(f'Queries ready to be processed.\n')
+output_paths = queries.process(f'{output_folder}/processed-data')
+_log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')
