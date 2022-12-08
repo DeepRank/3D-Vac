@@ -1,9 +1,0 @@
-#!/bin/bash
-#SBATCH --job-name allocate_nodes
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/II/db2/allocate_nodes-%J.out
-#SBATCH -n 1
-#SBATCH -c 1
-
-source activate deeprank
-
-python -u allocate_nodes.py "$@"
