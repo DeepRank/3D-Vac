@@ -72,7 +72,7 @@ if __name__ == "__main__":
 	resolution = 'residue' # either 'residue' or 'atomic'
 	feature_modules = [pssm, bsa, amino_acid, biopython, atomic_contact, sasa]
 	interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-	#process_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+	#process_count = 32 # remember to set the same number in --cpus-per-task in 1_generate_hdf5.sh
 	process_count = 8
 	##################################
 
