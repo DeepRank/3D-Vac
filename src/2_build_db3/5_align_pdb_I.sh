@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name align_pdbs
 #SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=128
 #SBATCH --partition=thin
 #SBATCH --time=01:00:00
@@ -19,12 +20,13 @@ export alignment_template='/projects/0/einf2380/data/pMHCI/alignment/alignment_t
 
 #Copy the template file
 cp $original_pdb $alignment_template
-# # Align all the models to the template file
-srun --job-name first_align \
-    python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
-# # Orient the template file on the aligned peptides PCA
-srun --job-name orient_peptides --dependency=afterok:first_align \
-      python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --template $alignment_template
-# Align all the models to the re-oriented template file
-srun --dependency=afterok:first_align:orient_peptides \
-      python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
+
+# Align all the models to the template file
+echo "FIRST ALIGNMENT"
+srun --job-name first_align python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
+
+# Orient all the pdbs on the aligned peptides PCA
+echo "ORIENT PEPTIDES ON PCA"
+srun --dependency=afterok:first_align python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --n-cores 128
+
+

@@ -1,4 +1,5 @@
-from glob import glob
+import glob
+from itertools import _T3
 import pdb2sql
 from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
@@ -7,6 +8,8 @@ import pickle
 import sys
 import os
 import argparse
+from joblib import Parallel, delayed
+import time
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -19,54 +22,54 @@ arg_parser.add_argument("--pdbs-path", "-p",
     """,
     required=True
 )
-arg_parser.add_argument("--template", "-t",
+arg_parser.add_argument("--n-cores", "-n",
     help="""
-    Template file to be re-oriented
+    Number of cores
     """,
-    required=True
+    type=int,
+	default=1
 )
 
-def get_coords(aligned_pdbs_list:list):
-    """get coordinates of the peptides out of the pdbs
+def get_model_coords(model):
+    sql = pdb2sql.pdb2sql(model)
+    coords = sql.get('resSeq, x,y,z', chainID=['P'])
+    return coords
 
-    Args:
-        aligned_pdbs_list (list): a sublist of pdb paths (size of sublist is optimized for number of cores)
+def rotate_and_save(path, pca):
 
-    Returns:
-        all_coords (list): list of x,y,z coordinates for each pdb
-    """    
-    all_coords = []
-    for model in [ x for x in aligned_pdbs_list if '_origin' not in x]:
-        sql = pdb2sql.pdb2sql(model)
-        coords = sql.get('resSeq, x,y,z', chainID=['P'])
-        all_coords.append(coords)
-    return all_coords
-
-
-if __name__ == "__main__":
-    a = arg_parser.parse_args()
-    n_cores = n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
-
-    paths = glob(a.pdbs_path.replace('\\', ''))
-    print(f'Found {len(paths)} pdbs in orient_on_pept_PCA')
-    assert len(paths) > 0
-    # get the peptides coordinates in parallel
-    all_coords = Parallel(n_jobs = n_cores, verbose = 1)(delayed(get_coords)(sublist) for sublist in np.array_split(paths, n_cores))
-    # flatten nested list to get a (n,3) dim list
-    flatten_coords = [item for sublist in all_coords for item in sublist]
-    # just keep x,y,z values
-    coords = [[x[1:] for x in y] for y in flatten_coords]
-
-    pca = PCA(n_components=3)
-    all_coords = []
-    # put all coordinates in a flat list
-    for x in coords:
-        all_coords.extend(x)
-    # fit PCA
-    pca.fit(all_coords)
-    # get the coordinates of the template pdb
-    sql = pdb2sql.pdb2sql(a.template)
+    sql = pdb2sql.pdb2sql(path)
     sql_coords = sql.get('x,y,z')
-    # upate the coordinates of the template pdb and write new template pdb file
     sql.update('x,y,z', pca.transform(sql_coords))
-    sql.exportpdb(a.template)
+    sql.exportpdb(path)
+
+
+a = arg_parser.parse_args()
+a.pdbs_path = a.pdbs_path.replace('\\','')
+
+t0 = time.time()
+print('GLOB')
+models = glob.glob(a.pdbs_path)
+t1 = time.time()
+print( t1 - t0)
+print('RETRIEVE COORDS')
+all_coords = Parallel(n_jobs = a.n_cores, verbose = 1)(delayed(get_model_coords)(model) for model in models)
+
+coords = [[x[1:] for x in y] for y in all_coords]
+all_coords = []
+for x in coords:
+    all_coords.extend(x)
+
+t2 = time.time()
+print( t2 - t1)
+print('PCA')
+#raise Exception(' to fix the rest of the script')
+pca = PCA(n_components=3)
+pca.fit(all_coords)
+
+t3 = time.time()
+print( t3 - t2)
+print('APPLY PCA AND SAVE')
+Parallel(n_jobs = a.n_cores, verbose = 1)(delayed(rotate_and_save)(path, pca) for path in models)
+t4 = time.time()
+print( t4 - t3)
+print('DONE')

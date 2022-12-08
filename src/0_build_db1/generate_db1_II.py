@@ -17,12 +17,11 @@ arg_parser.add_argument(
     default="../../data/external/unprocessed/pMHCII/"
 )
 arg_parser.add_argument(
-    "--output-csv", "-d",
+    "--output-csv", "-o",
     help="Name of destination csv with filtered entries. \
     Otherwise this script can be used to visualize the applied filters.",
     default = None
 )
-
 arg_parser.add_argument("--prefix", "-i",
     help="The prefix for the ID",
     choices=["EL", "BA"],
@@ -61,7 +60,16 @@ def adapt_allele_name(allele):
         allele = allele.replace('_', '*')
         allele = allele[:-2] + ':' + allele[-2:]
         allele = 'HLA-'+ allele
-        
+    elif allele.startswith('HLA') and len(allele.split('-')) == 3:
+        allele = allele.split('-')[1:]
+        allele = [f'HLA-{x[:4]}*{x[4:6]}:{x[6:]}' for x in allele]
+        allele = (';').join(allele)
+        #DQA10401
+    elif allele.startswith('H-'):
+        pass
+    else:
+        print(f'Unrecognized allele syntax: {allele}')
+
     return allele
 
 if __name__ == "__main__":
@@ -111,7 +119,7 @@ if __name__ == "__main__":
     #%% Write output csv
     #with open('../binding_data/pMHCII/IDs_BA_MHCII.csv', 'w') as outcsv:
     with open(a.output_csv, 'w') as outcsv:
-        header = ['ID', 'peptide', 'allele', 
+        header = ['ID', 'allele', 'peptide', 
                 'score', 'measurment', 'db2_folder']
         outcsv.write((',').join(header) + '\n')
         for i, case in enumerate(ba_values):
@@ -123,7 +131,7 @@ if __name__ == "__main__":
             ba = str(case[3])
             out_interval = assign_outfolder(index)
             case_outfolder = outfolder + out_interval
-            row = [ID, pept, allele, score, ba, case_outfolder]
+            row = [ID, allele, pept, score, ba, case_outfolder]
             #outcsv.write((',').join(row))
             #if allele == 'HLA-DRB1*01:01':
             outcsv.write((',').join(row) + '\n')
