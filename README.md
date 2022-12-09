@@ -84,8 +84,28 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
     │
     ├── 3_build_db3 TO BE COMPLETED
     │   │
-    │   ├──                        
-    │   ├──                             
+    │   ├── 1_copy_3Dmodels_from_db2_x.sh             <- Runs copy_3Dmodels_from_db2.py for class I and 
+    |   |                                                II
+    |   ├── copy_3D_models_from_db2.py                <- Selects models used for DB3 generation
+    |   |   
+    │   ├── 2_build_blastdb.sh                        <- Creates the blast database for PSSM calculation
+    |   |
+    |   ├── 3_create_raw_pssm_x.sh                    <- Runs create_raw_pssm.py for class I and II
+    |   ├── create_raw_pssm.py                        <- Creates raw PSSM for one case (monoallelic database)
+    |   ├── create_all_raw_pssm.py                    <- Creates raw PSSM for each case
+    |   |
+    |   ├── 4_map_pssm2pdb_x.sh                       <- Runs map_pssm2pdb.py for class I and II
+    |   ├── map_pssm2pdb.py                           <- Maps the raw PSSM to the sequence of the pdb file
+    |   |
+    |   ├── 5_align_pdb_x.sh                          <- Runs align_pdb.py for class I and II
+    |   ├── align_pdb.py                              <- Aligns all selected pdbs on the M chain
+    |   |
+    |   ├── 6_peptide2onehot_x.sh                     <- Runs peptide2onehot.py to class I and II
+    |   ├── peptide2onehot.py                         <- Generates onehot encoded peptides with PSSM format
+    |   |
+    |   ├── merge_pdbs_and_pssms_chains.py            <- STILL TO COMPLETE
+    |   └── orient_on_pept_PCA.py                     <- Generates a pdb template with x,y,z encapsulating 
+    |                                                    the length, height and depth of the peptide, respectively
     │                                                
     ├── 4_build_db4        
     │   │
@@ -136,7 +156,9 @@ In the code and in the repo we often refer to numbered databases. Data can refer
 - Location on Snellius for pMHC-II: TO BE COMPLETED
   
 **DB4**: Interface grids for CNNs (deeprank) or interface graphs for GNNs (deeprankcore) in the form of hdf5 files. DB3 and DB2 are used the generation of DB4.
-- CNNs TO BE COMPLETED
+- CNNs
+  - The HDF5 files containing interface grid information is generated using the first version (open source) of DeepRank.
+  - Location on Snellius for pMHC-I:`/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/`. This folder contains a folder for each dataset. Each dataset is a regroupment of several HDF5 files (output of DeepRank).
 - GNNs
   - Location on Snellius for pMHC-I: `/projects/0/einf2380/data/pMHCI/features_output_folder/GNN/`. This folder contains two folders, `residue` and `atomic`, for the two different data resolutions. Soon the updated dataset will be uploaded there for both resolutions.
 
@@ -200,7 +222,7 @@ Output folder structure (after cleaning with clean_outputs.sh):
 │   │
 │   ├── *.ini                       Initial model generated placing the target atoms at the same coordinate as the template's atoms. This preceeds the IL model.
 │   │
-│   ├── *IL*.pdb                    Initial loop model based on the .ini model. Might be marked as best model when the target is identicatl to a template
+│   ├── *IL*.pdb                    Initial loop model based on the .ini model. Might be marked as best model when the target is identical to a template
 │
 └──
 ```
