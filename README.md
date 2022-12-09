@@ -82,7 +82,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
     │   └── modelling_job.py                          <- Actual 3D modelling job containing the PANDORA Wrapper. It is submitted in
     │                                                 parallel accross multiple nodes by allocate_nodes.py
     │
-    ├── 3_build_db3 TO BE COMPLETED
+    ├── 3_build_db3
     │   │
     │   ├── 1_copy_3Dmodels_from_db2_x.sh             <- Runs copy_3Dmodels_from_db2.py for class I and 
     |   |                                                II
