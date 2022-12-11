@@ -124,5 +124,5 @@ for i in range(len(pdb_files)):
         _log.info(f'{count} queries added to the collection.')
 
 _log.info(f'Queries ready to be processed.\n')
-output_paths = queries.process(f'{output_folder}/{resolution}', cpu_count = cpu_count)
+output_paths = queries.process(f'{output_folder}/{resolution}', cpu_count = cpu_count, combine_output = False)
 _log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')
