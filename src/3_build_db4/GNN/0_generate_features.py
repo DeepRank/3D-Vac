@@ -7,14 +7,15 @@ import logging
 from functools import partial
 
 ####### please modify here #######
-run_day = '07122022'
+run_day = '11122022'
 project_folder = '/projects/0/einf2380/'
+#project_folder = '/home/ccrocion/snellius_data_sample/'
 csv_file_name = 'BA_pMHCI_human_quantitative.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 64 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+cpu_count = 96 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
 ##################################
 
 if resolution == 'atomic':
@@ -24,7 +25,7 @@ else:
 
 csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 models_folder_path = f'{project_folder}data/{data}/features_input_folder/{models_folder_name}'
-output_folder = f'{project_folder}data/pMHCI/features_output_folder/GNN/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
 if not os.path.exists(output_folder):
 	os.makedirs(output_folder)
 else:
@@ -47,17 +48,24 @@ _log.addHandler(sh)
 
 _log.info('Script running has started ...')
 
-pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb_renumbered', '*.pdb'))
+pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
+pdb_files.sort()
 _log.info(f'{len(pdb_files)} pdbs found.')
-pssm_m = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.M.*.pssm'))[0] for pdb_file in pdb_files]
+pssm_m = glob.glob(os.path.join(models_folder_path + '/pssm', '*.M.*.pssm'))
+pssm_m.sort()
 _log.info(f'{len(pdb_files)} MHC pssms found.')
-pssm_p = [glob.glob(os.path.join(models_folder_path + '/pssm', pdb_file.split('/')[-1].split('.')[0] + '.P.*.pssm'))[0] for pdb_file in pdb_files]
+pssm_p = glob.glob(os.path.join(models_folder_path + '/pssm', '*.P.*.pssm'))
+pssm_p.sort()
 _log.info(f'{len(pdb_files)} peptide pssms found.')
 csv_data = pd.read_csv(csv_file_path)
 csv_data.cluster = csv_data.cluster.fillna(-1)
-clusters = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].cluster.values[0] for pdb_file in pdb_files]
-bas = [csv_data[csv_data.ID == pdb_file.split('/')[-1].split('.')[0].replace('-', '_')].measurement_value.values[0] for pdb_file in pdb_files]
-_log.info(f'Targets and clusters data loaded.')
+_log.info('Loaded csv file containing clusters and targets data.')
+pdb_ids_csv = [pdb_file.split('/')[-1].split('.')[0].replace('-', '_') for pdb_file in pdb_files]
+_log.info('Aligning clusters and targets data with pdbs ids ...')
+clusters = [csv_data[csv_data.ID == pdb_id].cluster.values[0] for pdb_id in pdb_ids_csv]
+_log.info(f'Clusters for {len(clusters)} data points loaded.')
+bas = [csv_data[csv_data.ID == pdb_id].measurement_value.values[0] for pdb_id in pdb_ids_csv]
+_log.info(f'Targets for {len(bas)} data points loaded.')
 
 _log.info('Verifying data consistency...')
 # verifying data consistency
@@ -116,5 +124,5 @@ for i in range(len(pdb_files)):
         _log.info(f'{count} queries added to the collection.')
 
 _log.info(f'Queries ready to be processed.\n')
-output_paths = queries.process(f'{output_folder}/processed-data')
+output_paths = queries.process(f'{output_folder}/{resolution}', cpu_count = cpu_count)
 _log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')
