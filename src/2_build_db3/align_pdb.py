@@ -100,24 +100,36 @@ class Rotation(nn.Module):
 # Class to process pdbs
 class PDB2dataset():
     
-    def __init__(self,pdbInpFolder, residues, chain='M', n_cores=-1): 
+    def __init__(self,pdbInpFolder, residues, chain='M', n_cores=-1):
+        self.cores = n_cores 
         self.chain = chain
         self.residues = [int(i) for i in residues]
         self.pdbInpFolder = pdbInpFolder
         #print(f"pdbInpFolder: {pdbInpFolder}")
         # self.pdbs = glob.glob(pdbInpFolder)
-        self.pdbs = glob.glob(self.pdbInpFolder)
+        self.pdbs = self._fastLoadDirs(self.pdbInpFolder)#glob.glob(self.pdbInpFolder)
         #print(f"self.pdbs: {self.pdbs}")
         print(f"Number of 3D Models: {len(self.pdbs)}")
         self.pdbs.append(a.template)
         self.pdbIds = [pdb for pdb in self.pdbs]
-        self.cores = n_cores
         print('Start loading data')
         t0 = time.time()
         coordinates, self.indiWeights = self.getData()
         print('Retrieved data, time: %.2f seconds' % (time.time()-t0))
         #coordinates, self.indiWeights = torch.rand(10000, 100, 3), 1
         self.rotator = Rotation(coordinates)
+    
+    def _fastLoadDirs(self, path):
+        globpath = os.path.join(path, '*')
+        pdb_subs = glob.glob(globpath)
+        
+        pdbs_list = Parallel(n_jobs=self.cores, verbose=1)(delayed(self._fastLoadSubDirs)(pdb_sub) for pdb_sub in pdb_subs)
+        pdbs_complete = [x for sublist in pdbs_list for x in sublist]
+        return pdbs_complete
+        
+    def _fastLoadSubDirs(self, sub_folder):
+        pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
+        return pdb_files
 
     # Extract all atom xyz coordinates
     def _extractPdbAtoms(self, fileName):

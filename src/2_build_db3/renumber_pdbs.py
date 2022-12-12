@@ -47,7 +47,7 @@ def renumber(pdb_fasta_list:list, chainId='M'):
         try:   
             pdbFile, fastaline = item
             pdb = open(pdbFile).read().split('\n')
-            with open(os.path.join(renumbered_path, os.path.basename(pdbFile)), 'w') as pdb2:
+            with open(pdb, 'w') as pdb2:
                 nmb2 = []
                 for i in range(len(fastaline)):
                     if fastaline[i] != '-':
@@ -130,24 +130,33 @@ def combine_dicts(list_dicts: list):
     return combined_dict
 
 
-def create_output_folder(pdbspath):
-    basedir = os.path.split(os.path.dirname(pdbspath))[0]
-    newpath = os.path.join(basedir, 'pdb_renumbered2')
-    if not os.path.exists(newpath):
-        os.mkdir(newpath)
-    else:
-        pass
-        # print(f'removing files from directory {newpath} if they exist')
-        # try:
-        #     subprocess.run(f'rm -r {newpath}/*', shell=True, check=True)
-        # except subprocess.CalledProcessError as cpe:
-        #     print(cpe)
-        # print(f'done removing files')
-    return newpath
+# def create_output_folder(pdbspath):
+#     basedir = os.path.split(os.path.dirname(pdbspath))[0]
+#     newpath = os.path.join(basedir, 'pdb_renumbered2')
+#     if not os.path.exists(newpath):
+#         os.mkdir(newpath)
+#     else:
+#         pass
+#         # print(f'removing files from directory {newpath} if they exist')
+#         # try:
+#         #     subprocess.run(f'rm -r {newpath}/*', shell=True, check=True)
+#         # except subprocess.CalledProcessError as cpe:
+#         #     print(cpe)
+#         # print(f'done removing files')
+#     return newpath
+
+def fast_load_dirs(sub_folder):
+    pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
+    return pdb_files
 
 def main(folder, n_cores):
     # get all the pdb paths
-    pdbs_complete = getPdbs(folder)
+    # pdbs_complete = getPdbs(folder)
+    # this yields a list of all the sub folders
+    pdb_subs = glob.glob(os.path.join(folder, '*'))
+    
+    pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in pdb_subs)
+    pdbs_complete = [x for sublist in pdbs_list for x in sublist]
     # let each inner list be handled by exactly one thread
     lists_pdb_dicts = Parallel(n_jobs=n_cores, verbose=1)(delayed(get_unique_sequences)(path_list, pdbs_complete) for path_list in np.array_split(pdbs_complete, n_cores))
     
@@ -188,5 +197,5 @@ def main(folder, n_cores):
 
 if __name__ == '__main__':
     a = parser.parse_args()
-    renumbered_path = create_output_folder(a.folder)
+    # renumbered_path = create_output_folder(a.folder)
     main(a.folder, a.n_cores)
