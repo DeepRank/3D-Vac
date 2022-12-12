@@ -140,3 +140,6 @@ experiments_log.xlsx
 
 # notebooks
 src/4_train_models/GNN/I/classification/struct/playground.ipynb
+
+# slurm
+.out
