@@ -49,7 +49,8 @@ tot_cases = len(df)
 running_time_hms = datetime.timedelta(hours=int(a.running_time))
 
 NUM_CORES = 128
-CASES_PER_HOUR_PER_CORE = 24
+time_per_class = {'I': 24, 'II':20}
+CASES_PER_HOUR_PER_CORE = time_per_class[a.mhc_class]
 
 if a.num_nodes == "0":
     #no number of nodes given, compute nodes from running_time
@@ -80,6 +81,7 @@ modelling_job_cmd_temp = [
     "sbatch",
     f"--time={sbatch_hours}",
     "--cpus-per-task={}",
+    f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/3D_modelling_job-%J.out",
     "modelling_job.sh",
     "--node-index={}",
     '--running-time', str(running_time_hms), 
@@ -97,21 +99,23 @@ for n in range(int(a.num_nodes)):
     if n == int(a.num_nodes)-1: # last one of the batches
         rest = tot_cases % batch
         assert tot_cases >= batch
+        #Optimize the last batch number of cores
         if not int(rest) == 0:
             n_cores_per_hour = math.ceil(rest/CASES_PER_HOUR_PER_CORE) # compute cores based on batch rest
-            n_cores = math.ceil(n_cores_per_hour/running_time_frac) # divide by running_time 
+            opt_n_cores = math.ceil(n_cores_per_hour/running_time_frac)
+            n_cores = min([opt_n_cores, NUM_CORES]) # divide by running_time 
         elif batch < n_cores: # if the batch is really small, take one node per case
             n_cores = batch
 
     modelling_job_cmd = deepcopy(modelling_job_cmd_temp)
     # fill in missing parameters
-    modelling_job_cmd[4] = modelling_job_cmd[4].format(n)
     modelling_job_cmd[2] = modelling_job_cmd[2].format(n_cores)
+    modelling_job_cmd[4] = modelling_job_cmd[4].format(n)
 
     print(f"running:\n {modelling_job_cmd}")
 
     modeling_job_out = subprocess.run(modelling_job_cmd, 
-                                         capture_output=True, check=True)
+                                         capture_output=True)#, check=True)
 
     modelling_job_id = re.search(r"\d+", modeling_job_out.stdout.decode("ASCII")).group()
     job_ids.append(modelling_job_id)
@@ -128,6 +132,7 @@ clean_out = subprocess.run([
     f"--dependency=afterany:{','.join(job_ids)}",
     f"--time={str(running_time_hms)}",
     f"--cpus-per-task", str(NUM_CORES), 
+    f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/clean_models_job-%J.out",
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
@@ -138,6 +143,7 @@ clean_output_job_id = int(re.search(r"\d+", clean_out.stdout.decode("ASCII")).gr
 subprocess.run([
     "sbatch",
     f"--dependency=afterok:{clean_output_job_id}",
+    f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.out",
     "get_unmodelled_cases.sh",
     "--csv-file", a.input_csv,
     "--models-dir", a.models_dir,
