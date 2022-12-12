@@ -157,6 +157,8 @@ def main(folder, n_cores):
     
     pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in pdb_subs)
     pdbs_complete = [x for sublist in pdbs_list for x in sublist]
+    print(f'number of pdbs: {len(pdbs_complete)}')
+    
     # let each inner list be handled by exactly one thread
     lists_pdb_dicts = Parallel(n_jobs=n_cores, verbose=1)(delayed(get_unique_sequences)(path_list, pdbs_complete) for path_list in np.array_split(pdbs_complete, n_cores))
     
@@ -169,8 +171,6 @@ def main(folder, n_cores):
     
     fasta_in = os.path.join('/projects/0/einf2380/data/temp/renumber_pdbs', 'tmp_fasta.fa')
     fasta_out = os.path.join('/projects/0/einf2380/data/temp/renumber_pdbs', 'tmp_fasta_out.fa')
-    # fasta_in = os.path.join('/home/severin/teststuff/test_renaming', 'tmp_fasta.fa')
-    # fasta_out = os.path.join('/home/severin/teststuff/test_renaming', 'tmp_fasta_out.fa')
     
     with open(fasta_in, 'w') as fastafile:
         [fastafile.write('>%s\n%s\n' % (seq, seq)) for seq in combined_pdb_dict.keys()]
@@ -191,7 +191,7 @@ def main(folder, n_cores):
     with open('combined_pdb_dict.pkl', 'wb') as outfile:
         pickle.dump(combined_pdb_dict, outfile)
             # renumber(pdbs[pdb_ind], alignment, 'M')
-    Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
+    #Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
     print('done!')
 
 
