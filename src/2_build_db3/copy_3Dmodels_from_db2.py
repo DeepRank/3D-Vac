@@ -1,16 +1,12 @@
 import argparse
 import pandas as pd
 import glob
-import pickle
 import os
+import math
+import traceback
 import subprocess
-from mpi4py import MPI
-import numpy as np
-import re
-
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
+import tarfile
+from joblib import Parallel, delayed 
 
 arg_parser = argparse.ArgumentParser(
     description="""
@@ -33,6 +29,17 @@ arg_parser.add_argument("--csv-file", "-f",
     """,
     default="../../data/external/processed/BA_pMHCI.csv",
 )
+arg_parser.add_argument("--models-path", "-p",
+    help = "glob.glob() string argument to generate a list of all models. A short tutorial on how to use glob.glob: \
+    https://www.geeksforgeeks.org/how-to-use-glob-function-to-find-files-recursively-in-python/\
+     Default value: \
+    /projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*",
+    default = "/projects/0/einf2380/data/pMHCI/3D_models/BA/\*/\*"
+)
+arg_parser.add_argument("--best-models-path", "-b",
+    type = str,                    
+    default = "/projects/0/einf2380/data/pMHCI/db2_selected_models_1"
+)
 arg_parser.add_argument("--mhc-class", "-m",
     help="""
     MHC class
@@ -40,63 +47,134 @@ arg_parser.add_argument("--mhc-class", "-m",
     default="I",
     choices=["I", "II"],
 )
-a = arg_parser.parse_args()
 
-db2_selected_models_path = f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models"
 
-csv_path = f"{a.csv_file}"
-df = pd.read_csv(csv_path)
+def extract_member(case, member_name):
+    try:
+        with tarfile.open(f'{case}.tar', 'r') as tar:
+            # need to rename tar members because writing to the original dir will not work otherwise
+            for member in tar:
+                member.name = os.path.basename(member.name)
 
-# MANAGE MPI
-# ----------
+            case_path = os.path.join(temp, os.path.basename(case))
+            try:
+                if not os.path.exists(case_path):
+                    os.mkdir(case_path)
+            except FileExistsError:
+                print("folder already made")
+            tar.extract(member_name, os.path.join(temp, os.path.basename(case)))
+        # return the full path of tar member
+        return os.path.join(temp, os.path.basename(case), member_name)
+    except tarfile.ReadError as e:
+        print(e)
+        # remove complete directory so that get_unmodelled cases sees it as unmodelled
+        print(f"(extract_member) Tar file is not valid, removing: {case}")
+        return False
+    except KeyError as ke:
+        print(f'In extract_member: molpdf not found for {case}:\n{ke}')
+    except subprocess.CalledProcessError as e:
+        print('In extract_member: ')
+        print(e)
+    except:
+        traceback.print_exc()# if all goes well the tar file should exist
 
-if rank==0:
-    # Look only at db2 cases and not every cases:
-    all_models = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/3d_models//BA/*/*")
-    db2 = np.array([folder for folder in all_models if "_".join(folder.split("/")[-1].split("_")[0:2]) in df["ID"].tolist()])
-    db2 = np.array_split(db2, size)
-else:
-    db2 = None
-db2 = comm.scatter(db2, root=0)
+def retrieve_best_model(case):
+    molpdf_path = extract_member(case, "molpdf_DOPE.tsv")
+    if molpdf_path:
+        try:
+            molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
+        except pd.errors.EmptyDataError:
+            print(f"empty df: {molpdf_path}")
+            return
+    else:
+        # go back to the run function to break processing case and print traceback
+        raise Exception
+    target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
+    target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
+    target_ids = molpdf_df[target_mask].iloc[:,0]
+    targets = [f"{case}/{structure}" for structure in target_ids]
+    return targets
 
-# EXECUTE TASK
-# ------------
+def copy_best_model(case, pdb_names):
+    # iterate of top n models (usually n=1)
+    for pdb_name in pdb_names:
+        # extract model from tar so it can be copied
+        basename_pdb = os.path.basename(pdb_name)
+        pdb_path = extract_member(case, basename_pdb)
 
-# For each db2 cases, get the best structures:
-db2_targets = []
-for case in db2:
-        molpdf_path = f"{case}/molpdf_DOPE.tsv"
-        molpdf_df = pd.read_csv(molpdf_path, sep="\t", header=None)
-        target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
-        target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
-        target_ids = molpdf_df[target_mask].iloc[:,0]
-        targets = [f"{case}/{structure}" for structure in target_ids]
-        db2_targets.extend(targets)
-
-# Copy each target:
-for structure in db2_targets:
-    # attempt to create subfolders:
-        dir = "/".join(structure.split("/")[-4:-1])
-        pdb_file = structure.split("/")[-1].split('.')
+        # building the output path
+        case_path = "/".join(pdb_name.split("/")[-4:-1])
+        pdb_file = pdb_name.split("/")[-1].split('.')
         pdb_file = ('.').join([pdb_file[0], pdb_file[2]])
-        destination_dir = f"{db2_selected_models_path}/{dir}/pdb"
+        destination_dir = f"{db2_selected_models_path}/{case_path}/pdb"
         destination_file = f"{destination_dir}/{pdb_file}"
+
         if not os.path.isdir(destination_dir):
             try: # create remaining subfolders:
                 os.makedirs(destination_dir)
-            except:
-                print('Something went worng in creating', destination_dir)
+            except Exception as e:
+                print('Something went wrong in creating', destination_dir)
+                print(e)
         else:
             print(f"Directory {destination_dir} already exists")
         try: #Copy the pdb file to two files, one to be kept unchanged and one to be modified later
-            subprocess.check_call(f'cp {structure} {destination_file}', shell=True)
-            subprocess.check_call(f'cp {structure} {destination_file}.origin', shell=True)
+            subprocess.run(f'cp {pdb_path} {destination_file}', check=True, shell=True)
+            subprocess.run(f'cp {pdb_path} {destination_file}.origin', check=True, shell=True)
+            # now remove the temp files
+            subprocess.run(f'rm -r {os.path.split(pdb_path)[0]}', check=True, shell=True)
         except Exception as e:
             print(f'The following error occurred: {e}')
 
-# retrieve all db2 to make sure everything is modelled:
-print(f"Finished copying on rank {rank} for {db2.shape[0]} cases.")
-db2 = comm.gather(db2.shape[0], root=0)
-if rank == 0:
-    db2 = np.array(db2)
-    print(f"Total structures copied: {db2.sum()}")
+def run(case_paths):
+    for case in case_paths:
+        try:
+            targets = retrieve_best_model(case)
+            copy_best_model(case, targets)
+        except:
+            print(traceback.format_exc())
+            print(f'Copying best models of case: {case} not succesful')
+            return case
+
+
+a = arg_parser.parse_args()
+
+db2_selected_models_path = a.best_models_path
+# TMP dir to write temporary files to 
+base_tmp = os.environ["TMPDIR"]
+temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
+if not os.path.exists(temp):
+    os.mkdir(temp)
+
+# do a check if models dir is passed in the correct way
+if "*" not in a.models_path and type(a.models_path)!=list:
+    print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
+    raise SystemExit
+
+# read the csv from db2 to find all case ids
+csv_path = f"{a.csv_file}"
+df = pd.read_csv(csv_path, header=0)
+df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
+
+wildcard_path = a.models_path.replace('\\', '')
+folders = glob.glob(wildcard_path)
+folders = [folder for folder in folders if '.tar' in folder]
+all_models = [case.split('.')[0] for case in folders]
+# filter out the models that match in the original csv from db2
+db2 = [folder for folder in all_models if folder.split("/")[-1] in df["ID"].tolist()]
+db2 = all_models
+n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+# n_cores = 2
+
+all_paths_lists = []
+print(f'len db2 {len(db2)}')
+print(f'n_cores {n_cores}')
+chunk = math.ceil(len(db2)/n_cores)
+# cut the process into pieces to prevent spawning too many parallel processing
+for i in range(0, len(db2), chunk):
+    all_paths_lists.append(db2[i:min(i+chunk, len(db2))])
+# let each inner list be handled by exactly one thread
+failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
+
+failed_cases_str = '\n'.join(failed_cases)
+if failed_cases_str:    
+    print(f'List of cases that could not be processed:\n{failed_cases_str}')
