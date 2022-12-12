@@ -10,4 +10,4 @@
 source activate deeprank
 
 # cp -a /projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative/pdb/. /projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative/pdb_renumbered
-python renumber_pdbs.py --n-cores 128 --folder /projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative/pdb/
+python renumber_pdbs.py --n-cores 128 --folder /projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA

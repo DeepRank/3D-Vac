@@ -14,7 +14,7 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-export pdbs_path='/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/\*/\*/pdb/\*.pdb'
+export pdbs_path='/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/'
 export original_pdb='/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/55001_56000/BA_55613_2IAN/pdb/BA_55613.pdb'
 export alignment_template='/projects/0/einf2380/data/pMHCII/3D_models/alignment/alignment_template.pdb'
 

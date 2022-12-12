@@ -14,7 +14,7 @@ module load foss/2021a
 # Activate conda env:
 source activate deeprank
 
-export pdbs_path='/projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative/pdb_renumbered/\*'
+export pdbs_path='/projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA/'
 export original_pdb='/projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA/68001_69000/BA-68085/pdb/BA-68085.pdb'
 export alignment_template='/projects/0/einf2380/data/pMHCI/alignment/alignment_template.pdb'
 
