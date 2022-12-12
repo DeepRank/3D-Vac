@@ -1,5 +1,4 @@
 import glob
-from itertools import _T3
 import pdb2sql
 from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
@@ -41,16 +40,26 @@ def rotate_and_save(path, pca):
     sql_coords = sql.get('x,y,z')
     sql.update('x,y,z', pca.transform(sql_coords))
     sql.exportpdb(path)
+    
+def fast_load_dirs(sub_folder):
+    pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
+    return pdb_files
 
+n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 
 a = arg_parser.parse_args()
 a.pdbs_path = a.pdbs_path.replace('\\','')
 
-t0 = time.time()
+sub_folders = glob.glob(os.path.join(a.pdbs_path,'*'))
+
 print('GLOB')
-models = glob.glob(a.pdbs_path)
+t0 = time.time()
+pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in sub_folders)
+models = [x for sublist in pdbs_list for x in sublist]
+
 t1 = time.time()
 print( t1 - t0)
+
 print('RETRIEVE COORDS')
 all_coords = Parallel(n_jobs = a.n_cores, verbose = 1)(delayed(get_model_coords)(model) for model in models)
 
