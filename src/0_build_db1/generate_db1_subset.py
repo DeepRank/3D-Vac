@@ -34,6 +34,10 @@ arg_parser.add_argument(
     default = "remove",
     choices=['remove','mean','min','max', 'leave']
 )
+arg_parser.add_argument("--human-only", "-H",
+    help="Take only human cases",
+    action="store_true",
+    )
 
 a = arg_parser.parse_args()
 
@@ -46,6 +50,8 @@ with open(a.input_db, 'r') as infile:
         else:
             allele = row[header.index('allele')]
             pept = row[header.index('peptide')]
+            if a.human_only and not 'HLA-' in allele:
+                continue
             if a.allele != [] and not any(allele == x for x in a.allele):
                 continue
             if a.peptide_length and len(pept) != a.peptide_length:

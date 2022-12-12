@@ -67,6 +67,7 @@ if a.skip_check == False:
         [
             "sbatch",
             "--time", time_get_unmod, 
+            f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.out",
             "get_unmodelled_cases.sh",
             "--csv-file", a.input_csv,
             "--update-csv", # this argument is mandatory to overwrite `to_model.csv`
@@ -84,6 +85,7 @@ if a.skip_check == False:
         [
             "sbatch",
             f"--dependency=afterok:{jid_get_unmod}",
+            f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.out",
             "allocate_nodes.sh",
             "--running-time", running_time,
             "--num-nodes", a.num_nodes,
@@ -98,6 +100,7 @@ else:
     subprocess.run(
         [
             "sbatch",
+            f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.out",
             "allocate_nodes.sh",
             "--running-time", running_time,
             "--num-nodes", a.num_nodes,
