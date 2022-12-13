@@ -32,7 +32,7 @@ arg_parser.add_argument("--cluster", "-c",
 
 arg_parser.add_argument("--csv-file", "-d",
     help= "Name of db1. Needed only for clustered split.",
-    default="../../../data/external/processed/BA_pMHCI_substracted.csv",
+    default="../../../data/external/processed/BA_pMHCI.csv",
 )
 arg_parser.add_argument("--output-path", "-o",
     help="Destination path for the generated splits. For clustered will be in --output-path/clustered and in \
