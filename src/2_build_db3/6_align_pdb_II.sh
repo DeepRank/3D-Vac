@@ -18,23 +18,18 @@ export pdbs_path='/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/'
 export original_pdb='/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/55001_56000/BA_55613_2IAN/pdb/BA_55613.pdb'
 export alignment_template='/projects/0/einf2380/data/pMHCII/3D_models/alignment/alignment_template.pdb'
 
+# Renumber the pdbs
+echo "RENUMBER THE PDBS"
+srun --job-name renumber python renumber_pdbs.py --n-cores 128 --folder $pdbs_path
+
 #Copy the template file
-echo "COPY TEMPLATE"
+echo "COPY TEMPLATE FILE"
 cp $original_pdb $alignment_template
+
 # Align all the models to the template file
-#srun --job-name first_align  \
 echo "FIRST ALIGNMENT"
-python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
+srun --dependency=afterok:renumber --job-name first_align python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
 
-# Orient the template file on the aligned peptides PCA
-#srun --job-name orient_peptides \
-#    --dependency=afterany:first_align \
+# Orient all the pdbs on the aligned peptides PCA
 echo "ORIENT PEPTIDES ON PCA"
-#TODO: make this script rotate all the models, so there is no need for the second alignment
-python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --n-cores 128
-
-# Align all the models to the re-oriented template file
-#srun --dependency=afterany:first_align:orient_peptides \
-#echo "SECOND ALIGNMENT"
-#python -u align_pdb.py --pdbs-path $pdbs_path --template $alignment_template --n-cores 128
-    
+srun --dependency=afterok:first_align python -u orient_on_pept_PCA.py --pdbs-path $pdbs_path --n-cores 128
