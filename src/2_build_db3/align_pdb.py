@@ -157,7 +157,7 @@ class PDB2dataset():
                 ind = self.residues.index(atom[0])
                 trainData[i, ind] = torch.Tensor(atom[1])
                 weights[i, ind] = 1
-        return trainData, weights 
+        return trainData, weights
     
     # Rotates a single pdb
     def _rotate(self, pdbIndices):
@@ -210,14 +210,7 @@ class PDB2dataset():
         self.rotator.mean = self.rotator.mean.detach()
         self.rotator.coordinates = self.rotator.coordinates.detach()
         
-        
         Parallel(n_jobs=self.cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in np.array_split(list(range(nmbr)), self.cores))
-        #pool = mp.Pool(n_cores)
-        #pool.map(self._rotate, range(nmbr))
-        
-        #for pdbIndex in range(len(self.pdbs)):
-        #	self._rotate(pdbIndex)
-        # _ = [self._rotate(pdbIndex) for pdbIndex in range(nmbr)] 
         print('Rotating and saving data took: %.2f seconds' % (time.time()-t0))
         
     # Train the function

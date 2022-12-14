@@ -3,9 +3,9 @@ import pdb2sql
 from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
 import numpy as np
-import pickle
 import sys
 import os
+import traceback
 import argparse
 from joblib import Parallel, delayed
 import time
@@ -30,16 +30,26 @@ arg_parser.add_argument("--n-cores", "-n",
 )
 
 def get_model_coords(model):
+    """get the model coordinates from the temp (intermediate) pdb
+        i.e. the pdb that was rotated in the align_pdb.py
+    Args:
+        model (str): path of the pdb
+
+    Returns:
+        coords (list): coordinates of each atom
+    """
     sql = pdb2sql.pdb2sql(model)
     coords = sql.get('resSeq, x,y,z', chainID=['P'])
     return coords
 
 def rotate_and_save(path, pca):
-
-    sql = pdb2sql.pdb2sql(path)
-    sql_coords = sql.get('x,y,z')
-    sql.update('x,y,z', pca.transform(sql_coords))
-    sql.exportpdb(path)
+    try:
+        sql = pdb2sql.pdb2sql(path)
+        sql_coords = sql.get('x,y,z')
+        sql.update('x,y,z', pca.transform(sql_coords))
+        sql.exportpdb(path)
+    except:
+        print(f'Something went wrong with {path}\n{traceback.format_exc()}')
     
 def fast_load_dirs(sub_folder):
     pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
@@ -56,6 +66,7 @@ print('GLOB')
 t0 = time.time()
 pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in sub_folders)
 models = [x for sublist in pdbs_list for x in sublist]
+print(f'number of models found: {len(models)}')
 
 t1 = time.time()
 print( t1 - t0)
@@ -67,6 +78,7 @@ coords = [[x[1:] for x in y] for y in all_coords]
 all_coords = []
 for x in coords:
     all_coords.extend(x)
+print(f'number of coordinates found: {len(all_coords)}')
 
 t2 = time.time()
 print( t2 - t1)
@@ -74,7 +86,8 @@ print('PCA')
 #raise Exception(' to fix the rest of the script')
 pca = PCA(n_components=3)
 pca.fit(all_coords)
-
+print(f'PCA:\n {pca.components_}')
+    
 t3 = time.time()
 print( t3 - t2)
 print('APPLY PCA AND SAVE')

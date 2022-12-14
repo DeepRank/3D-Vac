@@ -2,7 +2,6 @@ import random
 import glob
 import os
 import math
-import pickle
 import traceback
 import argparse
 import subprocess
@@ -47,7 +46,7 @@ def renumber(pdb_fasta_list:list, chainId='M'):
         try:   
             pdbFile, fastaline = item
             pdb = open(pdbFile).read().split('\n')
-            with open(pdb, 'w') as pdb2:
+            with open(pdbFile, 'w') as pdb2:
                 nmb2 = []
                 for i in range(len(fastaline)):
                     if fastaline[i] != '-':
@@ -66,19 +65,12 @@ def renumber(pdb_fasta_list:list, chainId='M'):
                                                 ) + str(nmb2[tel])+'\n')
                     else:
                         pdb2.write(line+'\n')
-                print(f"processed pdb successfully {pdbFile}")
         except Exception as e:
             print(f'Failed to process pdb {pdbFile} with fasta sequence {fastaline}\nline: {line}\nnmb2: {nmb2}\n tel: {tel}')
             print(f'{e}\n{traceback.format_exc()}')
 
 
 def getPdbs(folder):
-    #  pdbs_list = []
-    # if 1:
-    #     for root, _, files in os.walk(folder):
-    #         for file in [file for file in files if file.endswith('.pdb')]:
-    #             pdbs_list.append(str(os.path.join(root, file)))
-
     pdbs_list = glob.glob(os.path.join(folder, '*'))
     # Sort the files alphabetically
     pdbs_list.sort(key=str.lower)
@@ -87,6 +79,16 @@ def getPdbs(folder):
 
 
 def getSequence(pdb, chain="M"):
+    """_summary_
+
+    Args:
+        pdb (str): path of pdb file
+        chain (str, optional): chain descriptor in the pdb, only get the atoms 
+                                   linked to that chain Defaults to "M" (=MHC).
+
+    Returns:
+        str: sequence of protein chain
+    """    
     pdb = open(pdb).read().split('\n')
     pdb = [line[17:27]
            for line in pdb if line.startswith('ATOM ') and line[21] == chain]
@@ -103,6 +105,17 @@ def readFasta(fname):
     return [[i.split('\n')[0], ''.join(i.split('\n')[1:])] for i in open(fname).read().split('>')[1:]]
 
 def get_unique_sequences(pdbs:list, pdbs_complete: list):
+    """pair the unique protein sequences (found after parsing all the models) with a list of indices 
+    corresponding to the posititon of the pdb paths (that match with that sequence) in a fixed list of paths (pdbs_complete)
+    example: {'MCGVALG..':[2,23,189], 'MIKCAP..': [67, 290, 3489], ..}
+
+    Args:
+        pdbs (list): a sublist of pdbs_complete (list was chunked in order to parallelize this process)
+        pdbs_complete (list): complete list of paths of all the pdbs
+
+    Returns:
+        dic (dict): dictionary containing a mapping of the unique sequences with all the indices referring to pdb paths
+    """    
     sequences = [getSequence(pdb) for pdb in pdbs]
     dic = {}
     for i, (seq, pdbfile) in enumerate(zip(sequences, pdbs)):
@@ -129,29 +142,11 @@ def combine_dicts(list_dicts: list):
                 combined_dict[seq] = index_pdb
     return combined_dict
 
-
-# def create_output_folder(pdbspath):
-#     basedir = os.path.split(os.path.dirname(pdbspath))[0]
-#     newpath = os.path.join(basedir, 'pdb_renumbered2')
-#     if not os.path.exists(newpath):
-#         os.mkdir(newpath)
-#     else:
-#         pass
-#         # print(f'removing files from directory {newpath} if they exist')
-#         # try:
-#         #     subprocess.run(f'rm -r {newpath}/*', shell=True, check=True)
-#         # except subprocess.CalledProcessError as cpe:
-#         #     print(cpe)
-#         # print(f'done removing files')
-#     return newpath
-
 def fast_load_dirs(sub_folder):
     pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
     return pdb_files
 
 def main(folder, n_cores):
-    # get all the pdb paths
-    # pdbs_complete = getPdbs(folder)
     # this yields a list of all the sub folders
     pdb_subs = glob.glob(os.path.join(folder, '*'))
     
@@ -161,11 +156,7 @@ def main(folder, n_cores):
     
     # let each inner list be handled by exactly one thread
     lists_pdb_dicts = Parallel(n_jobs=n_cores, verbose=1)(delayed(get_unique_sequences)(path_list, pdbs_complete) for path_list in np.array_split(pdbs_complete, n_cores))
-    
-    with open('list_pdb_dicts.pkl', 'wb') as writefile:
-        pickle.dump(lists_pdb_dicts, writefile)
-    # reduce list of lists to a (1d) list
-    # list_pdbs_dicts = list(np.array(lists_pdb_dicts).flat)
+
     # get the combined dictionary of all the parallel processes
     combined_pdb_dict = combine_dicts(lists_pdb_dicts)
     
@@ -183,15 +174,8 @@ def main(folder, n_cores):
         corresponding = combined_pdb_dict[unique_seq]
         for pdb_ind in corresponding:
             pdb_new_alignment_pair.append([pdbs_complete[pdb_ind], alignment])
-    print(f"len pdb_new_alignment_pair: {pdb_new_alignment_pair}")
-    
-    with open('pdb_new_alignment_pair.pkl', 'wb') as outfile:
-        pickle.dump(pdb_new_alignment_pair, outfile)
-    
-    with open('combined_pdb_dict.pkl', 'wb') as outfile:
-        pickle.dump(combined_pdb_dict, outfile)
-            # renumber(pdbs[pdb_ind], alignment, 'M')
-    #Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
+
+    Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
     print('done!')
 
 
