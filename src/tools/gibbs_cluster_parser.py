@@ -7,7 +7,9 @@ import math
 arg_parser = argparse.ArgumentParser(description="""
     Script used to parse GibbsCluster server (https://services.healthtech.dtu.dk/service.php?GibbsCluster-2.0)
     output and assign gibbs_cluster to the DB1 csv file provided in --file. If the --plot argument is provided,
-    only the histogram of peptide distribution is plotted without updating the csv
+    only the histogram of peptide distribution is plotted without updating the csv. Generates or updates a 
+    "gibbs_cluster" column (name can be changed). Expects both negative and positive server outputs from 
+    the gibbs cluster software.
 """)
 
 arg_parser.add_argument("--file", "-f",
