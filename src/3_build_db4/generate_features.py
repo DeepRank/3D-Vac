@@ -39,7 +39,8 @@ database = DataGenerator(
         "deeprank.features.FullPSSM",
         "deeprank.features.BSA",
         "deeprank.features.ResidueDensity",
-        "edesolv_feature"
+        "edesolv_feature",
+        "anchor_feature"
     ],
     compute_targets=[
         "threshold_classification"
