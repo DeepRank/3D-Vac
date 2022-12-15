@@ -12,8 +12,7 @@ def __compute_target__(pdb, targrp):
     threshold: plateau to define binders (should be 500)
     """
     #in_csv = os.environ['TARGET_INPUT_CSV']
-    # in_csv="/projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv"
-    in_csv="/home/lepikhovd/3D-Vac/data/external/processed/test_case.csv"
+    in_csv="/projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv"
     df = pd.read_csv(in_csv)
     tarname = "BIN_CLASS"
     molname = targrp.parent.name.replace("/", "")
