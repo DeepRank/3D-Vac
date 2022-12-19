@@ -57,8 +57,13 @@ if __name__ == "__main__":
     case_ids = np.array(case_ids)
     case_ids = np.array_split(case_ids, a.n_jobs)
     res = pool.map(assign_anchors, case_ids)
-    res = {list(item.keys())[0]:list(item.values())[0] for item in res}
-
-    for case_id,anchors in res.items():
-        df.loc[df["ID"] == case_id, "anchors"] = str(anchors)
-    df.to_csv(header=False)
+     # make a flat dictionary out of the list of dictionaries
+    res = {list(item.keys())[i]:list(item.values())[i] for item in res for i in range(len(list(item.keys())))}
+    # transform to a pandas series
+    anchor_series = pd.DataFrame.from_dict(res, orient='index', columns=['anchor_0' , 'anchor_1'])
+    # rest the index to make concat possible
+    df.set_index(keys='ID', inplace=True)
+    # concatenate the new series(with anchors) to the orignal dataframe
+    df_with_anchors = pd.concat([df, anchor_series], axis=1)
+    # write the file (with index, because these are the IDs)
+    df_with_anchors.to_csv(a.csv_file)
