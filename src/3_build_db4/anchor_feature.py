@@ -2,6 +2,9 @@ from pdb2sql import pdb2sql
 import pandas as pd
 from deeprank.features import FeatureClass
 from ast import literal_eval
+import glob
+import random
+import pickle
 
 class AnchorFeature(FeatureClass):
 
@@ -16,7 +19,7 @@ class AnchorFeature(FeatureClass):
         }
 
         self.db = pdb2sql(pdbfile)
-        self.df = pd.read_csv("/home/lepikhovd/3D-Vac/data/external/processed/test_case.csv")
+        self.df = pd.read_csv("/home/lepikhovd/3D-Vac/data/external/processed/all_hla.csv")
         self.peptide = [one_letter[res[1]] for res in self.db(chainID="P").get_residues()]
         anchors = self.df.loc[self.df["peptide"] == "".join(self.peptide)][["anchor_0", "anchor_1"]].values.tolist()[0]
         self.anchors = [str(anchor) for anchor in anchors]
@@ -59,9 +62,31 @@ def __compute_feature__(pdb_data, featgrp, featgrp_raw, chain1, chain2):
     anchfeat.db._close()
 
 if __name__ == "__main__":
-    pdb_file = "/projects/0/einf2380/data/pMHCI/features_input_folder/test_case/pdb/BA-87169.pdb"
+    # pdb_file = "/projects/0/einf2380/data/pMHCI/features_input_folder/test_case/pdb/BA-87169.pdb"
+    df = pd.read_csv("../../data/external/processed/all_hla.csv")
+    df["ID"] = df["ID"].apply(lambda x: x.replace("_","-"))
 
-    #create instance:
-    anchfeat = AnchorFeature(pdb_file)
+    csv_ids = df["ID"].tolist()
+    all_models = pickle.load(open("../tools/all_models_paths.pkl", "rb"))
+    all_models_ids = [model.split("/")[-1].replace(".pdb", "") for model in all_models]
+    id_model_dict = pickle.load(open("./id_model_dict.pkl", "rb"))
+    # id_model_dict = dict(zip(all_models_ids, all_models))
+    
+    # print("Filtering id_model_dict with csv cases..")
+    # id_model_dict = {model_id: model for model_id, model in id_model_dict.items() if model_id in csv_ids}
 
-    anchfeat.get_feature()
+    all_models_rand_ids = random.sample(list(id_model_dict.keys()), 10)
+
+    for model_id in all_models_rand_ids:
+        pdb_file = id_model_dict[model_id] 
+        print(model_id)
+        peptide = df.loc[df["ID"] == model_id, "peptide"].values[0]
+        #create instance:
+        anchfeat = AnchorFeature(pdb_file)
+        anchfeat.get_feature()
+
+        print(f"For case {model_id}:")
+        print(f"peptide sequence: {peptide}")
+        print(f"Anchors: {anchfeat.anchors}")
+        print(f"Len of feature_data_xyz: {len(anchfeat.feature_data_xyz['anch'])}")
+        print("#############################")

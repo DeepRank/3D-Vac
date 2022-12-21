@@ -7,7 +7,11 @@ import multiprocessing as mp
 import numpy as np
 
 arg_parser = argparse.ArgumentParser(description="""
-    Adds an anchor column to the db1.
+    This script is to run only for MHC class 1 alleles. Appends a anchor_0 and anchor_1
+    column to the --csv-file by reading out the compressed MyLoop.py file of the corresponding
+    modeled case. MyLoop.py gives the information of which residues are not anchored. This script
+    should be run with add_anchors.sh batch script as it takes 128 cores from one node only 
+    and assigns anchors in a parrallel way (MPI not supported).
 """)
 
 arg_parser.add_argument("--csv-file", "-f",
@@ -19,7 +23,7 @@ arg_parser.add_argument("--models-path", "-p",
     default="/projects/0/einf2380/data/pMHCI/3d_models/BA/*/*"
 )
 arg_parser.add_argument("--n-jobs", "-n",
-    help="Number of worker for the multiprocessing.Pool. Default 4",
+    help="Number of worker for the multiprocessing.Pool. Default 128",
     default=4,
     type=int
 )
@@ -40,7 +44,7 @@ def assign_anchors(ids):
             archive = tarfile.open(id_model[case_id])
         else:
             print(f"{case_id} is not modelled.")
-            id_anchors[case_id]= None
+            id_anchors[case_id]= [-1,-1]
             continue
         f = archive.extractfile(f"{case_id}/MyLoop.py")
         lines = [l for l in f]
