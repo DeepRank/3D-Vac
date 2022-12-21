@@ -18,8 +18,8 @@ class AnchorFeature(FeatureClass):
         self.db = pdb2sql(pdbfile)
         self.df = pd.read_csv("/home/lepikhovd/3D-Vac/data/external/processed/test_case.csv")
         self.peptide = [one_letter[res[1]] for res in self.db(chainID="P").get_residues()]
-        anchors = literal_eval(self.df[self.df["peptide"] == "".join(self.peptide)]["anchors"][0])
-        self.anchors = [str(a) for a in anchors]
+        anchors = self.df.loc[self.df["peptide"] == "".join(self.peptide)][["anchor_0", "anchor_1"]].values.tolist()[0]
+        self.anchors = [str(anchor) for anchor in anchors]
         self.feature_data = {}
         self.feature_data_xyz = {}
     
@@ -27,6 +27,7 @@ class AnchorFeature(FeatureClass):
         # get the feature's human readable format as well as xyz coordinates:
         # extract the keys and xyz of each key:      
         anch_keys = self.db.get("chainID, resSeq, resName", resSeq=self.anchors, chainID=["P"])
+        print(anch_keys)
         anch_xyz = self.db.get("x,y,z", resSeq=self.anchors, chainID=["P"])
 
         # populate the dictionaries used to build the actual feature:
@@ -58,7 +59,7 @@ def __compute_feature__(pdb_data, featgrp, featgrp_raw, chain1, chain2):
     anchfeat.db._close()
 
 if __name__ == "__main__":
-    pdb_file = "/projects/0/einf2380/data/pMHCI/features_input_folder/test_case/pdb/BA_76958.pdb"
+    pdb_file = "/projects/0/einf2380/data/pMHCI/features_input_folder/test_case/pdb/BA-87169.pdb"
 
     #create instance:
     anchfeat = AnchorFeature(pdb_file)

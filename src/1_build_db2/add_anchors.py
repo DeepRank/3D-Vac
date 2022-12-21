@@ -40,6 +40,7 @@ def assign_anchors(ids):
             archive = tarfile.open(id_model[case_id])
         else:
             print(f"{case_id} is not modelled.")
+            id_anchors[case_id]= None
             continue
         f = archive.extractfile(f"{case_id}/MyLoop.py")
         lines = [l for l in f]
@@ -53,7 +54,7 @@ def assign_anchors(ids):
 if __name__ == "__main__":
     # initialize process pool:
     pool = mp.Pool(a.n_jobs)
-    case_ids = [case for case in df["ID"]]
+    case_ids = df["ID"].tolist()
     case_ids = np.array(case_ids)
     case_ids = np.array_split(case_ids, a.n_jobs)
     res = pool.map(assign_anchors, case_ids)
@@ -63,7 +64,11 @@ if __name__ == "__main__":
     anchor_series = pd.DataFrame.from_dict(res, orient='index', columns=['anchor_0' , 'anchor_1'])
     # rest the index to make concat possible
     df.set_index(keys='ID', inplace=True)
+    # remove old anchors:
+    if "anchor_0" in df.columns.tolist():
+        df.drop(["anchor_0", "anchor_1"], axis=1, inplace=True)
     # concatenate the new series(with anchors) to the orignal dataframe
     df_with_anchors = pd.concat([df, anchor_series], axis=1)
     # write the file (with index, because these are the IDs)
-    df_with_anchors.to_csv(a.csv_file)
+    df_with_anchors["ID"] = df.index
+    df_with_anchors.to_csv(a.csv_file, index=False)
