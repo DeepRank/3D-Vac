@@ -69,13 +69,13 @@ class AnchorFeature(FeatureClass):
         # populate hread and xyzval with chain P:
         for key, xyz in zip(anch_p_keys, anch_p_xyz):
             hread[tuple(key)] = [1.0]
-            xyz_key = tuple([1] + xyz)
+            xyz_key = tuple([1] + list(xyz))
             xyzval[xyz_key] = [1.0]
 
         # populate hread and xyzval with chain M:
         for key, xyz in zip(anch_m_keys, anch_m_xyz):
             hread[tuple(key)] = [0.0]
-            xyz_key = tuple([0] + xyz)
+            xyz_key = tuple([0] + list(xyz))
             xyzval[xyz_key] = [0.0]
             
         # assigning these two variables allows to build the features
