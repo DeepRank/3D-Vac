@@ -38,6 +38,11 @@ run_day_data = '11122022'
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
+# # Clusters
+# cluster_dataset = 'cluster'
+# train_clusters = [0, 1, 2, 3, 4, 7, 9]
+# val_clusters = [5, 8]
+# test_clusters = [6]
 # Trainer
 net = NaiveNetwork
 task = 'classif'
@@ -105,6 +110,8 @@ _log.info("training.py has started!\n")
 summary = {}
 summary['entry'] = []
 summary['target'] = []
+# summary['cluster'] = []
+# summary['phase'] = []
 
 for fname in input_data_path:
     with h5py.File(fname, 'r') as hdf5:
@@ -112,6 +119,15 @@ for fname in input_data_path:
             target_value = float(hdf5[mol][target_group][target_dataset][()])
             summary['entry'].append(mol)
             summary['target'].append(target_value)
+
+            # cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+            # summary['cluster'].append(cluster_value)
+            # if cluster_value in train_clusters:
+            #     summary['phase'].append('train')
+            # elif cluster_value in val_clusters:
+            #     summary['phase'].append('valid')
+            # elif cluster_value in test_clusters:
+            #     summary['phase'].append('test')
 
 df_summ = pd.DataFrame(data=summary)
 
@@ -136,6 +152,14 @@ _log.info(f'Testing set: {len(df_test)} samples, {round(100*len(df_test)/len(df_
 _log.info(f'\t- Class 0: {len(df_test[df_test.target == 0])} samples, {round(100*len(df_test[df_test.target == 0])/len(df_test))}%')
 _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
 ####################
+
+# for cl in sorted(df_summ.cluster.unique(), reverse=True):
+#     if len(df_summ[df_summ.cluster == cl]):
+#         _log.info(f'\t\tCluster {int(cl)}: {len(df_summ[df_summ.cluster == cl])} samples, {round(100*len(df_summ[df_summ.cluster == cl])/len(df_summ))}%')
+#         _log.info(f'\t\t\t- Class 0: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])/len(df_summ[df_summ.cluster == cl]))}%')
+#         _log.info(f'\t\t\t- Class 1: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])/len(df_summ[df_summ.cluster == cl]))}%')
+#     else:
+#         _log.info(f'Cluster {int(cl)} not present!')
 
 #################### GraphDataset
 
@@ -210,6 +234,9 @@ exp_json['train_datapoints'] = len(df_train)
 exp_json['val_datapoints'] = len(df_valid)
 exp_json['test_datapoints'] = len(df_test)
 exp_json['total_datapoints'] = len(df_summ)
+# exp_json['train_clusters'] = [train_clusters]
+# exp_json['val_clusters'] = [val_clusters]
+# exp_json['test_clusters'] = [test_clusters]
 
 ## load output and retrieve metrics
 exp_json['saved_epoch'] = epoch
