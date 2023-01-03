@@ -8,4 +8,4 @@
 
 source activate deeprank
 
-python -u 0_generate_features.py
+python -u 1_generate_features.py
