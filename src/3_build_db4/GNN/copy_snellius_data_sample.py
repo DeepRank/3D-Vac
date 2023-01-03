@@ -3,7 +3,7 @@ import glob
 import shutil
 import os
 import logging
-
+import sys
 
 ####### please modify here #######
 src_dir = "/projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative"
