@@ -8,7 +8,6 @@ from functools import partial
 
 ####### please modify here #######
 run_day = '11122022'
-#project_folder = '/projects/0/einf2380/'
 #project_folder = '/home/ccrocion/snellius_data_sample/'
 #project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_data/snellius_100_07122022/'
 project_folder = '/projects/0/einf2380/'
