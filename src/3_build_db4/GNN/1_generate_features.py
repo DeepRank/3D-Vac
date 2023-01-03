@@ -4,7 +4,6 @@ import os
 import sys
 from deeprankcore.query import QueryCollection
 import logging
-from functools import partial
 
 ####### please modify here #######
 run_day = '11122022'
@@ -39,7 +38,7 @@ if __name__ == "__main__":
 	_log = logging.getLogger('')
 	_log.setLevel(logging.INFO)
 
-	fh = logging.FileHandler(os.path.join(output_folder, '0_generate_features.log'))
+	fh = logging.FileHandler(os.path.join(output_folder, '1_generate_features.log'))
 	sh = logging.StreamHandler(sys.stdout)
 	fh.setLevel(logging.INFO)
 	sh.setLevel(logging.INFO)
