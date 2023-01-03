@@ -1,15 +1,18 @@
 import h5py
 import os
 import sys
+import glob
 from pathlib import Path
 import torch
 import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime
-from deeprankcore.Trainer import Trainer
-from deeprankcore.naive_gnn import NaiveNetwork
-from deeprankcore.DataSet import HDF5DataSet, save_hdf5_keys
+from sklearn.model_selection import train_test_split
+from deeprankcore.trainer import Trainer
+from deeprankcore.neuralnets.naive_gnn import NaiveNetwork
+from deeprankcore.utils.exporters import HDF5OutputExporter
+from deeprankcore.dataset import GraphDataset
 from sklearn.metrics import (
     roc_curve,
     auc,
@@ -29,38 +32,12 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '17102022'
+run_day_data = '11122022'
+# run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
-# Features
-node_features = [
-    "res_type",
-    "res_charge",
-    "res_size",
-    "polarity",
-    "hb_donors",
-    "hb_acceptors",
-    "pssm", 
-    "info_content",
-    "bsa",
-    "hse",
-    "sasa",
-    "res_depth"]
-
-edge_features = [
-    "same_chain",
-    "distance",
-    "covalent",
-    "electrostatic",
-    "vanderwaals"]
-
-# Clusters
-cluster_dataset = 'cluster'
-train_clusters = [0, 1, 2, 3, 4, 7, 9]
-val_clusters = [5, 8]
-test_clusters = [6]
 # Trainer
 net = NaiveNetwork
 task = 'classif'
@@ -71,19 +48,19 @@ weight_decay = 0
 epochs = 10
 save_model = 'best'
 # Paths
-project_folder = './local_data/' # local resized df path
-# project_folder = '/projects/0/einf2380/'
-folder_data = f'{project_folder}data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
-input_data_path = folder_data + '/' + resolution_data + '.hdf5'
+# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+project_folder = '/projects/0/einf2380/'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
+input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp'
+exp_name = 'exp_140k_2days_'
 exp_date = True # bool
 exp_suffix = ''
 ####################
 
 #################### Folders and logger
 # Outputs folder
-exp_basepath = os.path.dirname(__file__) + '/experiments/'
+exp_basepath = './experiments/'
 exp_id = exp_name + '0'
 if os.path.exists(exp_basepath):
     exp_list = [f for f in os.listdir(exp_basepath) if f.lower().startswith(exp_name.lower())]
@@ -99,10 +76,10 @@ if exp_suffix:
 os.makedirs(exp_path)
 
 data_path = os.path.join(exp_path, 'data')
-metrics_path = os.path.join(exp_path, 'metrics')
+output_path = os.path.join(exp_path, 'output')
 img_path = os.path.join(exp_path, 'images')
 os.makedirs(data_path)
-os.makedirs(metrics_path)
+os.makedirs(output_path)
 os.makedirs(img_path)
 # Loggers
 _log = logging.getLogger('')
@@ -127,38 +104,25 @@ _log.info("training.py has started!\n")
 #################### Data summary
 summary = {}
 summary['entry'] = []
-summary['cluster'] = []
 summary['target'] = []
-summary['phase'] = []
 
-# '/Users/giuliacrocioni/remote_snellius/data/pMHCI/features_output_folder/GNN/residue/13072022/residue.hdf5'
-with h5py.File(input_data_path, 'r') as hdf5:
-
-    for mol in hdf5.keys():
-        cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
-        target_value = float(hdf5[mol][target_group][target_dataset][()])
-
-        summary['entry'].append(mol)
-        summary['cluster'].append(cluster_value)
-        summary['target'].append(target_value)
-
-        if cluster_value in train_clusters:
-            summary['phase'].append('train')
-        elif cluster_value in val_clusters:
-            summary['phase'].append('valid')
-        elif cluster_value in test_clusters:
-            summary['phase'].append('test')
+for fname in input_data_path:
+    with h5py.File(fname, 'r') as hdf5:
+        for mol in hdf5.keys():
+            target_value = float(hdf5[mol][target_group][target_dataset][()])
+            summary['entry'].append(mol)
+            summary['target'].append(target_value)
 
 df_summ = pd.DataFrame(data=summary)
 
+df_train, df_test = train_test_split(df_summ, test_size=0.25, stratify=df_summ.target, random_state=42)
+df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
+
 df_summ.to_hdf(
-    os.path.join(metrics_path, 'summary_data.hdf5'),
+    os.path.join(output_path, 'summary_data.hdf5'),
     key='summary',
     mode='w')
-
-df_train = df_summ[df_summ.phase == 'train']
-df_valid = df_summ[df_summ.phase == 'valid']
-df_test = df_summ[df_summ.phase == 'test']
 
 _log.info(f'Data statistics:\n')
 _log.info(f'Total samples: {len(df_summ)}')
@@ -171,47 +135,28 @@ _log.info(f'\t- Class 1: {len(df_valid[df_valid.target == 1])} samples, {round(1
 _log.info(f'Testing set: {len(df_test)} samples, {round(100*len(df_test)/len(df_summ))}%')
 _log.info(f'\t- Class 0: {len(df_test[df_test.target == 0])} samples, {round(100*len(df_test[df_test.target == 0])/len(df_test))}%')
 _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
-
-for cl in sorted(df_summ.cluster.unique(), reverse=True):
-    if len(df_summ[df_summ.cluster == cl]):
-        _log.info(f'\t\tCluster {int(cl)}: {len(df_summ[df_summ.cluster == cl])} samples, {round(100*len(df_summ[df_summ.cluster == cl])/len(df_summ))}%')
-        _log.info(f'\t\t\t- Class 0: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])/len(df_summ[df_summ.cluster == cl]))}%')
-        _log.info(f'\t\t\t- Class 1: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])/len(df_summ[df_summ.cluster == cl]))}%')
-    else:
-        _log.info(f'Cluster {int(cl)} not present!')
-
-save_hdf5_keys(input_data_path, df_summ[df_summ.phase == 'train'].entry.to_list(), os.path.join(data_path, 'train.hdf5'), hardcopy = True)
-save_hdf5_keys(input_data_path, df_summ[df_summ.phase == 'valid'].entry.to_list(), os.path.join(data_path, 'valid.hdf5'), hardcopy = True)
-save_hdf5_keys(input_data_path, df_summ[df_summ.phase == 'test'].entry.to_list(), os.path.join(data_path, 'test.hdf5'), hardcopy = True)
 ####################
 
-#################### HDF5DataSet
+#################### GraphDataset
 
 _log.info(f'HDF5DataSet loading...\n')
-# to change: pass in only list of keys
-dataset_train = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'train.hdf5')],
+dataset_train = GraphDataset(
+    hdf5_path = input_data_path,
+    subset = list(df_train.entry),
     target = target_dataset,
-    task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
+    task = task
 )
-dataset_val = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'valid.hdf5')],
+dataset_val = GraphDataset(
+    hdf5_path = input_data_path,
+    subset = list(df_valid.entry),
     target = target_dataset,
-    task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
+    task = task
 )
-dataset_test = HDF5DataSet(
-    hdf5_path = [
-        os.path.join(data_path, 'test.hdf5')],
+dataset_test = GraphDataset(
+    hdf5_path = input_data_path,
+    subset = list(df_test.entry),
     target = target_dataset,
     task = task,
-    node_feature = node_features,
-    edge_feature = edge_features
 )
 _log.info(f'Len df train: {len(dataset_train)}')
 _log.info(f'Len df valid: {len(dataset_val)}')
@@ -223,12 +168,12 @@ _log.info(f'Len df test: {len(dataset_test)}')
 _log.info(f'Instantiating Trainer...\n')
 
 trainer = Trainer(
+    net,
     dataset_train,
     dataset_val,
     dataset_test,
-    net,
     batch_size = batch_size,
-    output_dir = metrics_path
+    output_exporters = [HDF5OutputExporter(output_path)]
 )
 trainer.configure_optimizers(optimizer, lr, weight_decay)
 trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
@@ -252,8 +197,8 @@ exp_json['target_data'] = target_data
 exp_json['resolution'] = resolution_data
 exp_json['target_data'] = target_data
 exp_json['task'] = task
-exp_json['node_features'] = [node_features]
-exp_json['edge_features'] = [edge_features]
+exp_json['node_features'] = 'all'
+exp_json['edge_features'] = 'all'
 exp_json['net'] = str(net)
 exp_json['optimizer'] = str(optimizer)
 exp_json['max_epochs'] = epochs
@@ -261,11 +206,8 @@ exp_json['batch_size'] = batch_size
 exp_json['lr'] = lr
 exp_json['weight_decay'] = weight_decay
 exp_json['save_state'] = save_model
-exp_json['train_clusters'] = [train_clusters]
 exp_json['train_datapoints'] = len(df_train)
-exp_json['val_clusters'] = [val_clusters]
 exp_json['val_datapoints'] = len(df_valid)
-exp_json['test_clusters'] = [test_clusters]
 exp_json['test_datapoints'] = len(df_test)
 exp_json['total_datapoints'] = len(df_summ)
 
@@ -273,10 +215,13 @@ exp_json['total_datapoints'] = len(df_summ)
 exp_json['saved_epoch'] = epoch
 exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
 
-metrics_df = pd.read_hdf(os.path.join(metrics_path, 'metrics.hdf5'), 'metrics')
+output_train = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='training')
+output_test = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='testing')
+output_df = pd.concat([output_train, output_test])
+
 d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
 thr_df = pd.DataFrame(data=d)
-df_epoch = metrics_df[(metrics_df.epoch == epoch) | ((metrics_df.epoch == 0) & (metrics_df.phase == 'testing'))]
+df_epoch = output_df[(output_df.epoch == epoch) | ((output_df.epoch == 0) & (output_df.phase == 'testing'))]
 
 for phase in ['training', 'validation', 'testing']:
     df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
@@ -317,9 +262,9 @@ else:
     _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
 
 ## store output
-exp_json['training_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'training')].loss.mean()
-exp_json['validation_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'validation')].loss.mean()
-exp_json['testing_loss'] = metrics_df[(metrics_df.epoch == epoch) & (metrics_df.phase == 'testing')].loss.mean()
+exp_json['training_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'training')].loss.mean()
+exp_json['validation_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'validation')].loss.mean()
+exp_json['testing_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'testing')].loss.mean()
 for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
     for phase in ['training', 'validation', 'testing']:
         exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
