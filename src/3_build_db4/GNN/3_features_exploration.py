@@ -25,19 +25,20 @@ fh = logging.FileHandler(os.path.join(output_folder, '3_features_exploration.log
 sh = logging.StreamHandler(sys.stdout)
 fh.setLevel(logging.INFO)
 sh.setLevel(logging.INFO)
+
 formatter_fh = logging.Formatter('[%(asctime)s] - %(name)s - %(message)s',
                                datefmt='%a, %d %b %Y %H:%M:%S')
 fh.setFormatter(formatter_fh)
 
 _log.addHandler(fh)
 _log.addHandler(sh)
+
 ################################
+
 _log.info('Script started.')
 
 start = time.perf_counter()
-
 df = pd.read_feather(hdf5_pandas, use_threads=True)
-
 finish = time.perf_counter()
 _log.info(f"Dataframe read in {round(finish-start, 2)} seconds.")
 
@@ -47,10 +48,10 @@ _log.info(f'Columns: {list(df.columns)}')
 start = time.perf_counter()
 
 for col in df.columns[1:]:
-    _log.info(f'Generating {col}.png')
-    fig = transform.plot_distr(df, col)
-    fig.write_image(os.path.join(images_path, f'{col}.png'))
-    _log.info(f'Saved {col}.png\n')
+    _log.info(f'Generating {col} distribution ...')
+    fig = transform.plot_hist(df, col)
+    fig.write_html(os.path.join(images_path, f'{col}.html'))
+    _log.info(f'Saved {col}.html\n')
 
 finish = time.perf_counter()
 _log.info(f"Distributions images saved in {round(finish-start, 2)} seconds.")
