@@ -4,6 +4,8 @@ from deeprankcore.tools import transform
 import logging
 import sys
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 run_day = '11122022'
 project_folder = '/projects/0/einf2380/'
@@ -47,11 +49,12 @@ _log.info(f'Columns: {list(df.columns)}')
 
 start = time.perf_counter()
 
-for col in df.columns[1:]:
-    _log.info(f'Generating {col} distribution ...')
-    fig = transform.plot_hist(df, col)
-    fig.write_html(os.path.join(images_path, f'{col}.html'))
-    _log.info(f'Saved {col}.html\n')
+count = 1
+for idx in range(1, len(df.columns[1:]), 7):
+    features = list(df.columns[idx:idx+7])
+    fig = transform.save_hist(df, features, os.path.join(images_path, f'feat_group_{count}_rice.png'), 'rice')
+    _log.info(f'Saved group {count}.')
+    count += 1
 
 finish = time.perf_counter()
 _log.info(f"Distributions images saved in {round(finish-start, 2)} seconds.")
