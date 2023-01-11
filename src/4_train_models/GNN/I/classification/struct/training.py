@@ -22,6 +22,7 @@ from sklearn.metrics import (
     accuracy_score,
     f1_score,
     matthews_corrcoef)
+import cProfile, pstats, io
 
 # initialize
 starttime = datetime.now()
@@ -32,8 +33,8 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '11122022'
-# run_day_data = '08122022'
+# run_day_data = '11122022'
+run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
@@ -53,14 +54,15 @@ weight_decay = 0
 epochs = 10
 save_model = 'best'
 # Paths
-# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-project_folder = '/projects/0/einf2380/'
+project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+# project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_140k_2days_'
+exp_name = 'cprofile_100_'
 exp_date = True # bool
 exp_suffix = ''
+train_profiling = True
 ####################
 
 #################### Folders and logger
@@ -200,124 +202,150 @@ trainer = Trainer(
     output_exporters = [HDF5OutputExporter(output_path)]
 )
 trainer.configure_optimizers(optimizer, lr, weight_decay)
-trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
-trainer.test()
 
-epoch = trainer.epoch_saved_model
-_log.info(f"Model saved at epoch {epoch}")
+if train_profiling:
+    pr = cProfile.Profile()
+    pr.enable()
+    trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
+    pr.disable()
 
-#################### Metadata saving
-exp_json = {}
+    s_tot = io.StringIO()
+    s_cum = io.StringIO()
+    s_n = io.StringIO()
 
-## store input settings
-exp_json['exp_id'] = exp_id
-exp_json['exp_fullname'] = exp_path.split('/')[-1]
-exp_json['exp_path'] = exp_path
-exp_json['start_time'] = starttime.strftime("%d/%b/%Y_%H:%M:%S")
-exp_json['end_time'] = '_' #placeholder to keep location
-exp_json['input_data_path'] = [input_data_path]
-exp_json['protein_class'] = protein_class
-exp_json['target_data'] = target_data
-exp_json['resolution'] = resolution_data
-exp_json['target_data'] = target_data
-exp_json['task'] = task
-exp_json['node_features'] = 'all'
-exp_json['edge_features'] = 'all'
-exp_json['net'] = str(net)
-exp_json['optimizer'] = str(optimizer)
-exp_json['max_epochs'] = epochs
-exp_json['batch_size'] = batch_size
-exp_json['lr'] = lr
-exp_json['weight_decay'] = weight_decay
-exp_json['save_state'] = save_model
-exp_json['train_datapoints'] = len(df_train)
-exp_json['val_datapoints'] = len(df_valid)
-exp_json['test_datapoints'] = len(df_test)
-exp_json['total_datapoints'] = len(df_summ)
-# exp_json['train_clusters'] = [train_clusters]
-# exp_json['val_clusters'] = [val_clusters]
-# exp_json['test_clusters'] = [test_clusters]
+    ps_tot = pstats.Stats(pr, stream=s_tot).strip_dirs().sort_stats('tottime').print_stats()
+    ps_cum = pstats.Stats(pr, stream=s_cum).strip_dirs().sort_stats('cumtime').print_stats()
+    ps_n = pstats.Stats(pr, stream=s_n).strip_dirs().sort_stats('ncalls').print_stats()
 
-## load output and retrieve metrics
-exp_json['saved_epoch'] = epoch
-exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
-
-output_train = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='training')
-output_test = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='testing')
-output_df = pd.concat([output_train, output_test])
-
-d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
-thr_df = pd.DataFrame(data=d)
-df_epoch = output_df[(output_df.epoch == epoch) | ((output_df.epoch == 0) & (output_df.phase == 'testing'))]
-
-for phase in ['training', 'validation', 'testing']:
-    df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
-    y_true = df_epoch_phase.target
-    y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
-
-    thrs = np.linspace(0,1,100)
-    precision = []
-    recall = []
-    accuracy = []
-    f1 = []
-    mcc = []
+    # Save it into disk
+    with open(os.path.join(exp_path, 'cProfile_tottime.txt'), 'w+') as f:
+        f.write(s_tot.getvalue())
+    with open(os.path.join(exp_path, 'cProfile_cumtime.txt'), 'w+') as f:
+        f.write(s_cum.getvalue())
+    with open(os.path.join(exp_path, 'cProfile_ncalls.txt'), 'w+') as f:
+        f.write(s_n.getvalue())
     
-    for thr in thrs:
-        y_pred = (y_score > thr)*1
-        precision.append(precision_score(y_true, y_pred, zero_division=0))
-        recall.append(recall_score(y_true, y_pred, zero_division=0))
-        accuracy.append(accuracy_score(y_true, y_pred))
-        f1.append(f1_score(y_true, y_pred, zero_division=0))
-        mcc.append(matthews_corrcoef(y_true, y_pred))
-
-    fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
-    auc_score = auc(fpr_roc, tpr_roc)
-    aucpr = average_precision_score(y_true, y_score)
-
-    phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
-    thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
-
-# find max mcc of test set
-test_df = thr_df.loc[thr_df.phase == 'testing']
-test_mcc_idxmax = test_df.mcc.idxmax()
-if thr_df.loc[test_mcc_idxmax].mcc > 0:
-    sel_thr = thr_df.loc[test_mcc_idxmax].thr
-# use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
+    _log.info(f"Train ended, complexity profiled.")
 else:
-    mcc_idxmax = thr_df.mcc.idxmax()
-    sel_thr = thr_df.loc[mcc_idxmax].thr
-    _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
+    trainer.train(nepoch = epochs, validate = True, save_model = save_model, model_path = os.path.join(exp_path, 'model.tar'))
 
-## store output
-exp_json['training_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'training')].loss.mean()
-exp_json['validation_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'validation')].loss.mean()
-exp_json['testing_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'testing')].loss.mean()
-for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
+    trainer.test()
+
+    epoch = trainer.epoch_saved_model
+    _log.info(f"Model saved at epoch {epoch}")
+
+    #################### Metadata saving
+    exp_json = {}
+
+    ## store input settings
+    exp_json['exp_id'] = exp_id
+    exp_json['exp_fullname'] = exp_path.split('/')[-1]
+    exp_json['exp_path'] = exp_path
+    exp_json['start_time'] = starttime.strftime("%d/%b/%Y_%H:%M:%S")
+    exp_json['end_time'] = '_' #placeholder to keep location
+    exp_json['input_data_path'] = [input_data_path]
+    exp_json['protein_class'] = protein_class
+    exp_json['target_data'] = target_data
+    exp_json['resolution'] = resolution_data
+    exp_json['target_data'] = target_data
+    exp_json['task'] = task
+    exp_json['node_features'] = 'all'
+    exp_json['edge_features'] = 'all'
+    exp_json['net'] = str(net)
+    exp_json['optimizer'] = str(optimizer)
+    exp_json['max_epochs'] = epochs
+    exp_json['batch_size'] = batch_size
+    exp_json['lr'] = lr
+    exp_json['weight_decay'] = weight_decay
+    exp_json['save_state'] = save_model
+    exp_json['train_datapoints'] = len(df_train)
+    exp_json['val_datapoints'] = len(df_valid)
+    exp_json['test_datapoints'] = len(df_test)
+    exp_json['total_datapoints'] = len(df_summ)
+    # exp_json['train_clusters'] = [train_clusters]
+    # exp_json['val_clusters'] = [val_clusters]
+    # exp_json['test_clusters'] = [test_clusters]
+
+    ## load output and retrieve metrics
+    exp_json['saved_epoch'] = epoch
+    exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
+
+    output_train = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='training')
+    output_test = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='testing')
+    output_df = pd.concat([output_train, output_test])
+
+    d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
+    thr_df = pd.DataFrame(data=d)
+    df_epoch = output_df[(output_df.epoch == epoch) | ((output_df.epoch == 0) & (output_df.phase == 'testing'))]
+
     for phase in ['training', 'validation', 'testing']:
-        exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
+        df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
+        y_true = df_epoch_phase.target
+        y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
 
+        thrs = np.linspace(0,1,100)
+        precision = []
+        recall = []
+        accuracy = []
+        f1 = []
+        mcc = []
+        
+        for thr in thrs:
+            y_pred = (y_score > thr)*1
+            precision.append(precision_score(y_true, y_pred, zero_division=0))
+            recall.append(recall_score(y_true, y_pred, zero_division=0))
+            accuracy.append(accuracy_score(y_true, y_pred))
+            f1.append(f1_score(y_true, y_pred, zero_division=0))
+            mcc.append(matthews_corrcoef(y_true, y_pred))
 
-# Output to excel file
-exp_json['end_time'] = datetime.now().strftime("%d/%b/%Y_%H:%M:%S")
-exp_df = pd.DataFrame(exp_json, index=[0])
-filename = Path(exp_basepath + '_experiments_log.xlsx')
-file_exists = filename.is_file()
+        fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
+        auc_score = auc(fpr_roc, tpr_roc)
+        aucpr = average_precision_score(y_true, y_score)
 
-with pd.ExcelWriter(
-    filename,
-    engine="openpyxl",
-    mode="a" if file_exists else "w",
-    if_sheet_exists='overlay' if file_exists else None,
-) as writer:
+        phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
+        thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
 
-    if file_exists:
-        _log.info("Updating metadata in experiments_log.xlsx ...\n")
-        old_df = pd.read_excel(filename)
-        exp_df = pd.concat([exp_df, old_df]) # newest experiment on top
+    # find max mcc of test set
+    test_df = thr_df.loc[thr_df.phase == 'testing']
+    test_mcc_idxmax = test_df.mcc.idxmax()
+    if thr_df.loc[test_mcc_idxmax].mcc > 0:
+        sel_thr = thr_df.loc[test_mcc_idxmax].thr
+    # use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
     else:
-        _log.info("Creating metadata in experiments_log.xlsx ...\n")
-    exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
+        mcc_idxmax = thr_df.mcc.idxmax()
+        sel_thr = thr_df.loc[mcc_idxmax].thr
+        _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
 
-_log.info("Saved! End of the training script")
+    ## store output
+    exp_json['training_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'training')].loss.mean()
+    exp_json['validation_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'validation')].loss.mean()
+    exp_json['testing_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'testing')].loss.mean()
+    for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
+        for phase in ['training', 'validation', 'testing']:
+            exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
+
+
+    # Output to excel file
+    exp_json['end_time'] = datetime.now().strftime("%d/%b/%Y_%H:%M:%S")
+    exp_df = pd.DataFrame(exp_json, index=[0])
+    filename = Path(exp_basepath + '_experiments_log.xlsx')
+    file_exists = filename.is_file()
+
+    with pd.ExcelWriter(
+        filename,
+        engine="openpyxl",
+        mode="a" if file_exists else "w",
+        if_sheet_exists='overlay' if file_exists else None,
+    ) as writer:
+
+        if file_exists:
+            _log.info("Updating metadata in experiments_log.xlsx ...\n")
+            old_df = pd.read_excel(filename)
+            exp_df = pd.concat([exp_df, old_df]) # newest experiment on top
+        else:
+            _log.info("Creating metadata in experiments_log.xlsx ...\n")
+        exp_df.to_excel(writer, sheet_name='All', index=False, header=True)
+
+    _log.info("Saved! End of the training script")
 
 ####################
