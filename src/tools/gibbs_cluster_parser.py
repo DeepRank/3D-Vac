@@ -3,6 +3,10 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import glob
+from joblib import Parallel, delayed
+import re
+import pickle
 
 arg_parser = argparse.ArgumentParser(description="""
     Script used to parse GibbsCluster server (https://services.healthtech.dtu.dk/service.php?GibbsCluster-2.0)
@@ -144,12 +148,20 @@ if not a.all_peptides:
     plt.close()
 
 else:
-    print("Retrieving clusters from all peptides output file..")
+    from mpi4py import MPI
+    conn = MPI.COMM_WORLD
+
+    size = conn.Get_size()
+    rank = conn.Get_rank()
+
+    f_path = a.all_peptides_server_output
+    files = glob.glob(f"{f_path}/res/gibbs.*g.ds.out")
     clusters = {}
-    f = a.all_peptides_server_output
-    file = f"{f}/res/gibbs.{a.n_clusters}g.ds.out"
-    with open(file) as infile:
-        print(f"READING OUTPUT FILE OF SERVER OUTPUT {f}...")
+    f = files[rank]
+    with open(f) as infile:
+        filename = f.split('/')[-1]
+        print(f"Reading file {filename} on cluster {rank}")
+        i = int(re.findall(r"\d+", filename)[0])-1 # index of the cluster_set
         next(infile)
         for line in infile:
             clust_name = str(line.split()[1])
@@ -159,9 +171,17 @@ else:
             clusters[clust_name]['cores'].append(line.split()[4]) #[3] is the peptide, [4] is the core
             clusters[clust_name]['peptides'].append(line.split()[3])
 
-    print("UPDATING `gibss_cluster` COLUMN...")
+
+    cluster_lists = []
+
     for c in clusters.keys():
         for p in clusters[c]["peptides"]:
-            df.loc[df["peptide"] == p, a.cluster_column_name] = c
-        print(f"Number of peptides in cluster {c}: {len(df.loc[df[a.cluster_column_name] == c])}")
-    df.to_csv(a.file, index=False)
+            df.loc[df["peptide"] == p, f"cluster_set_{rank}"] = c
+    print(f"Finished populating df on {rank}")
+    all_df = conn.gather(df)
+    if rank==0:
+        for i in range(len(all_df)):
+            if i == 0:
+                continue
+            all_df[0][f"cluster_set_{i}"] = all_df[i][f"cluster_set_{i}"]
+        all_df[0].to_csv(a.file, index=False)
