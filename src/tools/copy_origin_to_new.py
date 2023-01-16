@@ -3,11 +3,12 @@ import glob
 import argparse
 import numpy as np
 import subprocess
+import traceback
 from joblib import Parallel, delayed
 
 arg_parser = argparse.ArgumentParser(
-    description="""
-  
+    description="""Copy the original pdbs 'pdb_id.pdb.origin' to the path of the copy 'pdb_id.pdb' (db2 in 3Dvac) if the copy 
+    was modified and needs to be changed back to original for further processing
     """
 )
 arg_parser.add_argument("--models-dir", "-d",
