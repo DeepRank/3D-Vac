@@ -9,7 +9,10 @@ import numpy as np
 from joblib import Parallel, delayed 
 
 parser = argparse.ArgumentParser(
-    "renumber pdbs so that positions are consistent across all cases")
+    "Renumber pdbs so that amino acid group numbering is consistent across alleles, this is useful for the \
+    alignment of the pdbs because this process relies on these specific indices. A binary of the MUSCLE software (https://www.drive5.com/muscle/) \
+    is used to perform a more reliable alignment of the amino acid sequences per allele, the corresponding alignment is used to determine which \
+    positions are indels. With this information the amino acid groups are consistently renumbered")
 
 parser.add_argument('-f',
                     '--folder',
@@ -33,13 +36,12 @@ def muscle(fasta_in, fasta_out):
     except subprocess.CalledProcessError as cpe:
         print(cpe)
 
-# Renumber pdb-file
 def renumber(pdb_fasta_list:list, chainId='M'):
-    """renumber 
-
+    """renumber the pdbs with consistent numbering of the amino acid groups
+       per allele
     Args:
-        pdb_fasta_list (list): _description_
-        chainId (str, optional): _description_. Defaults to 'M'.
+        pdb_fasta_list (list): an array with corresponding pairs: (pdb_path, fasta_string)
+        chainId (str, optional): The chain of the pdb to renumber. Defaults to 'M'.
     """
      
     for item in pdb_fasta_list:
@@ -78,8 +80,8 @@ def getPdbs(folder):
     return pdbs_list
 
 
-def getSequence(pdb, chain="M"):
-    """_summary_
+def getSequence(pdb:str, chain="M"):
+    """get the amino acid sequence from the input pdb
 
     Args:
         pdb (str): path of pdb file
@@ -150,11 +152,12 @@ def main(folder, n_cores):
     # this yields a list of all the sub folders
     pdb_subs = glob.glob(os.path.join(folder, '*'))
     
+    # load all the pdbs in parallel manner
     pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in pdb_subs)
     pdbs_complete = [x for sublist in pdbs_list for x in sublist]
     print(f'number of pdbs: {len(pdbs_complete)}')
     
-    # let each inner list be handled by exactly one thread
+    # get unique amino acid sequence from pdb, let each inner list be handled by exactly one thread
     lists_pdb_dicts = Parallel(n_jobs=n_cores, verbose=1)(delayed(get_unique_sequences)(path_list, pdbs_complete) for path_list in np.array_split(pdbs_complete, n_cores))
 
     # get the combined dictionary of all the parallel processes
@@ -166,20 +169,23 @@ def main(folder, n_cores):
     with open(fasta_in, 'w') as fastafile:
         [fastafile.write('>%s\n%s\n' % (seq, seq)) for seq in combined_pdb_dict.keys()]
     
+    # perform the alignment
     muscle(fasta_in, fasta_out)
 
     aligned = readFasta(fasta_out)
     pdb_new_alignment_pair = []
+    
+    # combine the dictionaries and put the corresponding (pdb, sequence) pairs in a list
     for unique_seq, alignment in aligned:
         corresponding = combined_pdb_dict[unique_seq]
         for pdb_ind in corresponding:
             pdb_new_alignment_pair.append([pdbs_complete[pdb_ind], alignment])
 
+    # perform the renumbering in parallel
     Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
     print('done!')
 
 
 if __name__ == '__main__':
     a = parser.parse_args()
-    # renumbered_path = create_output_folder(a.folder)
     main(a.folder, a.n_cores)
