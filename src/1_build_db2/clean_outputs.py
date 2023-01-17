@@ -201,6 +201,12 @@ else:
 
 wildcard_path = a.models_dir.replace('\\', '')
 folders = glob.glob(wildcard_path)
+
+#Remove unarchived folders
+for folder in folders:
+    if '.tar' not in folder:
+        subprocess.run(f'rm -r {folder}.tar', shell=True, check=True)
+
 folders = [folder for folder in folders if '.tar' in folder]
 folders = [case.split('.')[0] for case in folders]
 
