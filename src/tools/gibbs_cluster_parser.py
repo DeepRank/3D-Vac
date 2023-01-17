@@ -160,8 +160,9 @@ else:
     f = files[rank]
     with open(f) as infile:
         filename = f.split('/')[-1]
-        print(f"Reading file {filename} on cluster {rank}")
-        i = int(re.findall(r"\d+", filename)[0])-1 # index of the cluster_set
+        print(f"Reading file {filename} on task {rank}")
+        cluster_set = int(re.findall(r"\d+", filename)[0]) # index of the cluster_set
+        print(f"cluster_set from regexp: {cluster_set}")
         next(infile)
         for line in infile:
             clust_name = str(line.split()[1])
@@ -171,17 +172,17 @@ else:
             clusters[clust_name]['cores'].append(line.split()[4]) #[3] is the peptide, [4] is the core
             clusters[clust_name]['peptides'].append(line.split()[3])
 
-
-    cluster_lists = []
-
     for c in clusters.keys():
         for p in clusters[c]["peptides"]:
-            df.loc[df["peptide"] == p, f"cluster_set_{rank}"] = c
+            df.loc[df["peptide"] == p, f"cluster_set_{cluster_set}"] = str(c)
     print(f"Finished populating df on {rank}")
     all_df = conn.gather(df)
     if rank==0:
         for i in range(len(all_df)):
             if i == 0:
                 continue
-            all_df[0][f"cluster_set_{i}"] = all_df[i][f"cluster_set_{i}"]
+            cluster_set = [col for col in list(all_df[i].columns) if "cluster_set" in col][0]
+            print(f"Cluster set: {cluster_set}")
+            all_df[0][cluster_set] = all_df[i][cluster_set]
         all_df[0].to_csv(a.file, index=False)
+        print("Done!")
