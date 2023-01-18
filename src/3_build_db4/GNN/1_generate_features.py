@@ -6,16 +6,16 @@ from deeprankcore.query import QueryCollection
 import logging
 
 ####### please modify here #######
-run_day = '11122022'
+run_day = '230118'
 #project_folder = '/home/ccrocion/snellius_data_sample/'
 #project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_data/snellius_100_07122022/'
 project_folder = '/projects/0/einf2380/'
-csv_file_name = 'BA_pMHCI_human_quantitative_gibbs_clust.csv'
+csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 96 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+cpu_count = 32 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
 ##################################
 
 if resolution == 'atomic':
