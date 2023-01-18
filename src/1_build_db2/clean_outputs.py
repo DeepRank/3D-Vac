@@ -201,7 +201,6 @@ else:
 
 wildcard_path = a.models_dir.replace('\\', '')
 folders = glob.glob(wildcard_path)
-
 folders = [folder for folder in folders if '.tar' in folder]
 folders = [case.split('.')[0] for case in folders]
 
