@@ -13,5 +13,5 @@ source activate deeprank
 
 srun python -u gibbs_cluster_parser.py \
 	--all-peptides \
-	--all-peptides-server-output /home/lepikhovd/softwares/gibbscluster-2.0/run/all_hla_peptides_clusters_1_15_with_trash_68076 \
+	--all-peptides-server-output /home/lepikhovd/softwares/gibbscluster-2.0/run/all_hla_peptides_clusters_1_15_with_trash_1876625 \
 	--file ../../data/external/processed/all_hla.csv \
