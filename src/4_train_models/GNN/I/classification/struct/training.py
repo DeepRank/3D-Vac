@@ -33,8 +33,8 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '11122022'
-# run_day_data = '08122022'
+# run_day_data = '11122022'
+run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
@@ -54,16 +54,18 @@ weight_decay = 0
 epochs = 3
 save_model = 'best'
 cuda = True
+ngpu = 1
 num_workers = 0
 train_profiling = True
 check_integrity = False
 # Paths
-# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-project_folder = '/projects/0/einf2380/'
+project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+# project_folder = '/projects/0/einf2380/'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'cprofile_140k_gpu_nw0_'
+exp_name = 'prova'
+# exp_name = 'cprofile_100_2gpu_nw0_'
 exp_date = True # bool
 exp_suffix = ''
 ####################
@@ -208,6 +210,7 @@ if __name__ == "__main__":
         dataset_val,
         dataset_test,
         cuda = cuda,
+        ngpu = ngpu,
         output_exporters = [HDF5OutputExporter(output_path)]
     )
     trainer.configure_optimizers(optimizer, lr, weight_decay)

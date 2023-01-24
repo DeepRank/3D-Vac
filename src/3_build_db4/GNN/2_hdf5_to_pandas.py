@@ -2,12 +2,12 @@ import glob
 import os
 import sys
 import time
-from deeprankcore.tools import transform
+from deeprankcore.tools import hist
 import logging
 
-run_day = '11122022'
+run_day = '230123'
 project_folder = '/projects/0/einf2380/'
-csv_file_name = 'BA_pMHCI_human_quantitative_gibbs_clust.csv'
+csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
@@ -34,7 +34,7 @@ hdf5_pandas = os.path.join(output_folder, f'{resolution}_pandas.feather')
 _log.info(f"{len(hdf5_files)} hdf5 files found.")
 
 start = time.perf_counter()
-df = transform.hdf5_to_pandas(hdf5_files, target_features='binary')
+df = hist.hdf5_to_pandas(hdf5_files, target_features='binary')
 finish = time.perf_counter()
 _log.info(f"Loading to pandas {len(hdf5_files)} hdf5 files took {round(finish-start, 2)} seconds.")
 
