@@ -55,6 +55,8 @@ if __name__ == "__main__":
 	csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 	csv_data = pd.read_csv(csv_file_path)
 	csv_data.cluster = csv_data.cluster.fillna(-1)
+	csv_data['peptide_length'] = csv_data.peptide.apply(lambda x: len(x))
+	csv_data = csv_data[csv_data.peptide_length <= 15]
 	csv_ids = csv_data.ID.values.tolist()
 	_log.info(f'Loaded CSV file containing clusters and targets data. Total number of data points is {len(csv_ids)}.')
 	pdb_files_all = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
@@ -142,5 +144,8 @@ if __name__ == "__main__":
 			_log.info(f'{count} queries added to the collection.')
 
 	_log.info(f'Queries ready to be processed.\n')
-	output_paths = queries.process(f'{output_folder}/{resolution}', cpu_count = cpu_count, combine_output = False)
+	output_paths = queries.process(
+		f'{output_folder}/{resolution}',
+		cpu_count = cpu_count,
+		combine_output = False)
 	_log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')
