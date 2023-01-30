@@ -39,6 +39,12 @@ arg_parser.add_argument("--single-split", "-s",
     action = "store_true",
 )
 
+arg_parser.add_argument("--train-val-split", "-S",
+    help = "The ratio for the train and validation set, two number seperated with a '-'. Eg. 85-15 (should add up to 100)"
+    default = '85-15',
+    type=str,
+)
+
 arg_parser.add_argument("--parallel", "-p",
     help = "runs the process in parallel on a slurm cluster",
     default = False,
@@ -150,7 +156,7 @@ def save_train_valid(train_idx, val_idx, test_idx, symlinks, features_path, path
             except KeyError as ie:
                 print(ie)
                 print(f'train id not found in hdf5 files {value_id}') 
-        symlink_in_h5(entries, org_h5, test_h5)
+        symlink_in_h5(entries, org_h5, val_h5)
 
     print("### Creating test.hdf5 file ###") 
     for org_h5 in tqdm.tqdm(org_h5s):
@@ -163,7 +169,7 @@ def save_train_valid(train_idx, val_idx, test_idx, symlinks, features_path, path
             except KeyError as ie:
                 print(ie)
                 print(f'train id not found in hdf5 files {value_id}') 
-        symlink_in_h5(entries, org_h5, val_h5) 
+        symlink_in_h5(entries, org_h5, test_h5) 
             
     train_h5.close()
     val_h5.close()
@@ -187,6 +193,14 @@ if __name__ == '__main__':
     
     if a.parallel:
         n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    try:
+        train_split = int(a.train_val_split.split('-')[0])
+        val_split = int(a.train_val_split.split('-')[1])
+    except ValueError as ve:
+        print(f'{ve}\ntrain-val-split argument should contain only integers without spaces')
+    if train_split + val_split != 100:
+        raise argparse.ArgumentTypeError('train-val-split should add up to 100')
+        
     # Combine the h5 files using the csv as a filter:
     df = pd.read_csv(a.csv_file)
     symlinks, labels = h5_symlinks(a.features_path, df["ID"].tolist())
@@ -213,7 +227,7 @@ if __name__ == '__main__':
         kfold = StratifiedKFold(n_splits = n_splits)
         i = 0
         for training_idx, test_idx in kfold.split(indices, labels[indices]):
-            training_idx, validation_idx = train_test_split(training_idx, test_size=2/9, stratify=labels[training_idx])
+            training_idx, validation_idx = train_test_split(training_idx, test_size=val_split/100, stratify=labels[training_idx])
             
             tr = all_cases[training_idx]
             va = all_cases[validation_idx]
@@ -239,8 +253,10 @@ if __name__ == '__main__':
             ds_l = not_test_cases.shape[0]
             train_cases, validation_cases = np.split(
                 not_test_cases, 
-                [int(0.9*ds_l)]
+                [int((train_split/100)*ds_l)]
             )
+            print(f'train shape: {train_cases.shape}')
+            print(f'validation shape: {validation_cases.shape}')
 
             if a.single_split:
                 print(f"### SAVING SPLITS FOR TRAIN/TEST/VALIDATION")
