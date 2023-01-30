@@ -33,8 +33,8 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-# run_day_data = '11122022'
-run_day_data = '08122022'
+run_day_data = '11122022'
+# run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
@@ -53,19 +53,18 @@ lr = 1e-3
 weight_decay = 0
 epochs = 3
 save_model = 'best'
-cuda = True
-ngpu = 1
-num_workers = 0
+cuda = False
+ngpu = 0
+num_workers = 16
 train_profiling = True
-check_integrity = False
+check_integrity = True
 # Paths
-project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-# project_folder = '/projects/0/einf2380/'
+# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'prova'
-# exp_name = 'cprofile_100_2gpu_nw0_'
+exp_name = 'cprofile_140k_cpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 ####################
@@ -111,7 +110,6 @@ _log.addHandler(sh)
 ####################
 
 if __name__ == "__main__":
-
     _log.info(f'Created folder {exp_path}\n')
 
     _log.info("training.py has started!\n")
@@ -124,20 +122,24 @@ if __name__ == "__main__":
     # summary['phase'] = []
 
     for fname in input_data_path:
-        with h5py.File(fname, 'r') as hdf5:
-            for mol in hdf5.keys():
-                target_value = float(hdf5[mol][target_group][target_dataset][()])
-                summary['entry'].append(mol)
-                summary['target'].append(target_value)
+        try:
+            with h5py.File(fname, 'r') as hdf5:
+                for mol in hdf5.keys():
+                    target_value = float(hdf5[mol][target_group][target_dataset][()])
+                    summary['entry'].append(mol)
+                    summary['target'].append(target_value)
 
-                # cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
-                # summary['cluster'].append(cluster_value)
-                # if cluster_value in train_clusters:
-                #     summary['phase'].append('train')
-                # elif cluster_value in val_clusters:
-                #     summary['phase'].append('valid')
-                # elif cluster_value in test_clusters:
-                #     summary['phase'].append('test')
+                    # cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+                    # summary['cluster'].append(cluster_value)
+                    # if cluster_value in train_clusters:
+                    #     summary['phase'].append('train')
+                    # elif cluster_value in val_clusters:
+                    #     summary['phase'].append('valid')
+                    # elif cluster_value in test_clusters:
+                    #     summary['phase'].append('test')
+        except Exception as e:
+            _log.error(e)
+            _log.info(f'Error in opening {fname}, please check the file.')
 
     df_summ = pd.DataFrame(data=summary)
 
