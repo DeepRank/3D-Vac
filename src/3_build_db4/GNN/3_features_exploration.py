@@ -1,13 +1,13 @@
 import pandas as pd
 import os
-from deeprankcore.tools import transform
+from deeprankcore.tools import hist
 import logging
 import sys
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-run_day = '11122022'
+run_day = '230124'
 project_folder = '/projects/0/einf2380/'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
@@ -52,7 +52,7 @@ start = time.perf_counter()
 count = 1
 for idx in range(1, len(df.columns[1:]), 7):
     features = list(df.columns[idx:idx+7])
-    fig = transform.save_hist(df, features, os.path.join(images_path, f'feat_group_{count}_rice.png'), 'rice')
+    fig = hist.save_hist(df, features, os.path.join(images_path, f'feat_group_{count}_rice.png'), 'rice')
     _log.info(f'Saved group {count}.')
     count += 1
 

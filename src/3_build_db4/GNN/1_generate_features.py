@@ -4,18 +4,19 @@ import os
 import sys
 from deeprankcore.query import QueryCollection
 import logging
+os.environ["NUMEXPR_MAX_THREADS"]="272"
 
 ####### please modify here #######
-run_day = '11122022'
-#project_folder = '/home/ccrocion/snellius_data_sample/'
+run_day = '230124'
+# project_folder = '/home/ccrocion/snellius_data_sample/'
 #project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_data/snellius_100_07122022/'
 project_folder = '/projects/0/einf2380/'
-csv_file_name = 'BA_pMHCI_human_quantitative_gibbs_clust.csv'
+csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 96 # remember to set the same number in --cpus-per-task in 0_generate_hdf5.sh
+cpu_count = 96 # remember to set the same number in --cpus-per-task in 1_generate_hdf5.sh
 ##################################
 
 if resolution == 'atomic':
@@ -49,26 +50,42 @@ if __name__ == "__main__":
 	_log.addHandler(fh)
 	_log.addHandler(sh)
 
-	_log.info('Script running has started ...')
+	_log.info('\nScript running has started ...')
 
-	pdb_files = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
-	pdb_files.sort()
-	_log.info(f'{len(pdb_files)} pdbs found.')
-	pssm_m = glob.glob(os.path.join(models_folder_path + '/pssm', '*.M.*.pssm'))
-	pssm_m.sort()
-	_log.info(f'{len(pdb_files)} MHC pssms found.')
-	pssm_p = glob.glob(os.path.join(models_folder_path + '/pssm', '*.P.*.pssm'))
-	pssm_p.sort()
-	_log.info(f'{len(pdb_files)} peptide pssms found.')
+	csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 	csv_data = pd.read_csv(csv_file_path)
 	csv_data.cluster = csv_data.cluster.fillna(-1)
-	_log.info('Loaded csv file containing clusters and targets data.')
-	pdb_ids_csv = [pdb_file.split('/')[-1].split('.')[0].replace('-', '_') for pdb_file in pdb_files]
-	_log.info('Aligning clusters and targets data with pdbs ids ...')
-	clusters = [csv_data[csv_data.ID == pdb_id].cluster.values[0] for pdb_id in pdb_ids_csv]
+	csv_data['peptide_length'] = csv_data.peptide.apply(lambda x: len(x))
+	csv_data = csv_data[csv_data.peptide_length <= 15]
+	csv_ids = csv_data.ID.values.tolist()
+	_log.info(f'Loaded CSV file containing clusters and targets data. Total number of data points is {len(csv_ids)}.')
+	pdb_files_all = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
+	_log.info(f'{len(pdb_files_all)} PDBs found.')
+	pdb_files_csv = [os.path.join(models_folder_path + '/pdb', csv_id + '.pdb') for csv_id in csv_ids]
+	pdb_files = list(set(pdb_files_all) & set(pdb_files_csv))
+	pdb_files.sort()
+	_log.info(f'Selected {len(pdb_files)} PDBs using CSV IDs (intersection).')
+	_log.info('Aligning clusters and targets data with selected PDBs IDs ...')
+	pdb_ids_csv = [pdb_file.split('/')[-1].split('.')[0] for pdb_file in pdb_files]
+	csv_data_indexed = csv_data.set_index('ID')
+	csv_data_indexed = csv_data_indexed.loc[pdb_ids_csv]
+	assert csv_data_indexed.index.tolist() == pdb_ids_csv
+	clusters = csv_data_indexed.cluster.values.tolist()
 	_log.info(f'Clusters for {len(clusters)} data points loaded.')
-	bas = [csv_data[csv_data.ID == pdb_id].measurement_value.values[0] for pdb_id in pdb_ids_csv]
+	bas = csv_data_indexed.measurement_value.values.tolist()
 	_log.info(f'Targets for {len(bas)} data points loaded.')
+	pssm_m_all = glob.glob(os.path.join(models_folder_path + '/pssm', '*.M.*.pssm'))
+	_log.info(f'{len(pssm_m_all)} MHC PSSMs found.')
+	pssm_m_csv = [os.path.join(models_folder_path + '/pssm', csv_id + '.M.pdb.pssm') for csv_id in csv_ids]
+	pssm_m = list(set(pssm_m_all) & set(pssm_m_csv))
+	pssm_m.sort()
+	_log.info(f'Selected {len(pssm_m)} MHC PSSMs using CSV IDs.')
+	pssm_p_all = glob.glob(os.path.join(models_folder_path + '/pssm', '*.P.*.pssm'))
+	_log.info(f'{len(pssm_p_all)} peptides PSSMs found.')
+	pssm_p_csv = [os.path.join(models_folder_path + '/pssm', csv_id + '.P.pdb.pssm') for csv_id in csv_ids]
+	pssm_p = list(set(pssm_p_all) & set(pssm_p_csv))
+	pssm_p.sort()
+	_log.info(f'Selected {len(pssm_p)} peptides PSSMs using CSV IDs.')
 
 	_log.info('Verifying data consistency...')
 	# verifying data consistency
@@ -92,13 +109,13 @@ if __name__ == "__main__":
 			_log.warning(f'{pdb_files[i]} and {pssm_p[i]} ids mismatch.')
 
 		try:
-			assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0].replace('-', '_')].cluster.values[0] == clusters[i]
+			assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0]].cluster.values[0] == clusters[i]
 		except AssertionError as e:
 			_log.error(e)
 			_log.warning(f'{pdb_files[i]} and cluster id in the csv mismatch.')
 
 		try:
-			assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0].replace('-', '_')].measurement_value.values[0] == bas[i]
+			assert csv_data[csv_data.ID == pdb_files[i].split('/')[-1].split('.')[0]].measurement_value.values[0] == bas[i]
 		except AssertionError as e:
 			_log.error(e)
 			_log.warning(f'{pdb_files[i]} and measurement_value id in the csv mismatch.')
@@ -127,5 +144,8 @@ if __name__ == "__main__":
 			_log.info(f'{count} queries added to the collection.')
 
 	_log.info(f'Queries ready to be processed.\n')
-	output_paths = queries.process(f'{output_folder}/{resolution}', cpu_count = cpu_count, combine_output = False)
+	output_paths = queries.process(
+		f'{output_folder}/{resolution}',
+		cpu_count = cpu_count,
+		combine_output = False)
 	_log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')

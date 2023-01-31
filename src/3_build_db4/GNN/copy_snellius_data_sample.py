@@ -8,7 +8,7 @@ import sys
 ####### please modify here #######
 src_dir = "/projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative"
 dest_dir = "/home/ccrocion/snellius_data_sample/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative"
-n_files = 100
+n_files = 1000
 ##################################
 
 # Loggers
