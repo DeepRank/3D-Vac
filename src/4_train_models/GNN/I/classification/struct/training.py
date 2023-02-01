@@ -33,7 +33,8 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '11122022'
+run_day_data = '230130' # 692 data points (local folder)
+# run_day_data = '11122022' # 140k data points (proj folder)
 # run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
@@ -46,25 +47,24 @@ task = 'classif'
 # test_clusters = [6]
 # Trainer
 net = NaiveNetwork
-task = 'classif'
 batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 3
+epochs = 10
 save_model = 'best'
-cuda = False
-ngpu = 0
+cuda = True
+ngpu = 1
 num_workers = 16
-train_profiling = True
+train_profiling = False
 check_integrity = True
 # Paths
-# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-project_folder = '/projects/0/einf2380'
+project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+# project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'cprofile_140k_cpu_nw16_'
+exp_name = 'exp_692_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 ####################
