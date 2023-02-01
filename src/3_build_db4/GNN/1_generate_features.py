@@ -58,16 +58,16 @@ def generate_data():
 	csv_data.cluster = csv_data.cluster.fillna(-1)
 	csv_data['peptide_length'] = csv_data.peptide.apply(lambda x: len(x))
 	csv_data = csv_data[csv_data.peptide_length <= 15]
-	csv_ids = csv_data.ID.values.tolist()
 
 	if debug_missing_ids:
 		import ast
 		with open("/home/ccrocion/repositories/3D-Vac/src/3_build_db4/GNN/missing_ids.txt") as f:
-			missing_ids = ast.literal_eval(f.read())
-		_log.info(f'Len of missing IDs list: {len(missing_ids)}')
-		pdb_files = [os.path.join(models_folder_path + '/pdb', missing_id + '.pdb') for missing_id in missing_ids]
+			csv_ids = ast.literal_eval(f.read())
+		_log.info(f'Len of missing IDs list: {len(csv_ids)}')
+		pdb_files = [os.path.join(models_folder_path + '/pdb', csv_id + '.pdb') for csv_id in csv_ids]
 		_log.info(f'Selected {len(pdb_files)} PDBs using missing IDs (intersection).')
 	else:
+		csv_ids = csv_data.ID.values.tolist()
 		_log.info(f'Loaded CSV file containing clusters and targets data. Total number of data points is {len(csv_ids)}.')
 		pdb_files_all = glob.glob(os.path.join(models_folder_path + '/pdb', '*.pdb'))
 		_log.info(f'{len(pdb_files_all)} PDBs found.')
