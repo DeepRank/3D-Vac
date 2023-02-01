@@ -3,11 +3,30 @@ import torch
 import blosum
 import pandas as pd
 
+
 # encoding functions:
-aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
+aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
+def allele_peptide2onehot(allele, peptide):
+    not_in_allele = [res for res in allele if res not in aminoacids]
+    AA_eye = torch.eye(len(aminoacids), dtype=torch.float)
+    allele_arr = [AA_eye[aminoacids.index(res)].tolist() for res in allele]
+    peptide_arr = [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+    return allele_arr + peptide_arr
+
 def peptide2onehot(peptide):
-    AA_eye = torch.eye(20, dtype=torch.float)
+    AA_eye = torch.eye(len(aminoacids), dtype=torch.float)
     return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+
+def length_agnostic_encode_p(p):
+    rep_len = 15
+    x = "X"*(rep_len-len(p))
+    half_x = x[:len(x)//2]
+    left_al = x + p
+    right_al = p + x
+    center_al = half_x + p + half_x
+    if len(center_al) < 15:
+        center_al = center_al + "X"*(15-len(center_al))
+    return left_al + center_al + right_al
 
 def peptide2blosum(peptide):
     """Function used to generate a multidimentional array (which is later 
@@ -82,7 +101,11 @@ class Reg_Seq_Dataset(Dataset):
         return len(self.peptides)
 
 class Class_Seq_Dataset(Dataset):
-    def __init__(self, csv_peptides,labels, encoder, device):
+    def __init__(
+        self, csv, encoder, device,
+        threshold=500,
+        cluster_column=None,
+    ):
         """Class used to store the dataset for the sequence based classification.
 
         Args:
@@ -91,20 +114,64 @@ class Class_Seq_Dataset(Dataset):
             encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
             device (torch.device): can be either "cpu" or torch.device("cuda:0").
         """
-        self.csv_peptides = csv_peptides
-        self.labels = torch.tensor(labels).long()
+        df = pd.read_csv(csv)
+        self.df = df.loc[df["peptide"].str.len() <= 15]
+        self.threshold = threshold
+        self.cluster_column = cluster_column
+
+        self.csv_peptides, self.labels, self.groups = self.load_class_seq_data()
+
+        self.csv_peptides = [length_agnostic_encode_p(p) for p in self.csv_peptides]
+        self.labels = torch.tensor(self.labels).long()
+
+        if encoder == "sparse_with_allele":
+            pseudosequences = self.df["pseudosequence"].tolist()
+            self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(pseudosequences, self.csv_peptides)])
         if encoder == "blosum":
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
-        else:
+        if encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
         if encoder == "mixed":
             self.peptides = torch.tensor([peptide2mixed(p) for p in self.csv_peptides])
+
         self.peptides = self.peptides.to(device)
         self.labels = self.labels.to(device)
+        self.input_size = self.peptides.shape[1] * self.peptides.shape[2]
+        
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
+
     def __len__(self):
         return len(self.peptides)
+
+    def load_class_seq_data(self): # if cluster_file is set, performs a clustered data loading
+        """Function used to read the data from the csv_file and generate the csv_peptides,
+        labels and groups arrays.
+
+        Args:
+            csv_file (string): Path to db1.
+            threshold (int): Threshold to define binding/non binding.
+
+        Returns:
+            csv_peptides: Array used as an argument for Class_Seq_Dataset.
+            labels: Array used as an argument for Class_Seq_Dataset.
+            groups: Array indicating cluster to which csv_peptides value belong.
+        """
+
+        csv_peptides = self.df["peptide"].tolist()
+
+        # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
+        # different values)
+        labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+
+        # binder or non binder if the mean value of redundant peptides less than the threshold:
+        # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
+
+        # peptides grouped by clusters for the clustered classification
+        groups = []
+        if self.cluster_column != None:
+            groups = self.df[self.cluster_column].tolist()# used for LeaveOneGroupOut sklearn function when doing the clustered classification
+        return csv_peptides, labels, groups
 
 def load_reg_seq_data(csv_file, threshold):
     """Function used to read the data from the csv_file and generate the csv_peptides
@@ -123,33 +190,6 @@ def load_reg_seq_data(csv_file, threshold):
     csv_ba_values = [value for value in df["measurement_value"] if value <= threshold]
     return csv_peptides, csv_ba_values
 
-def load_class_seq_data(csv_file, threshold): # if cluster_file is set, performs a clustered data loading
-    """Function used to read the data from the csv_file and generate the csv_peptides,
-    labels and groups arrays.
-
-    Args:
-        csv_file (string): Path to db1.
-        threshold (int): Threshold to define binding/non binding.
-
-    Returns:
-        csv_peptides: Array used as an argument for Class_Seq_Dataset.
-        labels: Array used as an argument for Class_Seq_Dataset.
-        groups: Array indicating cluster to which csv_peptides value belong.
-    """
-    df = pd.read_csv(csv_file)
-
-    csv_peptides = df["peptide"].tolist()
-
-    # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
-    # different values)
-    labels = [(0.,1.,)[value < threshold] for value in df["measurement_value"]]
-
-    # binder or non binder if the mean value of redundant peptides less than the threshold:
-    # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
-
-    # peptides grouped by clusters for the clustered classification
-    groups = df["cluster"].tolist() # used for LeaveOneGroupOut sklearn function when doing the clustered classification
-    return csv_peptides, labels, groups
 
 # functions to transform/transform back binding affinity values
 def sig_norm(ds,training_mean,training_std):
@@ -215,3 +255,11 @@ def custom_norm(ds): # custom normalization
 
 def custom_denorm(ds):
     return ds
+
+
+if __name__ == "__main__":
+    dataset = Class_Seq_Dataset(
+        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/hla0201_pseudoseq.csv",
+        device="cpu",
+        encoder="sparse_with_allele")
+    print(dataset.peptides.shape)

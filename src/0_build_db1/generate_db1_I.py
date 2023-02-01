@@ -37,6 +37,21 @@ arg_parser.add_argument(
     default=0,
     type=int
 )
+arg_parser.add_argument("--with-pseudosequence", "-w",
+    help="""
+    Appends a pseudosequence column. Useful for allele encoding for the MLP. Path to the 
+    mhcflurry.allele_sequence.csv file should be provided as well.
+    """,
+    default=False,
+    action="store_true"
+)
+arg_parser.add_argument("--pseudoseq-csv", "-W",
+    help="""
+    Path to the mhcflurry.allele_sequence.csv file.
+    Default: /home/lepikhovd/3D-Vac/external/unprocessed/mhcflurry.allele_sequences.csv
+    """,
+    default="/home/lepikhovd/3D-Vac/external/unprocessed/mhcflurry.allele_sequences.csv"
+)
 arg_parser.add_argument(
     "--allele", "-a",
     default=[],
@@ -108,6 +123,19 @@ if a.peptide_length > 0:
     # simple mask to filter rows which have the desired peptide length:
     peptide_mask = [len(peptide) == a.peptide_length for peptide in output_csv_df["peptide"].tolist()]
     output_csv_df = output_csv_df[peptide_mask]
+
+if a.with_pseudosequence:
+    print("Adding pseudosequences column")
+    pseudoseq_df = pd.read_csv(a.pseudoseq_csv)
+    pseudosequences = []
+    for allele in output_csv_df["allele"]:
+        if allele in pseudoseq_df["allele"].tolist():
+            pseudosequence = pseudoseq_df.loc[pseudoseq_df["allele"] == allele, "sequence"].tolist()[0]
+            pseudosequence = pseudosequence
+            pseudosequences.append(pseudosequence)
+        else:
+            pseudosequences.append("X"*37)
+    output_csv_df["pseudosequence"] = pseudosequences
 
 #save the csv:
 if a.output_csv:
