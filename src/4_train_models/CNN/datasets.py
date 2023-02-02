@@ -162,10 +162,10 @@ class Class_Seq_Dataset(Dataset):
 
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
-        labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+        # labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
 
         # binder or non binder if the mean value of redundant peptides less than the threshold:
-        # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
+        labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
 
         # peptides grouped by clusters for the clustered classification
         groups = []
