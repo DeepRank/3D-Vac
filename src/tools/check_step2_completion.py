@@ -3,17 +3,48 @@ from joblib import Parallel, delayed
 import pandas as pd
 import os
 import pdb2sql
+import argparse
 
 """
 Usage: srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=128 --time=00:30:00 python check_step2_completion.py
 """
+arg_parser = argparse.ArgumentParser(
+    description="""Checks if step2 has been propely performed.
+    """
+)
+arg_parser.add_argument("--db2-path", "-d",
+    help="Path to db2",
+    type=str,
+    required=True
+)
+arg_parser.add_argument("--ids-csv", "-i",
+    help="Path to csv with IDs",
+    type=str,
+    required=True
+)
+arg_parser.add_argument("--output-csv", "-o",
+    help="Path to output file",
+    type=str,
+    required=True
+)
+# arg_parser.add_argument("--mhc-class", "-m",
+#     help="MHC class",
+#     type=str,
+#     choices=['I','II']
+# )
+arg_parser.add_argument("--n-jobs", "-n",
+    help="number of jobs",
+    type=int,
+    default=128
+)
+
 
 aminoacids = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
      'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 
      'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
      'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
 
-def check_case(path, IDs_csv):
+def check_case(path, IDs_csv, mhc_class):
     checks = {x: None for x in ['pdb','pdb_M','M_len',
                 'pdb_P','P_len', 'M_pssm', 'M_pssm_as_pdb',
                 'P_pssm', 'P_pssm_as_pdb', 'P_chain_all_same']}
@@ -121,20 +152,22 @@ def check_case(path, IDs_csv):
 
 
 
+if __name__=='__main__':
 
+    args = arg_parser.parse_args()
+    
+    #db2_path = '/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/*/*'
+    paths = glob.glob(args.db2_path)
 
-db2_path = '/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/*/*'
-paths = glob.glob(db2_path)
+    #IDs_csv = '/projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv'
+    df = pd.read_csv(args.ids_csv)
 
-IDs_csv = '/projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv'
-df = pd.read_csv(IDs_csv)
+    checks = Parallel(n_jobs = 128, verbose = 1)(delayed(check_case)(path, df) for path in paths)
+    checks = {x[0] : x[1] for x in checks}
 
-checks = Parallel(n_jobs = 128, verbose = 1)(delayed(check_case)(path, df) for path in paths)
-checks = {x[0] : x[1] for x in checks}
-
-with open('./db2_checks.tsv', 'w') as outfile:
-    header = ['ID'] + list(list(checks.values())[0].keys())
-    outfile.write(('\t').join(header) + '\n')
-    for key in checks:
-        row = [key] + [str(x) for x in list(checks[key].values())]
-        outfile.write(('\t').join(row) + '\n')
+    with open(args.output_csv, 'w') as outfile:
+        header = ['ID'] + list(list(checks.values())[0].keys())
+        outfile.write(('\t').join(header) + '\n')
+        for key in checks:
+            row = [key] + [str(x) for x in list(checks[key].values())]
+            outfile.write(('\t').join(row) + '\n')
