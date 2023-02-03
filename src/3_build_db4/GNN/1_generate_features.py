@@ -7,7 +7,7 @@ from deeprankcore.query import QueryCollection
 import logging
 
 ####### please modify here #######
-run_day = '230201_missing_ids'
+run_day = '230202'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 #project_folder = '/Users/giuliacrocioni/Desktop/docs/eScience/projects/3D-vac/snellius_data/snellius_100_07122022/'
 project_folder = '/projects/0/einf2380/'
@@ -16,9 +16,8 @@ models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
-cpu_count = 8 # remember to set the same number in --cpus-per-task in 1_generate_hdf5.sh
-verbose = False
-debug_missing_ids = True
+cpu_count = 96 # remember to set the same number in --cpus-per-task in 1_generate_hdf5.sh
+debug_missing_ids = False
 ##################################
 
 if resolution == 'atomic':
@@ -73,9 +72,9 @@ def generate_data():
 		_log.info(f'{len(pdb_files_all)} PDBs found.')
 		pdb_files_csv = [os.path.join(models_folder_path + '/pdb', csv_id + '.pdb') for csv_id in csv_ids]
 		pdb_files = list(set(pdb_files_all) & set(pdb_files_csv))
-		pdb_files.sort()
 		_log.info(f'Selected {len(pdb_files)} PDBs using CSV IDs (intersection).')
-
+	
+	pdb_files.sort()
 	_log.info('Aligning clusters and targets data with selected PDBs IDs ...')
 	pdb_ids_csv = [pdb_file.split('/')[-1].split('.')[0] for pdb_file in pdb_files]
 	csv_data_indexed = csv_data.set_index('ID')
@@ -155,11 +154,10 @@ def generate_data():
 			_log.info(f'{count} queries added to the collection.')
 
 	_log.info(f'Queries ready to be processed.\n')
-	output_paths = queries.process(
+	queries.process(
 		f'{output_folder}/{resolution}',
 		cpu_count = cpu_count,
-		combine_output = False, 
-		verbose = verbose)
+		combine_output = False)
 	_log.info(f'The queries processing is done. The generated hdf5 files are in {output_folder}.')
 
 if __name__ == "__main__":

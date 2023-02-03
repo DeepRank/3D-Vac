@@ -33,8 +33,9 @@ torch.manual_seed(22)
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '230130' # 692 data points (local folder)
+# run_day_data = '230130' # 692 data points (local folder)
 # run_day_data = '11122022' # 140k data points (proj folder)
+run_day_data = '230202' # 100k data points (proj folder)
 # run_day_data = '08122022'
 # Target/s
 target_group = 'target_values'
@@ -51,7 +52,7 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 10
+epochs = 20
 save_model = 'best'
 cuda = True
 ngpu = 1
@@ -59,12 +60,12 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # Paths
-project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-# project_folder = '/projects/0/einf2380'
+# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_692_gpu_nw16_'
+exp_name = 'exp_100k_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 ####################
@@ -143,7 +144,7 @@ if __name__ == "__main__":
 
     df_summ = pd.DataFrame(data=summary)
 
-    df_train, df_test = train_test_split(df_summ, test_size=0.25, stratify=df_summ.target, random_state=42)
+    df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
     df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
     df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
 
