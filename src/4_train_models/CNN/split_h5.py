@@ -17,8 +17,9 @@ arg_parser = argparse.ArgumentParser(
     Combines every h5 files provided in the --features-path argument
     into a list. The list can be either shuffled in cross-validation sets or clustered using
     leave one group out (--cluster argument) or specify a set of clusters used for train and test 
-    (--cluster, --training-clusters --testing-clusters arguments and --cluster-column set to a specific 
-    cluster_set_{n} column).
+    (--cluster, --train-clusters --test-clusters arguments and --cluster-column to a specific 
+    cluster_set_{n} column). Note that when using specific clusters, the actual cluster number is indexed.
+    Which means if we want cluster 4 as the cluster used for test, we would have to set --test-clusters to 3.
     For the shuffling, the list is randomly shuffled or clustered 10 times (for 10 fold xvalidation) 
     using clusters provided in --csv-file cluster colum. 
     Generated splits are dumped into the --output-path and then used for training the CNN. 
@@ -55,14 +56,14 @@ arg_parser.add_argument("--test-clusters", "-V",
     type=int
 )
 arg_parser.add_argument("--cluster", "-c",
-    help = "If provided, creates --n-fold train, validation, test splits for a leave one group out cross validation.",
+    help = "If provided, creates --n-fold train, validation, test splits for a leave-one-group-out cross validation.",
     default = False,
     action = "store_true",
 )
 
 arg_parser.add_argument("--n-fold", "-n",
     help = """
-    Number of folds for the cross-validation.
+    Number of folds for the cross-validation or the number of clusters for the leave-one-group-out algorithm.
     Default 10. 
     """,
     default=10,
@@ -219,17 +220,21 @@ if __name__ == '__main__':
                 f"shuffled/{i}/test.hdf5") 
             i+=1
     else:
-        groups = [int(x) for x in set(df["cluster"])]
+        groups = [int(x) for x in range(n_splits)]
         all_cases = list(symlinks.keys())
         if len(a.train_clusters) > 0 and len(a.test_clusters) > 0:
             test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.test_clusters))
-            test_cases = df[test_mask]["ID"]
             train_val_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.train_clusters))
-            ds_l = train_val_mask.shape[0]
+
+            test_cases = df[test_mask]["ID"]
+            train_val_cases = np.array(df[train_val_mask]["ID"])
+
+            ds_l = train_val_cases.shape[0]
             train_cases, validation_cases = np.split(
-                train_val_mask, 
+                train_val_cases, 
                 [int(0.7*ds_l)]
             )
+
             print(f"""
             ### SAVING TRAINING SPLITS FROM CLUSTERS {a.train_clusters} AND
             ### TESTING SPLITS FROM CLUSTERS {a.test_clusters} FROM CLUSTER COLUMN 
