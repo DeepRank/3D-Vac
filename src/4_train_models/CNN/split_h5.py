@@ -301,7 +301,7 @@ if __name__ == '__main__':
             ### TESTING SPLITS FROM CLUSTERS {a.test_clusters} FROM CLUSTER COLUMN 
             
             """)
-            save_train_valid(train_cases, validation_cases, test_cases, symlinks, output_h5_path,
+            save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
                 f"clustered/train.hdf5",
                 f"clustered/valid.hdf5",
                 f"clustered/test.hdf5"
