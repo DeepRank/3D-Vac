@@ -293,7 +293,7 @@ if __name__ == '__main__':
             ds_l = train_val_cases.shape[0]
             train_cases, validation_cases = np.split(
                 train_val_cases, 
-                [int(0.7*ds_l)]
+                [int((train_split/100)*ds_l)]
             )
 
             print(f"""
