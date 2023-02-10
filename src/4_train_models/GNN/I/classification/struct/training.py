@@ -43,7 +43,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_std_es_gpu_nw16_'
+exp_name = 'exp_100k_std_es_classw_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -64,6 +64,7 @@ lr = 1e-3
 weight_decay = 0
 epochs = 50
 save_model = 'best'
+class_weights = True # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
@@ -223,6 +224,7 @@ if __name__ == "__main__":
         dataset_train,
         dataset_val,
         dataset_test,
+        class_weights = class_weights,
         cuda = cuda,
         ngpu = ngpu,
         output_exporters = [HDF5OutputExporter(output_path)]
