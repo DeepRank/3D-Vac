@@ -15,17 +15,28 @@ import pickle
 import tqdm
 
 arg_parser = argparse.ArgumentParser(
+    epilog="""
+    python ./split_h5.py \
+    --csv-file ../../../data/external/processed/all_hla_j_4.csv \
+    --features-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/exp_nmers_all_HLA_quantitative/ \
+    --output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/h5_test \
+    --cluster \ #perform a clustered training and test
+    --cluster-column cluster_set_10 \ #column of the csv file containing cluster number
+    --train-clusters 0 1 2 4 5 6 7 8 9 \ # cluster numbers (from --cluster-column) used for training
+    --test-clusters 3 
+    """,
     description=
     """
     Combines every h5 files provided in the --features-path argument
     into a list. The list can be either shuffled in cross-validation sets or clustered using
-    leave one group out (--cluster argument) or specify a set of clusters used for train and test 
+    leave one group out (--cluster argument). The script can split based on clusters used for train and test 
     (--cluster, --train-clusters --test-clusters arguments and --cluster-column to a specific 
     cluster_set_{n} column). Note that when using specific clusters, the actual cluster number is indexed.
     Which means if we want cluster 4 as the cluster used for test, we would have to set --test-clusters to 3.
     The cluster_set_{n} column from the csv file is not indexed.
-    For the shuffling, the list is randomly shuffled or clustered 10 times (for 10 fold xvalidation) 
-    using clusters provided in --csv-file cluster colum. 
+    For the shuffling, the list is randomly shuffled n times (number of folds for the X-validation). 
+    For the clustering without specific clusters for train and test, the list is separated based on 
+    clusters provided in the --cluster-column argument (see description of argument for more details).
     Generated splits are dumped into the --output-path and then used for training the CNN. 
     ID column of the --csv-file are used as filters to select cases from --features-path.
     """
@@ -38,15 +49,17 @@ arg_parser.add_argument("--features-path", "-f",
 
 arg_parser.add_argument("--cluster-column", "-C",
     help="""
-    Should be formated like cluster_set_{n} and provided with the --cluster argument. Default 'cluster'.
+    Column in the csv file containing peptides' cluster annotations.
+    Should be formated like cluster_set_{n} and provided with the --cluster argument. Default column 'cluster'. 
+    Example: --cluster-column cluster_set_10
     """,
     default="cluster"
 )
 
 arg_parser.add_argument("--train-clusters", "-T",
     help="""
-    Provide one or several clusters used for training. Use with --cluster. Use with --cluster.
-    Required with --test-clusters.
+    Provide one or several clusters (as rows from the --cluster-column) used for training. Use with --cluster.
+    Required with --test-clusters. Example: --train-clusters 0 1 2 3 4 5 6
     """,
     nargs="+",
     type=int
@@ -67,7 +80,7 @@ arg_parser.add_argument("--cluster", "-c",
 
 arg_parser.add_argument("--n-fold", "-n",
     help = """
-    Number of folds for the cross-validation or the number of clusters for the leave-one-group-out algorithm.
+    Number of folds for the cross-validation (only when the training and test is not clustered).
     Default 10. 
     """,
     default=10,
@@ -281,7 +294,7 @@ if __name__ == '__main__':
                 f"shuffled/{i}/test.hdf5") 
             i+=1
     else:
-        groups = [int(x) for x in range(n_splits)]
+        groups = [int(x) for x in set(df[a.cluster_column])]
         all_cases = list(symlinks.keys())
         if len(a.train_clusters) > 0 and len(a.test_clusters) > 0:
             test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.test_clusters))
