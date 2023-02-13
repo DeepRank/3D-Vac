@@ -54,7 +54,7 @@ database.create_database(prog_bar=True)
 # mapping features:
 grid_info = {
     "number_of_points": [35,30,30],
-    # "number_of_points": [1,1,1],
+    "atomic_densities": {'C': 1.7, 'N': 1.55, 'O': 1.52, 'S': 1.8},
     "resolution": [1.,1.,1.]
 }
 
