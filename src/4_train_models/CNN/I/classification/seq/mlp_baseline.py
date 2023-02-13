@@ -7,6 +7,7 @@ import copy
 import os.path as path
 import sys
 sys.path.append(path.abspath("../../../../"))
+sys.path.append(path.abspath("../../../../../"))
 from CNN.SeqBased_models import MlpRegBaseline, train_f, evaluate
 from CNN.datasets import Class_Seq_Dataset # class and function to generate shuffled dataset
 # import multiprocessing as mp
@@ -21,16 +22,26 @@ import numpy as np
 #---------------------
 
 arg_parser = argparse.ArgumentParser(
-    description="""Fully connected layer to generate a model which predicts binders based on one-hot encoded
-    peptide sequence. Works only for a fixed length of 9 residues. Takes as input the csv file (header free) containing
-    the list of peptides, the column for the peptides and a threshold for binding affinity to define binders.
-    In case where the encoder is sparse_with_allele, the path to the pseudoseq csv file (allele to seq) should be provided
-    with the --pseudoseq-csv-path argument.
+    description="""Fully connected layer to generate a model which predicts binders based on different type of encoded
+    peptide and allele sequence. Works for peptide length not greater than 15. Takes as input the csv file (header free)
+    containing the list of peptides, the column for the peptides and a threshold for binding affinity to define binders.
+    In case where the encoder includes allele as well, the CSV file should contain a "pseudoseq" column of the allele.
+    Can be spawned for shuffled training, clustered and clustered with specific clusters used for training and test
+    (the validation set is a subset of training). In that case, the number of sbatch tasks should be set to the number of
+    unique train clusters representing the number of folds. If several clusters should be used for the same fold, make sure 
+    to regroup those clusters into one beforehand.
     """
 )
 arg_parser.add_argument("--csv-file", "-f",
     help="Name of the csv file in data/external/processed containing the cluster column. Default BA_pMHCI.csv",
     default="/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_j_4.csv"
+)
+arg_parser.add_argument("--trained-models-path", "-p",
+    help="""
+    Absolute path to the folder where saved models and associated data are stored.
+    Default: /home/lepikhovd/3D-Vac/src/4_train_models/CNN/I/classification/seq/trained_models
+    """,
+    default="/home/lepikhovd/3D-Vac/src/4_train_models/CNN/I/classification/seq/trained_models"
 )
 arg_parser.add_argument("--threshold", "-t",
     help="Binding affinity threshold to define binders, default 500.",
@@ -56,16 +67,16 @@ arg_parser.add_argument("--test-clusters", "-V",
     type=int
 )
 arg_parser.add_argument("--cluster-column", "-C",
-    help="Column in the csv file for the cluster set, default to `cluster`.",
+    help="Column in the csv file listing clusters to filter, default to `cluster`.",
     default="cluster"
 )
 arg_parser.add_argument("--encoder", "-e",
-    help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum.",
-    choices=["blosum", "sparse", "mixed", "sparse_with_allele"],
-    default="sparse"
+    help="Choose the encoder for peptides. Can be `sparse` (onehot) or `blosum`. Default blosum_with_allele.",
+    choices=["blosum", "sparse", "blosum_with_allele", "sparse_with_allele"],
+    default="blosum_with_allele"
 )
 arg_parser.add_argument("--neurons", "-N",
-    help="Number of neurons per layer. Default 1000.",
+    help="Number of neurons per layer. Default 5.",
     default=5,
     type=int
 )
@@ -110,7 +121,8 @@ batch = a.batch
 epochs = a.epochs
 
 # if CUDA cores available, use them and not CPU
-device = ("cpu", torch.device('cuda:0'))[torch.cuda.is_available()]
+print(f"CUDA available: {torch.cuda.is_available()}")
+device = ("cpu", torch.device('cuda'))[torch.cuda.is_available()]
 
 # DATA PREPROCESSING
 #----------------------------------------------
@@ -132,7 +144,7 @@ if rank == 0:
     # -------------------------------------------
     if a.cluster == False:
         print("Splitting into shuffled datasets..")
-        kfold = StratifiedKFold(n_splits=10, shuffle=True)
+        kfold = StratifiedKFold(n_splits=size, shuffle=True)
         # split the whole dataset using sklearn.metrics kfold function:
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
             # the train dataset is further splited into validation with scaled proportion:
@@ -147,10 +159,13 @@ if rank == 0:
     else: # perform clustered dataset split
         if len(a.train_clusters) > 0:
             print("Splitting into provided clusters..")
+            print(f"Clusters used for train and validation (shuffled and split 80%-20%): {a.train_clusters}")
+            print(f"Clusters used for test: {a.test_clusters}")
             for i in range(len(a.train_clusters)):
-                train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g == a.train_clusters[i]])
-                val_test_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.test_clusters])
-                val_idx, test_idx = train_test_split(val_test_idx, test_size=0.5, stratify=dataset.labels[val_test_idx])
+                # here the validation is a subset of train while test is a unique subset
+                val_train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g == a.train_clusters[i]])
+                test_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.test_clusters])
+                train_idx, val_idx = train_test_split(val_train_idx, test_size=0.2, stratify=dataset.labels[val_train_idx])
 
                 datasets.append([
                     train_idx,
@@ -189,12 +204,19 @@ test_dataloader = DataLoader(test_subset, batch_size=batch)
 #----------------
 
 # instantiate the model class
-input_dimensions = dataset.input_size
-model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input=input_dimensions).to(device)
+input_dimensions = dataset.input_shape
+model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
 
 if rank==0:
+    print(f"Number of samples for training, validation and test for the {len(datasets)} folds:")
+    for i, ds in enumerate(datasets):
+        print(f"Fold {i}: {len(ds[0])}, {len(ds[1])}, {len(ds[2])}")
     print(f"{size} datasets created, models loaded, starting training using this architecture:")
-    summary(model, input_size=(input_dimensions, 1, 1))
+    summary(
+        model, 
+        input_data = torch.randn(input_dimensions).unsqueeze(0),
+        col_names = ("output_size", "num_params")
+    )
 
 loss_fn = nn.CrossEntropyLoss()        
 optimizer = torch.optim.Adam(model.parameters())
@@ -225,7 +247,7 @@ for e in range(epochs):
         best_model["best_epoch"] = e
 
     # train the model over one epoch
-    train_f(train_dataloader, model, loss_fn, optimizer)
+    train_f(train_dataloader, model, loss_fn, optimizer, device)
 print(f"Training on {rank} finished.")
 
 # save the model:
@@ -253,7 +275,8 @@ best_model["test_indices"] = split[2]
 models = mpi_conn.gather(best_model, root=0) # master receiving trained models
 
 if rank == 0:
-    model_path = f"trained_models/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
+    trained_models_path = a.trained_models_path
+    model_path = f"{trained_models_path}/mlp_classification_{a.encoder}_encoder_{a.neurons}_neurons_{a.epochs}_epochs_{a.model_name}_{a.batch}_batch_size.pt"
     to_save = {
         "arguments": a,
         "models_data": models

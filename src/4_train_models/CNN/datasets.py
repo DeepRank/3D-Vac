@@ -3,79 +3,61 @@ import torch
 import blosum
 import pandas as pd
 
-
-# encoding functions:
+# define the aminoacid alphabet and build the one-hot tensor:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
-def allele_peptide2onehot(allele, peptide):
-    not_in_allele = [res for res in allele if res not in aminoacids]
-    AA_eye = torch.eye(len(aminoacids), dtype=torch.float)
-    allele_arr = [AA_eye[aminoacids.index(res)].tolist() for res in allele]
-    peptide_arr = [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
-    return allele_arr + peptide_arr
+AA_eye = torch.eye(len(aminoacids), dtype=torch.float16)
 
-def peptide2onehot(peptide):
-    AA_eye = torch.eye(len(aminoacids), dtype=torch.float)
-    return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+# build the blosum62 tensor and its alphabet:
+mat = blosum.BLOSUM(62)
+blosum_t = [[]]
+blosum_aa = ["A"]
+for aa in mat.keys():
+    if aa[0] in aminoacids and aa[1] in aminoacids:
+        if len(blosum_t[-1]) < len(aminoacids):
+            blosum_t[-1].append(mat[aa])
+        else:
+            blosum_aa.append(aa[0])
+            blosum_t.append([mat[aa]])
+blosum_t = torch.tensor(blosum_t, dtype=torch.float16)
+blosum_aa = "".join(blosum_aa)
 
 def length_agnostic_encode_p(p):
-    rep_len = 15
+    """Build a length agnostic representation of peptide having a sequence length not greater than 15.
+    MHCflurry type of encoding. Given any length, returns a concatenation of left, center and right align
+    of the peptide sequence. For instance, given a peptide "ACGHDGDDF": "ACGHDGDDFXXXXXX", "XXXACGHDGDDFXXX" and
+    "XXXXXXACGHDGDDF" are its left-aligned, center-aligned and right aligned representations, respectively.
+
+    Args:
+        p (String): Amino acid sequence of the peptide.
+
+    Returns:
+        String: Concatenation of left align, center align and right align of the peptide
+    """
+    rep_len = 15 # this can be updated if in the future the threshold for peptide representation is modified
     x = "X"*(rep_len-len(p))
     half_x = x[:len(x)//2]
-    left_al = x + p
-    right_al = p + x
+    left_al = p + x
+    right_al = x + p
     center_al = half_x + p + half_x
     if len(center_al) < 15:
         center_al = center_al + "X"*(15-len(center_al))
     return left_al + center_al + right_al
 
+def allele_peptide2blosum(allele, peptide):
+    peptide_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
+    allele_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in allele]
+    return allele_arr + peptide_arr
+
+def allele_peptide2onehot(allele, peptide):
+    allele_arr = [AA_eye[aminoacids.index(res)].tolist() for res in allele]
+    peptide_arr = [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+    return allele_arr + peptide_arr
+
+def peptide2onehot(peptide):
+    return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+
 def peptide2blosum(peptide):
-    """Function used to generate a multidimentional array (which is later 
-    converted to tensor) containing arrays of BLOSUM62 encoded residue.
-
-    Args:
-        peptide (string): sequence of the peptide
-
-    Returns:
-        array: array containing len(peptide) arrays (of len 20) of encoded residue
-    """
-    mat = blosum.BLOSUM(62)
-    blosum_t = [[]]
-    blosum_aa = ["A"]
-    for aa in mat.keys():
-        if aa[0] in aminoacids and aa[1] in aminoacids:
-            if len(blosum_t[-1]) < 20:
-                blosum_t[-1].append(mat[aa])
-            else:
-                blosum_aa.append(aa[0])
-                blosum_t.append([mat[aa]])
-    blosum_t = torch.tensor(blosum_t)
-    blosum_aa = "".join(blosum_aa)
     return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
-
-def peptide2mixed(peptide):
-    """Function used to encode the residues with a first vector of 20
-    (onehot encoding) followed by a vector of 20 for BLOSUM62.
-
-    Args:
-        peptide (string): Sequence of the peptide.
-
-    Returns:
-        _type_: Array containing len(peptides) of arrays (of len 40) encoded residue.
-    """
-    AA_eye = torch.eye(20, dtype=torch.float)
-    mat = blosum.BLOSUM(62)
-    blosum_t = [[]]
-    blosum_aa = ["A"]
-    for aa in mat.keys():
-        if aa[0] in aminoacids and aa[1] in aminoacids:
-            if len(blosum_t[-1]) < 20:
-                blosum_t[-1].append(mat[aa]) 
-            else:
-                blosum_aa.append(aa[0])
-                blosum_t.append([mat[aa]])
-    blosum_t = torch.tensor(blosum_t)
-    blosum_aa = "".join(blosum_aa)
-    return [blosum_t[blosum_aa.index(res)].tolist() + AA_eye[aminoacids.index(res)].tolist() for res in peptide]
 
 # the whole dataset class, which extends the torch Dataset class
 class Reg_Seq_Dataset(Dataset):
@@ -124,6 +106,9 @@ class Class_Seq_Dataset(Dataset):
         self.csv_peptides = [length_agnostic_encode_p(p) for p in self.csv_peptides]
         self.labels = torch.tensor(self.labels).long()
 
+        if encoder == "blosum_with_allele":
+            pseudosequences = self.df["pseudosequence"].tolist()
+            self.peptides = torch.tensor([allele_peptide2blosum(a, p) for a, p in zip(pseudosequences, self.csv_peptides)])
         if encoder == "sparse_with_allele":
             pseudosequences = self.df["pseudosequence"].tolist()
             self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(pseudosequences, self.csv_peptides)])
@@ -131,12 +116,10 @@ class Class_Seq_Dataset(Dataset):
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         if encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-        if encoder == "mixed":
-            self.peptides = torch.tensor([peptide2mixed(p) for p in self.csv_peptides])
 
-        self.peptides = self.peptides.to(device)
-        self.labels = self.labels.to(device)
-        self.input_size = self.peptides.shape[1] * self.peptides.shape[2]
+        self.peptides = self.peptides
+        self.labels = self.labels
+        self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
         
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
@@ -162,10 +145,10 @@ class Class_Seq_Dataset(Dataset):
 
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
-        # labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+        labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
 
         # binder or non binder if the mean value of redundant peptides less than the threshold:
-        labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
+        # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
 
         # peptides grouped by clusters for the clustered classification
         groups = []
@@ -261,5 +244,5 @@ if __name__ == "__main__":
     dataset = Class_Seq_Dataset(
         "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/hla0201_pseudoseq.csv",
         device="cpu",
-        encoder="sparse_with_allele")
+        encoder="blosum_with_allele")
     print(dataset.peptides.shape)
