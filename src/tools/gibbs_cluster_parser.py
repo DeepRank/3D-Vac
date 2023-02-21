@@ -174,7 +174,7 @@ else:
 
     for c in clusters.keys():
         for p in clusters[c]["peptides"]:
-            df.loc[df["peptide"] == p, f"cluster_set_{cluster_set}"] = str(c)
+            df.loc[df["pep_anch_rep"] == p, f"cluster_set_{cluster_set}"] = str(c)
     print(f"Finished populating df on {rank}")
     all_df = conn.gather(df)
     if rank==0:
