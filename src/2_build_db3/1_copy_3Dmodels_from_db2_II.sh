@@ -13,4 +13,6 @@ module load foss/2021a
 source activate deeprank
 
 srun python -u ./copy_3Dmodels_from_db2.py --mhc-class II \
-    --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_MHCII_noduplicates.csv
+    --csv-file /projects/0/einf2380/data/external/processed/II/IDs_BA_MHCII_noduplicates.csv \
+    --models-path /projects/0/einf2380/data/pMHCII/3d_models/BA/\*/\* \
+    --best-models-path /projects/0/einf2380/data/pMHCII/db2_selected_models
