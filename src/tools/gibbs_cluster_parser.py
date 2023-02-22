@@ -50,6 +50,10 @@ arg_parser.add_argument("--cluster-column-name", "-n",
     help="Name of the newly added (or updated) column for the gibbs cluster. Default gibbs_cluster.",
     default="gibbs_cluster"
 )
+arg_parser.add_argument("--map-column", "-m",
+    help="Name of the DB1 column to map the peptides from the gibbs cluster output file. Default `peptide`",
+    default="peptide"
+)
 
 a = arg_parser.parse_args()
 
@@ -77,7 +81,7 @@ if not a.all_peptides:
     for i in range(len(clusters)):
         for c in clusters[i].keys():
             for p in clusters[i][c]["peptides"]:
-                df.loc[df["peptide"] == p, a.cluster_column_name] = c
+                df.loc[df[a.map_column] == p, a.cluster_column_name] = c
             print(f"Number of peptides in cluster {c}: {len(df.loc[df[a.cluster_column_name] == c])}")
         df.to_csv(a.file, index=False)
 
@@ -174,7 +178,7 @@ else:
 
     for c in clusters.keys():
         for p in clusters[c]["peptides"]:
-            df.loc[df["peptide"] == p, f"cluster_set_{cluster_set}"] = str(c)
+            df.loc[df[a.map_column] == p, f"cluster_set_{cluster_set}"] = str(c)
     print(f"Finished populating df on {rank}")
     all_df = conn.gather(df)
     if rank==0:
