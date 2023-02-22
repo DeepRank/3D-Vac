@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
 from torchsummary import summary
 import numpy as np
+import pickle
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -103,8 +104,9 @@ a = arg_parser.parse_args()
 mpi_conn = MPI.COMM_WORLD
 rank = mpi_conn.Get_rank()
 size = mpi_conn.Get_size()
-dataset = None # this object containing the pytorch loaded dataset will be broadcasted to all slaves
-datasets = [] # this array will be filled with jobs for slaves
+if rank != 0:
+    datasets = None
+    dataset = None
 
 # This will be saved in a pickle file as the best model for each cross validation (each MPI job)
 best_model = {
@@ -121,12 +123,13 @@ batch = a.batch
 epochs = a.epochs
 
 # if CUDA cores available, use them and not CPU
-print(f"CUDA available: {torch.cuda.is_available()}")
 device = ("cpu", torch.device('cuda'))[torch.cuda.is_available()]
 
 # DATA PREPROCESSING
 #----------------------------------------------
 if rank == 0:
+    datasets = []
+    print(f"CUDA available: {torch.cuda.is_available()}")
     print(f"Device used: {device}")
     print("Loading data for splitting...")
     csv_path = path.abspath(a.csv_file)
@@ -158,20 +161,23 @@ if rank == 0:
     
     else: # perform clustered dataset split
         if len(a.train_clusters) > 0:
-            print("Splitting into provided clusters..")
+            print(f"Splitting into provided clusters {size} times..")
+            a.train_clusters.append(0)
             print(f"Clusters used for train and validation (shuffled and split 80%-20%): {a.train_clusters}")
             print(f"Clusters used for test: {a.test_clusters}")
-            for i in range(len(a.train_clusters)):
-                # here the validation is a subset of train while test is a unique subset
-                val_train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g == a.train_clusters[i]])
-                test_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.test_clusters])
-                train_idx, val_idx = train_test_split(val_train_idx, test_size=0.2, stratify=dataset.labels[val_train_idx])
+            # here the validation is a subset of train while test is a unique subset
+            val_train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.train_clusters])
 
-                datasets.append([
-                    train_idx,
-                    val_idx,
-                    test_idx
-                ])
+            test_idx = [j for j,g in enumerate(dataset.groups) if g in a.test_clusters]
+            train_idx, val_idx = train_test_split(val_train_idx, test_size=0.2, stratify=dataset.labels[val_train_idx])
+
+            datasets = [[
+                train_idx.tolist(),
+                val_idx.tolist(),
+                test_idx
+            ]]*size
+            pickle.dump(datasets, open("./datasets.pkl", "wb"))
+            print("pickle dumped")
         else:
             print("Splitting into clustered datasets..")
             kfold = LeaveOneGroupOut()       
@@ -190,7 +196,9 @@ if rank == 0:
 # CREATE MULTIPROCESSING
 #-----------------------
 split = mpi_conn.scatter(datasets)  # master sending tasks
+print(f"split on {rank}")
 dataset = mpi_conn.bcast(dataset) # master broadcasting the loaded dataset
+print(f"dataset casted on {rank}")
 # slaves receiving work
 train_subset = Subset(dataset, split[0])
 validation_subset = Subset(dataset, split[1])

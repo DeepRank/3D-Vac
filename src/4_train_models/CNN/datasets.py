@@ -116,9 +116,9 @@ class Class_Seq_Dataset(Dataset):
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         if encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-
-        self.peptides = self.peptides
-        self.labels = self.labels
+        # deal with nan in groups
+        self.groups = torch.tensor(self.groups)+1
+        self.groups = torch.nan_to_num(self.groups)
         self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
         
     def __getitem__(self, idx):
@@ -242,7 +242,7 @@ def custom_denorm(ds):
 
 if __name__ == "__main__":
     dataset = Class_Seq_Dataset(
-        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/hla0201_pseudoseq.csv",
+        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_pseudoseq.csv",
         device="cpu",
-        encoder="blosum_with_allele")
-    print(dataset.peptides.shape)
+        encoder="blosum_with_allele",
+        cluster_column="cluster_set_10")
