@@ -5,7 +5,7 @@ import time
 from deeprankcore.tools import hist
 import logging
 
-run_day = '230123'
+run_day = '230202'
 project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'

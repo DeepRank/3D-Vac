@@ -7,7 +7,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-run_day = '230123'
+run_day = '230202'
 project_folder = '/projects/0/einf2380/'
 models_folder_name = 'exp_nmers_all_HLA_quantitative'
 data = 'pMHCI'
