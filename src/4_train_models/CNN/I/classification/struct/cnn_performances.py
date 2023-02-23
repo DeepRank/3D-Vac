@@ -3,7 +3,7 @@ import os.path as path
 import os
 import sys
 sys.path.append(path.abspath("../../../../"))
-from CNN.models import CnnClassificationBaseline
+from CNN.CNN_models import CnnClassification4Conv
 # import multiprocessing as mp
 from mpi4py import MPI
 from deeprank.learn import NeuralNet
@@ -68,12 +68,17 @@ if rank == 0:
             print(f"folder {folder} already created")
 outdir = f"./tested_models/{a.output_dir}/{rank}"
 
-model = NeuralNet(test_db,
-    model = CnnClassificationBaseline,
-    cuda = bool(a.with_cuda),
-    ngpu = (0,1)[a.with_cuda],
-    outdir = outdir,
-    pretrained_model=f"./trained_models/{a.output_dir}/{rank}/best_test_model.pth.tar"
-)
+best_file_path = f"./trained_models/{a.output_dir}/{rank}/best_test_model.pth.tar"
+if os.path.isfile(best_file_path):
 
-model.test()
+    model = NeuralNet(test_db,
+        model = CnnClassification4Conv,
+        cuda = bool(a.with_cuda),
+        ngpu = (0,1)[a.with_cuda],
+        outdir = outdir,
+        pretrained_model=best_file_path
+    )
+
+    model.test()
+else:
+    print(f"Skipping fold {rank}")
