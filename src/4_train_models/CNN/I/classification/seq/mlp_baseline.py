@@ -160,9 +160,10 @@ if rank == 0:
             ])
     
     else: # perform clustered dataset split
-        if len(a.train_clusters) > 0:
+        if a.train_clusters != None:
+            # add a 0 group containing trash cluster:
+            a.train_clusters.append(0) # the trash cluster is used only for training, always when train_clusters is provided
             print(f"Splitting into provided clusters {size} times..")
-            a.train_clusters.append(0)
             print(f"Clusters used for train and validation (shuffled and split 80%-20%): {a.train_clusters}")
             print(f"Clusters used for test: {a.test_clusters}")
             # here the validation is a subset of train while test is a unique subset
@@ -183,6 +184,9 @@ if rank == 0:
             kfold = LeaveOneGroupOut()       
             # same as shuffled but using sklearn.metrics leavonegroupout function
             for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, dataset.groups):
+                g = dataset.groups[test_idx]
+                if 0 in g:
+                    continue #skip trash cluster as the test
                 # here the test is from groups not in train,
                 # the validation is comming from the same group as train.
                 train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2

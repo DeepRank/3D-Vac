@@ -116,10 +116,11 @@ class Class_Seq_Dataset(Dataset):
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         if encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-        # deal with nan in groups
+        self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
+
+        # convert NaN trash cluster to 0:
         self.groups = torch.tensor(self.groups)+1
         self.groups = torch.nan_to_num(self.groups)
-        self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
         
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
