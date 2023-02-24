@@ -186,7 +186,8 @@ if rank == 0:
             for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, dataset.groups):
                 g = dataset.groups[test_idx]
                 if 0 in g:
-                    continue #skip trash cluster as the test
+                    continue #skip trash cluster fold
+
                 # here the test is from groups not in train,
                 # the validation is comming from the same group as train.
                 train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
@@ -200,9 +201,7 @@ if rank == 0:
 # CREATE MULTIPROCESSING
 #-----------------------
 split = mpi_conn.scatter(datasets)  # master sending tasks
-print(f"split on {rank}")
 dataset = mpi_conn.bcast(dataset) # master broadcasting the loaded dataset
-print(f"dataset casted on {rank}")
 # slaves receiving work
 train_subset = Subset(dataset, split[0])
 validation_subset = Subset(dataset, split[1])
@@ -226,8 +225,8 @@ if rank==0:
     print(f"{size} datasets created, models loaded, starting training using this architecture:")
     summary(
         model, 
-        input_data = torch.randn(input_dimensions).unsqueeze(0),
-        col_names = ("output_size", "num_params")
+        input_dimensions,
+        # col_names = ("output_size", "num_params")
     )
 
 loss_fn = nn.CrossEntropyLoss()        
