@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --partition fat
+#SBATCH --partition thin
 #SBATCH --time 1:00:00
 #SBATCH --nodes 1
 #SBATCH --ntasks 15
 #SBATCH -c 4
 #SBATCH --output /projects/0/einf2380/data/modelling_logs/I/gibbs_cluster/parsing_cluster_job-%J.out
+
+# This is an example script on how to use gibbs_cluster_parser with a node
 
 module load 2021
 module load foss/2021a
