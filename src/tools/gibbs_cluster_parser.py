@@ -165,28 +165,30 @@ else:
     with open(f) as infile:
         filename = f.split('/')[-1]
         print(f"Reading file {filename} on task {rank}")
-        cluster_set = int(re.findall(r"\d+", filename)[0]) # index of the cluster_set
+        cluster_set = int(re.findall(r"\d+", filename)[0])  # name of cluster_set
         print(f"cluster_set from regexp: {cluster_set}")
         next(infile)
         for line in infile:
-            clust_name = str(line.split()[1])
+            clust_name = str(int(line.split()[1]) +1)
             if not clust_name in list(clusters.keys()):
                 clusters[clust_name] = {'peptides' : [], 'cores': []}
 
             clusters[clust_name]['cores'].append(line.split()[4]) #[3] is the peptide, [4] is the core
             clusters[clust_name]['peptides'].append(line.split()[3])
 
+    cluster_set_column = f"cluster_set_{cluster_set}"
+    df[cluster_set_column] = 0
+
     for c in clusters.keys():
         for p in clusters[c]["peptides"]:
-            df.loc[df[a.map_column] == p, f"cluster_set_{cluster_set}"] = str(c)
-    print(f"Finished populating df on {rank}")
+            df.loc[df[a.map_column] == p, cluster_set_column] = str(c)
+    print(f"Finished mapping peptides on copy of dataframe on worker {rank}")
     all_df = conn.gather(df)
     if rank==0:
         for i in range(len(all_df)):
             if i == 0:
                 continue
             cluster_set = [col for col in list(all_df[i].columns) if "cluster_set" in col][0]
-            print(f"Cluster set: {cluster_set}")
             all_df[0][cluster_set] = all_df[i][cluster_set]
         all_df[0].to_csv(a.file, index=False)
-        print("Done!")
+        print(f"Dataframes put together and csv saved to {a.file}")
