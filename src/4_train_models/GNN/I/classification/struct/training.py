@@ -30,16 +30,27 @@ torch.manual_seed(22)
 
 #################### To fill
 # Input data
+# run_day_data = '230130' # 692 data points (local folder)
+# run_day_data = '11122022' # 140k data points (proj folder)
+run_day_data = '230202' # 100k data points (proj folder)
+# run_day_data = '08122022'
+# Paths
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-run_day_data = '230130' # 692 data points (local folder)
-# run_day_data = '11122022' # 140k data points (proj folder)
-# run_day_data = '08122022'
+# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+project_folder = '/projects/0/einf2380'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
+input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
+# Experiment naming
+exp_name = 'exp_100k_std_es_classw_gpu_nw16_'
+exp_date = True # bool
+exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
+standardize = True
 # # Clusters
 # cluster_dataset = 'cluster'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
@@ -51,22 +62,17 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 10
+epochs = 50
 save_model = 'best'
+class_weights = True # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
 train_profiling = False
 check_integrity = True
-# Paths
-project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
-# project_folder = '/projects/0/einf2380'
-folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
-input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
-# Experiment naming
-exp_name = 'exp_692_gpu_nw16_'
-exp_date = True # bool
-exp_suffix = ''
+# early stopping
+earlystop_patience = 10
+earlystop_maxgap = 0.1
 ####################
 
 
@@ -143,7 +149,7 @@ if __name__ == "__main__":
 
     df_summ = pd.DataFrame(data=summary)
 
-    df_train, df_test = train_test_split(df_summ, test_size=0.25, stratify=df_summ.target, random_state=42)
+    df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
     df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
     df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
 
@@ -181,6 +187,7 @@ if __name__ == "__main__":
         subset = list(df_train.entry),
         target = target_dataset,
         task = task,
+        standardize = standardize,
         check_integrity = check_integrity
     )
     dataset_val = GraphDataset(
@@ -188,6 +195,9 @@ if __name__ == "__main__":
         subset = list(df_valid.entry),
         target = target_dataset,
         task = task,
+        standardize = standardize,
+        train = False,
+        dataset_train = dataset_train,
         check_integrity = check_integrity
     )
     dataset_test = GraphDataset(
@@ -195,6 +205,9 @@ if __name__ == "__main__":
         subset = list(df_test.entry),
         target = target_dataset,
         task = task,
+        standardize = standardize,
+        train = False,
+        dataset_train = dataset_train,
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')
@@ -211,6 +224,7 @@ if __name__ == "__main__":
         dataset_train,
         dataset_val,
         dataset_test,
+        class_weights = class_weights,
         cuda = cuda,
         ngpu = ngpu,
         output_exporters = [HDF5OutputExporter(output_path)]
@@ -243,12 +257,22 @@ if __name__ == "__main__":
         
         _log.info(f"Train ended, complexity profiled.")
     else:
-        trainer.train(nepoch = epochs, batch_size = batch_size, validate = True, num_workers = num_workers)
+        trainer.train(
+            nepoch = epochs,
+            batch_size = batch_size,
+            earlystop_patience = earlystop_patience,
+            earlystop_maxgap = earlystop_maxgap,
+            validate = True,
+            num_workers = num_workers)
         trainer.test(batch_size = batch_size, num_workers = num_workers)
         trainer.save_model(filename = os.path.join(exp_path, 'model.tar'))
 
         epoch = trainer.epoch_saved_model
         _log.info(f"Model saved at epoch {epoch}")
+        pytorch_total_params = sum(p.numel() for p in trainer.model.parameters())
+        _log.info(f'Total # of parameters: {pytorch_total_params}')
+        pytorch_trainable_params = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
+        _log.info(f'Total # of trainable parameters: {pytorch_trainable_params}')
 
         #################### Metadata saving
         exp_json = {}

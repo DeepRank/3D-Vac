@@ -7,6 +7,6 @@
 #SBATCH --partition=fat
 #SBATCH -o /projects/0/einf2380/data/training_logs/I/hdf5_to_pandas_GNN_residue_job-%J.out
 
-source activate deeprank
+source activate deeprank_gpu
 
 python -u 2_hdf5_to_pandas.py
