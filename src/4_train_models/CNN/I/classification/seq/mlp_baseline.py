@@ -167,7 +167,7 @@ if rank == 0:
             print(f"Clusters used for train and validation (shuffled and split 80%-20%): {a.train_clusters}")
             print(f"Clusters used for test: {a.test_clusters}")
             # here the validation is a subset of train while test is a unique subset
-            val_train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.train_clusters])
+            val_train_idx = torch.tensor([j for j,g in enumerate(dataset.groups) if g in a.train_clusters], dtype=torch.long)
 
             test_idx = [j for j,g in enumerate(dataset.groups) if g in a.test_clusters]
             train_idx, val_idx = train_test_split(val_train_idx, test_size=0.2, stratify=dataset.labels[val_train_idx])

@@ -119,8 +119,8 @@ class Class_Seq_Dataset(Dataset):
         self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
 
         # convert NaN trash cluster to 0:
-        self.groups = torch.tensor(self.groups)+1
-        self.groups = torch.nan_to_num(self.groups)
+        # self.groups = torch.tensor(self.groups)+1
+        # self.groups = torch.nan_to_num(self.groups)
         
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
