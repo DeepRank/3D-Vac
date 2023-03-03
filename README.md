@@ -292,6 +292,17 @@ python src/4/train_models/CNN/I/classification/seq/mlp_baseline.py -o mlp_test
 * Plots metrics from CNN and MLP best models.
 * Open the notebook file for instructions.
 
+### Tools
+#### Gibbs cluster
+```
+python tools/gibbs_cluster_parser.py --help
+```
+* This tool is used to generate clusters using Gibbs sampling based on Shannon's entropy minimization. 
+* Can be found at https://services.healthtech.dtu.dk/services/GibbsCluster-2.0/
+* Clusters can be generated directly on the website or by downloading the binary. Optimal parameters for MHCI and MHCII can be checked on the website too.
+* Once clusters are generated, peptides can be mapped to their respective cluster using the script in `tools/gibbs_cluster_parser.py`
+* 
+
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
 - Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
