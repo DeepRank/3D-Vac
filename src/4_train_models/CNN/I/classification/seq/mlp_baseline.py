@@ -177,8 +177,6 @@ if rank == 0:
                 val_idx.tolist(),
                 test_idx
             ]]*size
-            pickle.dump(datasets, open("./datasets.pkl", "wb"))
-            print("pickle dumped")
         else:
             print("Splitting into clustered datasets..")
             kfold = LeaveOneGroupOut()       
