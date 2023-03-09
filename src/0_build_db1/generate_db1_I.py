@@ -127,11 +127,13 @@ if a.peptide_length > 0:
 if a.with_pseudosequence:
     print("Adding pseudosequences column")
     pseudoseq_df = pd.read_csv(a.pseudoseq_csv)
+    alleles = pseudoseq_df.allele.tolist()
+    output_alleles =output_csv_df["allele"].tolist() 
+    allele_pseudoseq_dict = dict(zip(pseudoseq_df.allele, pseudoseq_df.sequence))
     pseudosequences = []
-    for allele in output_csv_df["allele"]:
-        if allele in pseudoseq_df["allele"].tolist():
-            pseudosequence = pseudoseq_df.loc[pseudoseq_df["allele"] == allele, "sequence"].tolist()[0]
-            pseudosequence = pseudosequence
+    for allele in output_alleles:
+        if allele in alleles:
+            pseudosequence = allele_pseudoseq_dict[allele]
             pseudosequences.append(pseudosequence)
         else:
             pseudosequences.append("X"*37)
