@@ -12,7 +12,7 @@ from CNN.SeqBased_models import MlpRegBaseline, train_f, evaluate
 from CNN.datasets import Class_Seq_Dataset # class and function to generate shuffled dataset
 # import multiprocessing as mp
 from mpi4py import MPI
-from sklearn.model_selection import StratifiedKFold # used for normal cross validation
+from sklearn.model_selection import StratifiedKFold, KFold # used for normal cross validation
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneGroupOut
 from torchsummary import summary
@@ -95,6 +95,11 @@ arg_parser.add_argument("--model-name", "-o",
     help="Name of the model name.",
     required=True
 )
+arg_parser.add_argument("--task",
+    help="Use for classification or regression. Default classification",
+    choices=["classification", "regression"],
+    default="classification"
+)
 
 a = arg_parser.parse_args()
 
@@ -111,6 +116,7 @@ if rank != 0:
 # This will be saved in a pickle file as the best model for each cross validation (each MPI job)
 best_model = {
     "validation_rate": 0,
+    "validation_loss": 0, #in case of regression
     "model": None,
     "best_epoch": None,
     "test_data": None
@@ -139,6 +145,7 @@ if rank == 0:
         device,
         threshold = a.threshold,
         cluster_column = (None,a.cluster_column)[a.cluster],
+        task=a.task
     )
     ds_l = dataset.peptides.shape[0]
     print("Data loaded, splitting into unique test datasets...")
@@ -147,11 +154,14 @@ if rank == 0:
     # -------------------------------------------
     if a.cluster == False:
         print("Splitting into shuffled datasets..")
-        kfold = StratifiedKFold(n_splits=size, shuffle=True)
+        kfold = (KFold(n_splits=size, shuffle=True), StratifiedKFold(n_splits=size, shuffle=True))[a.task == "classification"]
         # split the whole dataset using sklearn.metrics kfold function:
         for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
             # the train dataset is further splited into validation with scaled proportion:
-            train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
+            if a.task == "classification":
+                train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
+            else:
+                train_idx,validation_idx = train_test_split(train_idx, test_size=2/9) #2/9*0,9=0.2
 
             datasets.append([
                 train_idx,
@@ -183,12 +193,13 @@ if rank == 0:
             # same as shuffled but using sklearn.metrics leavonegroupout function
             for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, dataset.groups):
                 g = dataset.groups[test_idx]
-                if 0 in g:
-                    continue #skip trash cluster fold
 
                 # here the test is from groups not in train,
                 # the validation is comming from the same group as train.
-                train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
+                if a.task == "classification":
+                    train_idx,validation_idx = train_test_split(train_idx, test_size=2/9, stratify=dataset.labels[train_idx]) #2/9*0,9=0.2
+                else:
+                    train_idx,validation_idx = train_test_split(train_idx, test_size=2/9) #2/9*0,9=0.2
 
                 datasets.append([
                     train_idx,
@@ -214,7 +225,7 @@ test_dataloader = DataLoader(test_subset, batch_size=batch)
 
 # instantiate the model class
 input_dimensions = dataset.input_shape
-model = MlpRegBaseline(outputs=2, neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
+model = MlpRegBaseline(outputs=(1,2)[a.task == "classification"], neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
 
 if rank==0:
     print(f"Number of samples for training, validation and test for the {len(datasets)} folds:")
@@ -227,7 +238,7 @@ if rank==0:
         # col_names = ("output_size", "num_params")
     )
 
-loss_fn = nn.CrossEntropyLoss()        
+loss_fn = (nn.MSELoss(), nn.CrossEntropyLoss())[a.task == "classification"]
 optimizer = torch.optim.Adam(model.parameters())
 
 train_accuracies, validation_accuracies, test_accuracies = [], [], []
@@ -237,24 +248,31 @@ train_tnr, validation_tnr, test_tnr = [], [], []
 
 for e in range(epochs):
     # calculate metrics:
-    tr_accuracy, tr_tpr, tr_tnr, tr_losses = evaluate(train_dataloader, model, loss_fn, device)
+    tr_accuracy, tr_tpr, tr_tnr, tr_losses = evaluate(train_dataloader, model, loss_fn, device, a.task)
     train_accuracies.append(tr_accuracy);train_tpr.append(tr_tpr); train_tnr.append(tr_tnr);
     train_losses.append(tr_losses); 
     
-    val_accuracy, val_tpr, val_tnr, val_losses = evaluate(validation_dataloader, model, loss_fn, device)
+    val_accuracy, val_tpr, val_tnr, val_losses = evaluate(validation_dataloader, model, loss_fn, device, a.task)
     validation_accuracies.append(val_accuracy);validation_tpr.append(val_tpr)
     validation_tnr.append(val_tnr); validation_losses.append(val_losses);
 
-    t_accuracy, t_tpr, t_tnr, t_losses = evaluate(test_dataloader, model, loss_fn, device)
+    t_accuracy, t_tpr, t_tnr, t_losses = evaluate(test_dataloader, model, loss_fn, device, a.task)
     test_accuracies.append(t_accuracy);test_tpr.append(t_tpr); test_tnr.append(t_tnr); 
     test_losses.append(t_losses);
 
     # update the best model if validation loss improves
-    if (val_accuracy > best_model["validation_rate"]):
-        best_model["model"] = copy.deepcopy(model)
-        best_model["validation_rate"] = val_accuracy
-        best_model["best_epoch"] = e
-
+    if a.task == "classification":
+        if (val_accuracy > best_model["validation_rate"]):
+            best_model["model"] = copy.deepcopy(model)
+            best_model["validation_rate"] = val_accuracy
+            best_model["best_epoch"] = e
+    elif e == 0:
+        best_model["validation_loss"] = val_losses
+    else:
+        if (val_losses < best_model["validation_loss"]):
+            best_model["model"] = copy.deepcopy(model)
+            best_model["validation_loss"] = val_losses
+            best_model["best_epoch"] = e
     # train the model over one epoch
     train_f(train_dataloader, model, loss_fn, optimizer, device)
 print(f"Training on {rank} finished.")

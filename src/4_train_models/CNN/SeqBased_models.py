@@ -1,5 +1,7 @@
 from torch import nn
 import torch
+from mhcflurry.regression_target import to_ic50
+import numpy as np
 
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
@@ -24,7 +26,7 @@ def train_f(dataloader, model, loss_fn, optimizer, device):
         y.to(device)
         # forward propagation
         pred = model(X)
-        loss = loss_fn(pred,y)
+        loss = loss_fn(pred, y)
 
         # backpropagation
         optimizer.zero_grad()
@@ -32,7 +34,7 @@ def train_f(dataloader, model, loss_fn, optimizer, device):
         optimizer.step()
 
 # define the function used for evaluation
-def evaluate(dataloader, model, loss_fn, device):
+def evaluate(dataloader, model, loss_fn, device, task="classification"):
     """### CALCULATE SENSITIVITY, SPECIFICITY AND OTHER METRICS ###
     Calculate the confusion tensor (AKA matching matrix) by dividing predictions
     with true values.
@@ -46,6 +48,7 @@ def evaluate(dataloader, model, loss_fn, device):
         loss_fn (obj): Function used to measure the difference between the truth
         and prediction.
         device (string): "cpu" or torch.device("cuda")
+        task (string): Evaluate either on classification or regression
 
     Returns:
         _type_: _description_
@@ -60,19 +63,25 @@ def evaluate(dataloader, model, loss_fn, device):
             X.to(device)
             y.to(device)
             logits = model(X)
-            pred = logits.max(1)[1]
+            loss = loss_fn(logits, y)
+            losses.append(loss.float())
+
+            if task == "regression":
+                ic50_logits = to_ic50(np.array(logits))
+                ic50_y = to_ic50(np.array(y))
+                pred = torch.tensor([int(val < 500) for val in ic50_logits], dtype=torch.float32)
+                y = torch.tensor([int(val < 500) for val in ic50_y], dtype=torch.int32).to(device)
+            else:
+                pred = logits.max(1)[1]
 
             confusion = pred/y # absolute values for metrics
             tot = y.shape[0] # total number of prediction
             pos = float((y == 1.).sum()) # total number of positives (truth 1)
             neg = float((y == 0.).sum()) # total number of negatives (truth 0)
 
-            loss = loss_fn(logits, y)
-
             tpr.append( float((confusion == 1.).sum()/pos) ) # true positive rate = prediction 1/truth 1
             tnr.append( float(torch.isnan(confusion).sum()/neg) ) # true negative rate = predicted 0/truth 0
             accuracies.append(float((pred==y).sum()/tot))
-            losses.append(loss.float())
 
     tpr = torch.tensor(tpr, device=device)
     tnr = torch.tensor(tnr, device=device)
@@ -113,6 +122,7 @@ class MlpRegBaseline(nn.Module):
 
         # # input size for the linear layer:
         # self.flatten_shape = self.conv_layer(torch.randn(input_shape).unsqueeze(0)).flatten().shape[0] 
+        self.outputs = outputs
         self.flatten_shape = input_shape[0] * input_shape[1]
 
         self.linear = nn.Sequential(
@@ -139,4 +149,7 @@ class MlpRegBaseline(nn.Module):
     def forward(self,x):
         #torch.Size([12509, 21, 82])
         # conv_out = self.conv_layer(x)
-        return self.linear(x)
+        x = self.linear(x)
+        if self.outputs == 1:
+            return x.squeeze(1)
+        return x

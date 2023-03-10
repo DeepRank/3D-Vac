@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 import torch
 import blosum
 import pandas as pd
+from mhcflurry.regression_target import from_ic50, to_ic50
+import numpy
 
 # define the aminoacid alphabet and build the one-hot tensor:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
@@ -59,34 +61,12 @@ def peptide2onehot(peptide):
 def peptide2blosum(peptide):
     return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
 
-# the whole dataset class, which extends the torch Dataset class
-class Reg_Seq_Dataset(Dataset):
-    def __init__(self, csv_peptides,csv_ba_values, encoder):
-        """Class used to store the dataset for the sequence based regression. This function
-        was not developed further when the focus shifted towards classification.
-
-        Args:
-            csv_peptides (array): Array of peptides generated before calling the function.
-            csv_ba_values (array): Labels of csv_peptides in the same order as csv_peptides.
-            encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
-        """
-        self.csv_peptides = csv_peptides
-        self.csv_ba_values = csv_ba_values
-        self.ba_values = torch.tensor(self.csv_ba_values, dtype=torch.float64)
-        if encoder == "blosum":
-            self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
-        else:
-            self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-    def __getitem__(self, idx):
-        return self.peptides[idx], self.ba_values[idx]
-    def __len__(self):
-        return len(self.peptides)
-
 class Class_Seq_Dataset(Dataset):
     def __init__(
         self, csv, encoder, device,
         threshold=500,
         cluster_column=None,
+        task="classification"
     ):
         """Class used to store the dataset for the sequence based classification.
 
@@ -97,14 +77,14 @@ class Class_Seq_Dataset(Dataset):
             device (torch.device): can be either "cpu" or torch.device("cuda:0").
         """
         df = pd.read_csv(csv)
+        self.task = task
         self.df = df.loc[df["peptide"].str.len() <= 15]
         self.threshold = threshold
         self.cluster_column = cluster_column
 
-        self.csv_peptides, self.labels, self.groups = self.load_class_seq_data()
+        self.labels, self.groups = self.load_class_seq_data()
 
-        self.csv_peptides = [length_agnostic_encode_p(p) for p in self.csv_peptides]
-        self.labels = torch.tensor(self.labels).long()
+        self.csv_peptides = [length_agnostic_encode_p(p) for p in self.df.peptide.tolist()]
 
         if encoder == "blosum_with_allele":
             pseudosequences = self.df["pseudosequence"].tolist()
@@ -142,38 +122,29 @@ class Class_Seq_Dataset(Dataset):
             groups: Array indicating cluster to which csv_peptides value belong.
         """
 
-        csv_peptides = self.df["peptide"].tolist()
 
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
-        labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+        if self.task == "classification":
+            labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+            labels = torch.tensor(labels, dtype=torch.long)
 
-        # binder or non binder if the mean value of redundant peptides less than the threshold:
-        # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
+            # binder or non binder if the mean value of redundant peptides less than the threshold:
+            # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
+        else:
+            labels = self.load_reg_data()
 
         # peptides grouped by clusters for the clustered classification
         groups = []
         if self.cluster_column != None:
-            groups = self.df[self.cluster_column].tolist()# used for LeaveOneGroupOut sklearn function when doing the clustered classification
-        return csv_peptides, labels, groups
+            groups = torch.tensor(self.df[self.cluster_column].tolist(), dtype=torch.float16)# used for LeaveOneGroupOut sklearn function when doing the clustered classification
+        return labels, groups
 
-def load_reg_seq_data(csv_file, threshold):
-    """Function used to read the data from the csv_file and generate the csv_peptides
-    and csv_ba_values arrays.
-
-    Args:
-        csv_file (string): Path to db1.
-        threshold (int): Threshold to define binding/non binding.
-
-    Returns:
-        csv_peptides: Array used as an argument for Class_Seq_Dataset.
-        csv_ba_values: Array used as an argument for Class_Seq_Dataset.
-    """
-    df = pd.read_csv(csv_file)
-    csv_peptides = df["peptide"].tolist()
-    csv_ba_values = [value for value in df["measurement_value"] if value <= threshold]
-    return csv_peptides, csv_ba_values
-
+    def load_reg_data(self):
+        measurements = numpy.array(self.df.measurement_value.tolist())
+        x = from_ic50(measurements) 
+        return torch.tensor(x, dtype=torch.float32)
+    
 
 # functions to transform/transform back binding affinity values
 def sig_norm(ds,training_mean,training_std):
@@ -243,7 +214,7 @@ def custom_denorm(ds):
 
 if __name__ == "__main__":
     dataset = Class_Seq_Dataset(
-        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_pseudoseq.csv",
+        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/hla0201_9mers.csv",
         device="cpu",
         encoder="blosum_with_allele",
-        cluster_column="cluster_set_10")
+        task="regression")
