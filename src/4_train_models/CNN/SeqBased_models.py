@@ -145,11 +145,14 @@ class MlpRegBaseline(nn.Module):
 
             # output layer
             nn.Linear(neurons_per_layer, outputs),
+            # if using BCE:
         )
     def forward(self,x):
         #torch.Size([12509, 21, 82])
         # conv_out = self.conv_layer(x)
         x = self.linear(x)
         if self.outputs == 1:
-            return x.squeeze(1)
+            s = nn.Sigmoid()
+            x = s(x)
+            x = x.squeeze(1)
         return x

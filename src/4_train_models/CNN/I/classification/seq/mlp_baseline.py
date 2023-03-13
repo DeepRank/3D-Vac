@@ -18,6 +18,7 @@ from sklearn.model_selection import LeaveOneGroupOut
 from torchsummary import summary
 import numpy as np
 import pickle
+import time
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -127,6 +128,7 @@ best_model = {
 neurons_per_layer = a.neurons
 batch = a.batch
 epochs = a.epochs
+loss_fn = (nn.BCELoss(), nn.CrossEntropyLoss())[a.task == "classification"]
 
 # if CUDA cores available, use them and not CPU
 device = ("cpu", torch.device('cuda'))[torch.cuda.is_available()]
@@ -192,8 +194,8 @@ if rank == 0:
             kfold = LeaveOneGroupOut()       
             # same as shuffled but using sklearn.metrics leavonegroupout function
             for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, dataset.groups):
-                g = dataset.groups[test_idx]
-
+                if 0 in dataset.groups[test_idx]:
+                    continue
                 # here the test is from groups not in train,
                 # the validation is comming from the same group as train.
                 if a.task == "classification":
@@ -226,6 +228,7 @@ test_dataloader = DataLoader(test_subset, batch_size=batch)
 # instantiate the model class
 input_dimensions = dataset.input_shape
 model = MlpRegBaseline(outputs=(1,2)[a.task == "classification"], neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
+optimizer = torch.optim.Adam(model.parameters())
 
 if rank==0:
     print(f"Number of samples for training, validation and test for the {len(datasets)} folds:")
@@ -238,14 +241,13 @@ if rank==0:
         # col_names = ("output_size", "num_params")
     )
 
-loss_fn = (nn.MSELoss(), nn.CrossEntropyLoss())[a.task == "classification"]
-optimizer = torch.optim.Adam(model.parameters())
 
 train_accuracies, validation_accuracies, test_accuracies = [], [], []
 train_losses, validation_losses, test_losses = [], [], []
 train_tpr, validation_tpr, test_tpr = [], [], []
 train_tnr, validation_tnr, test_tnr = [], [], []
 
+start_training_time = time.time()
 for e in range(epochs):
     # calculate metrics:
     tr_accuracy, tr_tpr, tr_tnr, tr_losses = evaluate(train_dataloader, model, loss_fn, device, a.task)
@@ -275,7 +277,9 @@ for e in range(epochs):
             best_model["best_epoch"] = e
     # train the model over one epoch
     train_f(train_dataloader, model, loss_fn, optimizer, device)
-print(f"Training on {rank} finished.")
+end_training_time = time.time()
+training_time = (end_training_time - start_training_time)/60
+print(f"Training on {rank} finished. Time for training: {training_time} minutes")
 
 # save the model:
 best_model["train_accuracies"] = train_accuracies
@@ -300,6 +304,7 @@ best_model["test_indices"] = split[2]
 # GATHER THE DATA
 #--------------
 models = mpi_conn.gather(best_model, root=0) # master receiving trained models
+all_training_times = mpi_conn.gather(training_time)
 
 if rank == 0:
     trained_models_path = a.trained_models_path

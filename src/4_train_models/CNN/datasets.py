@@ -214,7 +214,8 @@ def custom_denorm(ds):
 
 if __name__ == "__main__":
     dataset = Class_Seq_Dataset(
-        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/hla0201_9mers.csv",
+        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_pseudoseq.csv",
         device="cpu",
         encoder="blosum_with_allele",
+        cluster_column="cluster_set_10",
         task="regression")
