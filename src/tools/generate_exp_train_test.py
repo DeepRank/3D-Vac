@@ -69,13 +69,13 @@ print(f"Len of pseudoseq clustered train: {pseudoseq_clustered_train_df.shape[0]
 destination_folder = "/projects/0/einf2380/data/external/processed/I/experiments"
 
 # shuffled:
-shuffled_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv")
-shuffled_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_test.csv")
+shuffled_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv", index=False)
+shuffled_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_test.csv", index=False)
 
 # peptide clustered:
-peptide_clustered_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_peptide_clustered_train_validation.csv")
-peptide_clustered_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_peptide_clustered_test.csv")
+peptide_clustered_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_peptide_clustered_train_validation.csv", index=False)
+peptide_clustered_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_peptide_clustered_test.csv", index=False)
 
 #pseudoseq clustered:
-pseudoseq_clustered_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_train_validation.csv")
-pseudoseq_clustered_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_test.csv")
+pseudoseq_clustered_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_train_validation.csv", index=False)
+pseudoseq_clustered_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_test.csv", index=False)
