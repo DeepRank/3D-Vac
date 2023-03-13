@@ -11,12 +11,12 @@ import pandas as pd
 from mhcflurry.train_pan_allele_models_command import assign_folds
 
 # LOAD DATA:
-shuffled_csv_path = "../../data/external/processed/all_hla_pseudoseq.csv"
+shuffled_csv_path = "/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq.csv"
 shuffled_df = pd.read_csv(shuffled_csv_path)
 mhcflurry_path = "/projects/0/einf2380/data/external/processed/I/mhcflurry_train.csv.bz2"
 mhcflurry_df = pd.read_csv(mhcflurry_path)
 
-peptide_clustered_csv_path = "../../data/external/processed/all_hla_pseudoseq.csv"
+peptide_clustered_csv_path = "/projects/0/einf2380/data/external/processed/I/clusters/BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv"
 peptide_clustered_df = pd.read_csv(peptide_clustered_csv_path)
 
 pseudoseq_clustered_csv_path = "/projects/0/einf2380/data/external/processed/I/clusters/BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv"
