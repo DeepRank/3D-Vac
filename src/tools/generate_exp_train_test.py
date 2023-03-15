@@ -8,60 +8,52 @@ CSV generated ensures that the same test data is used for each experiments.
 For the randomly shuffled experiment, the test cases consists of either 25% or 100 randomly selected measurements (whichever is the lower) for each allele present in the train.
 """
 import pandas as pd
+import h5py
 from mhcflurry.train_pan_allele_models_command import assign_folds
 
 # LOAD DATA:
-shuffled_csv_path = "/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq.csv"
-shuffled_df = pd.read_csv(shuffled_csv_path)
+experiment_csv_path = "/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq_3_experiments.csv"
+experiment_df = pd.read_csv(experiment_csv_path)
+shuffled_test_h5 = h5py.File("/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled/shuffled/0/test.hdf5")
+shuffled_test_cases = list(shuffled_test_h5.keys())
 mhcflurry_path = "/projects/0/einf2380/data/external/processed/I/mhcflurry_train.csv.bz2"
 mhcflurry_df = pd.read_csv(mhcflurry_path)
 
-peptide_clustered_csv_path = "/projects/0/einf2380/data/external/processed/I/clusters/BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv"
-peptide_clustered_df = pd.read_csv(peptide_clustered_csv_path)
-
-pseudoseq_clustered_csv_path = "/projects/0/einf2380/data/external/processed/I/clusters/BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv"
-pseudoseq_clustered_df = pd.read_csv(pseudoseq_clustered_csv_path)
-
 # FILTER FOR SUPPORTED ALLLELES:
-shuffled_df = shuffled_df.loc[
-    (shuffled_df.peptide.str.len() <= 15) & (shuffled_df.peptide.str.len() >= 8)
+experiment_df = experiment_df.loc[
+    (experiment_df.peptide.str.len() <= 15) & (experiment_df.peptide.str.len() >= 8)
 ]
-shuffled_df = shuffled_df.loc[shuffled_df.allele.isin(mhcflurry_df.allele)]
-
-peptide_clustered_df = peptide_clustered_df.loc[
-    (peptide_clustered_df.peptide.str.len() <= 15) &
-    (peptide_clustered_df.peptide.str.len() >= 8)
-]
-peptide_clustered_df = peptide_clustered_df.loc[
-    peptide_clustered_df.allele.isin(mhcflurry_df.allele)
-]
-
-pseudoseq_clustered_df = pseudoseq_clustered_df.loc[
-    (pseudoseq_clustered_df.peptide.str.len() <= 15) &
-    (pseudoseq_clustered_df.peptide.str.len() >= 8)
-]
-pseudoseq_clustered_df = pseudoseq_clustered_df.loc[
-    pseudoseq_clustered_df.allele.isin(mhcflurry_df.allele)
-]
+experiment_df = experiment_df.loc[experiment_df.allele.isin(mhcflurry_df.allele)]
 
 # GENERATE TRAIN AND TEST FOR EACH EXPERIMENT
-
-# cluster shuffled by selecting randomly 1/4 or 100 (what's less) from each allele. Using the exact same mhcflurry function to this end:
-shuffled_train_test_df_mask = assign_folds(shuffled_df, num_folds= 1, held_out_fraction= .25, held_out_max= 100)
-shuffled_train_df = shuffled_df.loc[shuffled_train_test_df_mask["fold_0"]]
-shuffled_test_df = shuffled_df.loc[~shuffled_train_test_df_mask["fold_0"]]
+# generate shuffled:
+shuffled_train_df = experiment_df.loc[~experiment_df.ID.isin(shuffled_test_cases)]
+shuffled_test_df = experiment_df.loc[experiment_df.ID.isin(shuffled_test_cases)]
 
 print(f"Len of shuffled train: {shuffled_train_df.shape[0]} and test: {shuffled_test_df.shape[0]}")
 
+# cluster shuffled by selecting randomly 1/4 or 100 (what's less) from each allele. Using the exact same mhcflurry function to this end:
+shuffled_ho_train_test_df_mask = assign_folds(
+    experiment_df,
+    num_folds= 1,
+    held_out_fraction= .25, 
+    held_out_max= 100
+)
+
+shuffled_ho_train_df = experiment_df.loc[shuffled_ho_train_test_df_mask["fold_0"]]
+shuffled_ho_test_df = experiment_df.loc[~shuffled_ho_train_test_df_mask["fold_0"]]
+
+print(f"Len of held-out shuffled train: {shuffled_ho_train_df.shape[0]} and test: {shuffled_ho_test_df.shape[0]}")
+
 # for the peptide clustered, 9 clusters from the cluster_set_10 are used for train and the 4th as the test:
-peptide_clustered_train_df = peptide_clustered_df.loc[peptide_clustered_df.cluster_set_10 != 3]
-peptide_clustered_test_df = peptide_clustered_df.loc[peptide_clustered_df.cluster_set_10 == 3]
+peptide_clustered_train_df = experiment_df.loc[experiment_df.cluster_set_10 != 4]
+peptide_clustered_test_df = experiment_df.loc[experiment_df.cluster_set_10 == 4]
 
 print(f"Len of peptide clustered train: {peptide_clustered_train_df.shape[0]} and test: {peptide_clustered_test_df.shape[0]}")
 
 # for the pseudoseq clustered, cluster 0 represent the train and cluster 1 the test:
-pseudoseq_clustered_train_df = pseudoseq_clustered_df.loc[pseudoseq_clustered_df.allele_clustering == 0]
-pseudoseq_clustered_test_df = pseudoseq_clustered_df.loc[pseudoseq_clustered_df.allele_clustering == 1]
+pseudoseq_clustered_train_df = experiment_df.loc[experiment_df.allele_clustering == 0]
+pseudoseq_clustered_test_df = experiment_df.loc[experiment_df.allele_clustering == 1]
 
 print(f"Len of pseudoseq clustered train: {pseudoseq_clustered_train_df.shape[0]} and test: {pseudoseq_clustered_test_df.shape[0]}")
 
@@ -71,6 +63,10 @@ destination_folder = "/projects/0/einf2380/data/external/processed/I/experiments
 # shuffled:
 shuffled_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv", index=False)
 shuffled_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_shuffled_test.csv", index=False)
+
+# held out shuffled
+shuffled_ho_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_held_out_alleles_train.csv", index=False)
+shuffled_ho_test_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_held_out_alleles_test.csv", index=False)
 
 # peptide clustered:
 peptide_clustered_train_df.to_csv(f"{destination_folder}/BA_pMHCI_human_quantitative_only_eq_peptide_clustered_train_validation.csv", index=False)
