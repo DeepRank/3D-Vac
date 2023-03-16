@@ -31,13 +31,15 @@ arg_parser = argparse.ArgumentParser(
     into a list. The list can be either shuffled in cross-validation sets or clustered using
     leave one group out (--cluster argument). The script can split based on clusters used for train and test 
     (--cluster, --train-clusters --test-clusters arguments and --cluster-column to a specific 
-    cluster_set_{n} column). Note that when using specific clusters, the actual cluster number is indexed.
-    Which means if we want cluster 4 as the cluster used for test, we would have to set --test-clusters to 3.
-    The cluster_set_{n} column from the csv file is not indexed.
+    cluster_set_{n} column). Note that when using specific clusters, check if the cluster number is indexed.
+    Which means if we want cluster 4 as the cluster used for test, we would have to set --test-clusters to 3
+    if it is indexed.
     For the shuffling, the list is randomly shuffled n times (number of folds for the X-validation). 
     For the clustering without specific clusters for train and test, the list is separated based on 
     clusters provided in the --cluster-column argument (see description of argument for more details).
     Generated splits are dumped into the --output-path and then used for training the CNN. 
+    Providing a --trainval-csv argument, train and validation splits are going to be generated
+    from this file. --test-csv will be used as the test.
     ID column of the --csv-file are used as filters to select cases from --features-path.
     """
 )
@@ -107,13 +109,21 @@ arg_parser.add_argument("--parallel", "-p",
 
 arg_parser.add_argument("--csv-file", "-d",
     help= "Name of db1. Needed only for clustered split.",
-    default="../../../data/external/processed/BA_pMHCI.csv",
+    default=None,
 )
 arg_parser.add_argument("--output-path", "-o",
     help="Destination path for the generated splits. For clustered will be in --output-path/clustered and in \
     --output-path/shuffled for shuffled. Default: \
     /projects/0/einf2380/data/pMHCI/features_output_folder/hla_a_02_01_9_length_peptide/splits/",
     default="/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits"
+)
+arg_parser.add_argument("--trainval-csv",
+    help="Path to the CSV containing train and validation cases. It is not required, can be used in the case of train and validation cases are in a separate csv.",
+    default=None,
+)
+arg_parser.add_argument("--test-csv",
+    help="Path to the CSV containing test cases. Should be used with --trainval-csv",
+    default=None
 )
 
 a = arg_parser.parse_args()
@@ -209,7 +219,7 @@ def save_train_valid(train_idx, val_idx, test_idx, symlinks, features_path, path
                     val_idx = np.delete(val_idx, np.where(val_idx ==i))
             except KeyError as ie:
                 print(ie)
-                print(f'train id not found in hdf5 files {value_id}') 
+                print(f'validation id not found in hdf5 files {value_id}') 
         symlink_in_h5(entries, org_h5, val_h5)
 
     print("### Creating test.hdf5 file ###") 
@@ -222,7 +232,7 @@ def save_train_valid(train_idx, val_idx, test_idx, symlinks, features_path, path
                     test_idx = np.delete(test_idx, np.where(test_idx ==i))
             except KeyError as ie:
                 print(ie)
-                print(f'train id not found in hdf5 files {value_id}') 
+                print(f'test id not found in hdf5 files {value_id}') 
         symlink_in_h5(entries, org_h5, test_h5) 
             
     train_h5.close()
@@ -244,9 +254,12 @@ def symlink_in_h5(indices, f1_path, f2):
         
 
 if __name__ == '__main__':
+    print(type(a.test_csv) == str)
     
     if a.parallel:
         n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    else:
+        n_cores = 1
     try:
         train_split = int(a.train_val_split.split('-')[0])
         val_split = int(a.train_val_split.split('-')[1])
@@ -255,9 +268,17 @@ if __name__ == '__main__':
     if train_split + val_split != 100:
         raise argparse.ArgumentTypeError('train-val-split should add up to 100')
         
-    # Combine the h5 files using the csv as a filter:
-    df = pd.read_csv(a.csv_file)
-    symlinks, labels = h5_symlinks(a.features_path, df["ID"].tolist())
+    # Combine the h5 files using the csv as a filter. Use one of the csv provided:
+    if type(a.csv_file) == str:
+        df = pd.read_csv(a.csv_file)
+        all_ids = df.ID.tolist()
+    elif type(a.trainval_csv) == str and type(a.test_csv) == str:
+        train_df = pd.read_csv(a.trainval_csv)
+        test_df = pd.read_csv(a.test_csv)
+        all_ids = train_df.ID.tolist() + test_df.ID.tolist()
+
+
+    symlinks, labels = h5_symlinks(a.features_path, all_ids)
 
     n_splits=a.n_fold
 
@@ -272,7 +293,7 @@ if __name__ == '__main__':
         if not os.path.isdir(output_h5_path + f"/{split_type}/"):
             os.makedirs(output_h5_path + f"/{split_type}/")
             
-    if a.cluster == False:
+    if a.cluster == False and not a.trainval_csv and not a.testval_csv:
         all_cases = np.array(list(symlinks.keys()))
         labels = np.array(labels)
         indices = np.array(range(len(labels)))
@@ -293,7 +314,32 @@ if __name__ == '__main__':
                 f"shuffled/{i}/valid.hdf5", 
                 f"shuffled/{i}/test.hdf5") 
             i+=1
-    else:
+    elif type(a.trainval_csv) == str and type(a.test_csv) == str:
+        train_val_cases_df = pd.read_csv(a.trainval_csv)
+        test_cases_df = pd.read_csv(a.test_csv)
+
+        ds_l = train_val_cases_df.shape[0]
+        train_val_cases = np.array(train_val_cases_df.ID.tolist())
+        random.shuffle(train_val_cases)
+
+        test_cases = test_cases_df.ID
+
+        train_cases, validation_cases = np.split(
+            train_val_cases, 
+            [int((train_split/100)*ds_l)]
+        )
+        print(f"""
+        ### SAVING TRAINING SPLITS FROM TRAIN, VALIDATION CSV FILE {a.trainval_csv.split("/")[-1]} AND
+        ### TESTING SPLITS FROM CSV FILE {a.test_csv.split("/")[-1]} FROM CLUSTER COLUMN 
+        
+        """)
+        save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
+            f"train.hdf5",
+            f"valid.hdf5",
+            f"test.hdf5"
+        )
+
+    elif a.cluster:
         groups = [int(x) for x in set(df[a.cluster_column])]
         all_cases = list(symlinks.keys())
         if len(a.train_clusters) > 0 and len(a.test_clusters) > 0:
