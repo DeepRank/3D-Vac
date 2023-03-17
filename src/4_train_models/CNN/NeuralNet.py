@@ -24,8 +24,10 @@ import torch.utils.data as data_utils
 from torchsummary import summary
 
 from deeprank.config import logger
-from deeprank.learn import DataSet, classMetrics, rankingMetrics
+from deeprank.learn import DataSet, rankingMetrics#, classMetrics
 from torch.autograd import Variable
+
+from . import classMetrics
 
 matplotlib.use('agg')
 torch.manual_seed(0)
