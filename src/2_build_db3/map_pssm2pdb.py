@@ -88,9 +88,8 @@ if __name__ == '__main__':
 
     csv_path = f"{a.csv_file}"
     df = pd.read_csv(csv_path)
-    df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
 
-    all_models_sub = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models_1/BA/*")
+    all_models_sub = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*")
     all_models = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(folders_sub) for folders_sub in np.array_split(all_models_sub, n_cores))
     print(f'debug: {type(all_models)}')
     try:
