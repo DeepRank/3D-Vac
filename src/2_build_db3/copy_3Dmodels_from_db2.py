@@ -153,7 +153,6 @@ if "*" not in a.models_path and type(a.models_path)!=list:
 # read the csv from db2 to find all case ids
 csv_path = f"{a.csv_file}"
 df = pd.read_csv(csv_path, header=0)
-df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
 
 wildcard_path = a.models_path.replace('\\', '')
 folders = glob.glob(wildcard_path)
@@ -161,7 +160,7 @@ folders = [folder for folder in folders if '.tar' in folder]
 all_models = [case.split('.')[0] for case in folders]
 # filter out the models that match in the original csv from db2
 db2 = [folder for folder in all_models if folder.split("/")[-1] in df["ID"].tolist()]
-db2 = all_models
+
 n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
 # n_cores = 2
 
@@ -175,6 +174,6 @@ for i in range(0, len(db2), chunk):
 # let each inner list be handled by exactly one thread
 failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
 
-failed_cases_str = '\n'.join(failed_cases)
-if failed_cases_str:    
+if failed_cases:
+    failed_cases_str = '\n'.join(failed_cases)
     print(f'List of cases that could not be processed:\n{failed_cases_str}')
