@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=128
-#SBATCH --time 00:50:00
+#SBATCH --time 02:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/db3/map_pssm2pdb_I-%J.out
 
 # Load modules:
