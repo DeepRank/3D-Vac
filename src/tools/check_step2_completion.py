@@ -45,14 +45,16 @@ aminoacids = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
      'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
      'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
 
-def check_case(paths, IDs_csv, mhc):
-    checks = {x: None for x in ['pdb','pdb_M','M_len',
-                'pdb_P','P_len', 'M_pssm', 'M_pssm_as_pdb',
-                'P_pssm', 'P_pssm_as_pdb', 'P_chain_all_same']}
+def check_case(paths, mhc):
+
     #CHECKS:
     IDs_list = []
     checks_list = []
     for path in paths:
+        checks = {x: None for x in ['pdb','pdb_M','M_len',
+            'pdb_P','P_len', 'M_pssm', 'M_pssm_as_pdb',
+            'P_pssm', 'P_pssm_as_pdb', 'P_chain_all_same']}
+        
         ID = ('-').join(path.split('/')[-1].split('-')[:2])
         #pdb is in there
         pdb_file = f'{path}/pdb/{ID}.pdb'
@@ -72,9 +74,7 @@ def check_case(paths, IDs_csv, mhc):
             checks['pdb_M'] = True
         else:
             checks['pdb_M'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #chain M has 170<x<184 res (store residues)
         M_length = len(set(sql.get('resSeq', chainID='M')))
         if mhc == 'II' and 170<=M_length<=184:
@@ -84,17 +84,13 @@ def check_case(paths, IDs_csv, mhc):
             checks['M_len'] = M_length
         else:
             checks['M_len'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #there is chain P
         if 'P' in sql.get_chains():
             checks['pdb_P'] = True
         else:
             checks['pdb_P'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #chain P has 7<x<25 res (store residues)
         P_length = len(set(sql.get('resSeq', chainID='P')))
         if mhc == 'II' and 7<=P_length<=25:
@@ -103,9 +99,7 @@ def check_case(paths, IDs_csv, mhc):
             checks['P_len'] = P_length
         else:
             checks['P_len'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #there is NO chain N
         if mhc == 'I':
             checks['no_N'] = False
@@ -113,18 +107,14 @@ def check_case(paths, IDs_csv, mhc):
             checks['no_N'] = True
         else:
             checks['no_N'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         # M.pssm is in there
         M_pssm_file = f'{path}/pssm/{ID}.M.pdb.pssm'
         if os.path.isfile(M_pssm_file):
             checks['M_pssm']=True
         else:
             checks['M_pssm'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #has same n residues and numbering as pdb
         with open(M_pssm_file) as Mpssm:
             next(Mpssm)
@@ -133,18 +123,14 @@ def check_case(paths, IDs_csv, mhc):
             checks['M_pssm_as_pdb'] = True
         else:
             checks['M_pssm_as_pdb'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         # P.pssm is in there
         P_pssm_file = f'{path}/pssm/{ID}.P.pdb.pssm'
         if os.path.isfile(P_pssm_file):
             checks['P_pssm']=True
         else:
             checks['P_pssm'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #has same n residues and numbering as pdb
         with open(P_pssm_file) as Ppssm:
             next(Ppssm)
@@ -158,9 +144,7 @@ def check_case(paths, IDs_csv, mhc):
             checks['P_pssm_as_pdb'] = True
         else:
             checks['P_pssm_as_pdb'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
         #ID, P chain lenght an d seq correspond to csv data
         pdb_P_seq = sorted(list(set([tuple(x) for x in sql.get('resSeq,resName', chainID='P')])))
         pdb_P_seq = ('').join([aminoacids[aa[1]] for aa in pdb_P_seq])
@@ -168,9 +152,7 @@ def check_case(paths, IDs_csv, mhc):
             checks['P_chain_all_same'] = True
         else:
             checks['P_chain_all_same'] = False
-            IDs_list.append(ID)
-            checks_list.append(checks)
-            continue
+
 
         IDs_list.append(ID)
         checks_list.append(checks)
