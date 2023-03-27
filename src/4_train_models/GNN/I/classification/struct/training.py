@@ -43,7 +43,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_pssm_pot_rm_clustering_std_classw_gpu_nw16_'
+exp_name = 'exp_100k_pssm_rm_allele_C_std_classw_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -53,10 +53,11 @@ task = 'classif'
 standardize = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = 'cluster' #None
+cluster_dataset = 'allele_type'
+cluster_dataset_type = 'string'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
-test_clusters = [3]
+test_clusters = ['C']
 # Dataset
 node_features = [
     "res_type", "charge", "polarity",
@@ -64,14 +65,14 @@ node_features = [
     "hb_donors", "hb_acceptors", "bsa",
     "hse", "sasa", "res_depth"]
 edge_features = [
-    "covalent", "distance", "same_chain"]
+    "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
 # Trainer
 net = NaiveNetwork
 batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 21
+epochs = 50
 save_model = 'best'
 class_weights = True # weighted loss function
 cuda = True
@@ -80,9 +81,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = None
-earlystop_maxgap = None
-min_epoch = None
+earlystop_patience = 10
+earlystop_maxgap = 0.06
+min_epoch = 20
 ####################
 
 
@@ -147,13 +148,17 @@ if __name__ == "__main__":
                     summary['target'].append(target_value)
 
                     if cluster_dataset is not None:
-                        cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+                        if cluster_dataset_type == 'string':
+                            cluster_value = hdf5[mol][target_group][cluster_dataset].asstr()[()]
+                        else:
+                            cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+
                         summary['cluster'].append(cluster_value)
 
         except Exception as e:
             _log.error(e)
             _log.info(f'Error in opening {fname}, please check the file.')
-
+    
     df_summ = pd.DataFrame(data=summary)
 
     if cluster_dataset is None:
