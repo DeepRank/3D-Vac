@@ -5,7 +5,7 @@ import time
 import logging
 from deeprankcore.dataset import GraphDataset
 
-run_day = '230328'
+run_day = '230329'
 project_folder = '/projects/0/einf2380/'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
