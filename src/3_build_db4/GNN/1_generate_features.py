@@ -7,11 +7,11 @@ from deeprankcore.query import QueryCollection
 import logging
 
 ####### please modify here #######
-run_day = '230328'
+run_day = '230329'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
-models_folder_name = 'exp_nmers_all_HLA_quantitative'
+models_folder_name = 'HLA_quantitative'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15 # max distance in Å between two interacting residues/atoms of two proteins
@@ -51,8 +51,6 @@ def generate_data():
 
 	csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 	csv_data = pd.read_csv(csv_file_path)
-	csv_data['peptide_length'] = csv_data.peptide.apply(lambda x: len(x))
-	csv_data = csv_data[csv_data.peptide_length <= 15]
 
 	if debug_missing_ids:
 		import ast
