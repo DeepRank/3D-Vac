@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from deeprankcore.trainer import Trainer
-from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
+from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork_Increase1
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
 from sklearn.metrics import (
@@ -43,7 +43,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_pssm_pot_rm_clustering_std_classw_gpu_nw16_'
+exp_name = 'exp_100k_pssm_pot_rm_std_increase1_classw_bs64_ep70_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -53,7 +53,7 @@ task = 'classif'
 standardize = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = 'cluster' #None
+cluster_dataset = None #'cluster'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
 test_clusters = [3]
@@ -66,12 +66,12 @@ node_features = [
 edge_features = [
     "covalent", "distance", "same_chain"]
 # Trainer
-net = NaiveNetwork
-batch_size = 16
+net = NaiveNetwork_Increase1
+batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 21
+epochs = 70
 save_model = 'best'
 class_weights = True # weighted loss function
 cuda = True
@@ -80,9 +80,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = None
-earlystop_maxgap = None
-min_epoch = None
+earlystop_patience = 15
+earlystop_maxgap = 0.06
+min_epoch = 50
 ####################
 
 
