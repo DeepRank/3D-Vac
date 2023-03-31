@@ -5,11 +5,13 @@ from torch.utils.data import Subset
 from torch.utils.data import DataLoader
 import copy
 import os.path as path
+import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 sys.path.append(path.abspath("../../../../../"))
+sys.path.append(path.abspath("../../../../../../"))
 from CNN.SeqBased_models import MlpRegBaseline, train_f, evaluate
-from CNN.datasets import Class_Seq_Dataset # class and function to generate shuffled dataset
+from CNN.datasets import Class_Seq_Dataset, create_unique_csv # class and function to generate shuffled dataset
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold, KFold # used for normal cross validation
@@ -19,6 +21,8 @@ from torchsummary import summary
 import numpy as np
 import pickle
 import time
+import pandas as pd
+import random
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -34,9 +38,18 @@ arg_parser = argparse.ArgumentParser(
     to regroup those clusters into one beforehand.
     """
 )
+arg_parser.add_argument("--allele-to-pseudosequence-csv",
+    help="Path to allele containing the mhcflurry allele to pseudosequence mapping. Default /projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv",
+    default="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+)
 arg_parser.add_argument("--csv-file", "-f",
-    help="Name of the csv file in data/external/processed containing the cluster column. Default BA_pMHCI.csv",
+    help="Name of the csv file in data/external/processed containing the cluster column. \n \
+        Works as a train and validation set if provided with --test-csv.",
     default="/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_j_4.csv"
+)
+arg_parser.add_argument("--test-csv",
+    help="Path to csv containing test cases.",
+    default=False
 )
 arg_parser.add_argument("--trained-models-path", "-p",
     help="""
@@ -141,20 +154,44 @@ if rank == 0:
     print(f"Device used: {device}")
     print("Loading data for splitting...")
     csv_path = path.abspath(a.csv_file)
+    if type(a.test_csv) == str:
+        #create a unique csv file
+        csv_path = create_unique_csv(a.csv_file, a.test_csv, a.model_name)
+
     dataset = Class_Seq_Dataset(
         csv_path,
         a.encoder,
         device,
         threshold = a.threshold,
         cluster_column = (None,a.cluster_column)[a.cluster],
-        task=a.task
+        task=a.task,
+        allele_to_pseudosequence_csv_path=a.allele_to_pseudosequence_csv
     )
     ds_l = dataset.peptides.shape[0]
     print("Data loaded, splitting into unique test datasets...")
+    
+    if type(a.test_csv) == str:
+        # create_unique_csv concatenates the a.csv_path with 
+        # a.test_csv into one csv. `test` column tells which
+        # case is test (1) or which is used for train and validation (0)
+        train_val_idx = dataset.df.loc[dataset.df.test == 0].index
+        test_idx = dataset.df.loc[dataset.df.test == 1].index
+        if a.task == "classification":
+            train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9, stratify=dataset.labels[train_val_idx]) #2/9*0,9=0.2
+        else:
+            train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9) #2/9*0,9=0.2
+        
+        datasets = [[
+            train_idx,
+            validation_idx,
+            test_idx
+        ]]*size
+        os.remove(csv_path)
+        
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
     # -------------------------------------------
-    if a.cluster == False:
+    elif a.cluster == False:
         print("Splitting into shuffled datasets..")
         kfold = (KFold(n_splits=size, shuffle=True), StratifiedKFold(n_splits=size, shuffle=True))[a.task == "classification"]
         # split the whole dataset using sklearn.metrics kfold function:
@@ -170,7 +207,6 @@ if rank == 0:
                 validation_idx,
                 test_idx,
             ])
-    
     else: # perform clustered dataset split
         if a.train_clusters != None:
             # add a 0 group containing trash cluster:

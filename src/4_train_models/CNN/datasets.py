@@ -2,8 +2,11 @@ from torch.utils.data import Dataset
 import torch
 import blosum
 import pandas as pd
+import random
 from mhcflurry.regression_target import from_ic50, to_ic50
 import numpy
+import time
+import os
 
 # define the aminoacid alphabet and build the one-hot tensor:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
@@ -66,32 +69,36 @@ class Class_Seq_Dataset(Dataset):
         self, csv, encoder, device,
         threshold=500,
         cluster_column=None,
-        task="classification"
+        task="classification",
+        allele_to_pseudosequence_csv_path="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
     ):
         """Class used to store the dataset for the sequence based classification.
 
         Args:
-            csv_peptides (array): Array of peptides generated before calling the function.
+            csv (array): Path to DB1 csv.
+            encoder (string): Encoding methods. Peptide only or peptide + allele encoding.
             labels (array): Binder/non-binder labels in the same order as csv_peptides.
             encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
             device (torch.device): can be either "cpu" or torch.device("cuda:0").
+            allele_to_pseudosoquence_csv_path (string): path to the mhcflurry csv file containing mapings for alleles to pseudosequences
         """
         df = pd.read_csv(csv)
         self.task = task
         self.df = df.loc[df["peptide"].str.len() <= 15]
         self.threshold = threshold
         self.cluster_column = cluster_column
+        allele_to_pseudoseq_df = pd.read_csv(allele_to_pseudosequence_csv_path)
+        allele_to_pseudoseq = dict(zip(allele_to_pseudoseq_df.allele, allele_to_pseudoseq_df.sequence))
+        self.pseudosequences = [allele_to_pseudoseq[a] for a in self.df.allele]
 
         self.labels, self.groups = self.load_class_seq_data()
 
         self.csv_peptides = [length_agnostic_encode_p(p) for p in self.df.peptide.tolist()]
 
         if encoder == "blosum_with_allele":
-            pseudosequences = self.df["pseudosequence"].tolist()
-            self.peptides = torch.tensor([allele_peptide2blosum(a, p) for a, p in zip(pseudosequences, self.csv_peptides)])
+            self.peptides = torch.tensor([allele_peptide2blosum(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
         if encoder == "sparse_with_allele":
-            pseudosequences = self.df["pseudosequence"].tolist()
-            self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(pseudosequences, self.csv_peptides)])
+            self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
         if encoder == "blosum":
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
         if encoder == "sparse":
@@ -126,7 +133,7 @@ class Class_Seq_Dataset(Dataset):
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
         if self.task == "classification":
-            labels = [(0.,1.,)[value < self.threshold] for value in self.df["measurement_value"]]
+            labels = [(0,1)[value < self.threshold] for value in self.df["measurement_value"]]
             labels = torch.tensor(labels, dtype=torch.long)
 
             # binder or non binder if the mean value of redundant peptides less than the threshold:
@@ -211,11 +218,34 @@ def custom_norm(ds): # custom normalization
 def custom_denorm(ds):
     return ds
 
+def create_unique_csv(train_csv, test_csv, model_name):
+    aa = list("ABCDEFGHIJKLMOPQRSTUV0123456789")
+    rand_str = "".join(random.sample(aa, 5))
+    tvt_csv_path = f"train_validation_test_cases_{model_name}-{rand_str}.csv"
+    test_df = pd.read_csv(test_csv)
+    test_df["test"] = 1
+    train_validation_df = pd.read_csv(train_csv)
+    train_validation_df["test"] = 0
+    concatenated_csv = pd.concat([train_validation_df, test_df], ignore_index=True).to_csv(tvt_csv_path, index=False)
+    csv_path = os.path.abspath(tvt_csv_path) 
+    return csv_path
+
 
 if __name__ == "__main__":
+    # dataset = Class_Seq_Dataset(
+    #     "/home/daqop/mountpoint_snellius/experiments/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv",
+    #     device="cpu",
+    #     encoder="blosum_with_allele",
+    #     cluster_column="cluster_set_10",
+    #     task="regression",
+    #     allele_to_pseudosequence_csv_path="/home/daqop/mountpoint_snellius/3D-Vac/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+    # )
+
     dataset = Class_Seq_Dataset(
-        "/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_pseudoseq.csv",
+        "/projects/0/einf2380/data/external/processed/I/experiments/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv",
         device="cpu",
         encoder="blosum_with_allele",
         cluster_column="cluster_set_10",
-        task="regression")
+        task="regression",
+        allele_to_pseudosequence_csv_path="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+    )
