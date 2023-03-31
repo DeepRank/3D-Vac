@@ -43,7 +43,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_std_es_classw_gpu_nw16_'
+exp_name = 'exp_100k_std_classw_gpu_nw16_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -62,7 +62,7 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 50
+epochs = 21
 save_model = 'best'
 class_weights = True # weighted loss function
 cuda = True
@@ -71,8 +71,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 10
-earlystop_maxgap = 0.1
+earlystop_patience = None
+earlystop_maxgap = None
+min_epoch = 10
 ####################
 
 
@@ -257,11 +258,16 @@ if __name__ == "__main__":
         
         _log.info(f"Train ended, complexity profiled.")
     else:
+        _log.info(f"Batch size set to {batch_size}.")
+        _log.info(f"earlystop_patience set to {earlystop_patience}.")
+        _log.info(f"earlystop_maxgap set to {earlystop_maxgap}.")
+
         trainer.train(
             nepoch = epochs,
             batch_size = batch_size,
             earlystop_patience = earlystop_patience,
             earlystop_maxgap = earlystop_maxgap,
+            min_epoch = min_epoch,
             validate = True,
             num_workers = num_workers)
         trainer.test(batch_size = batch_size, num_workers = num_workers)
