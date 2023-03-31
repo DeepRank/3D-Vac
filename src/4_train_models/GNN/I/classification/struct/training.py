@@ -41,7 +41,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_pssm_rm_std_classw_bs64_bn1_'
+exp_name = 'exp_100k_pssm_rm_std_classw_bs64_net1_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -83,9 +83,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 20
-earlystop_maxgap = 0.05
-min_epoch = 25
+earlystop_patience = 15
+earlystop_maxgap = 0.06
+min_epoch = 45
 ####################
 
 

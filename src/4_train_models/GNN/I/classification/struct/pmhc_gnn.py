@@ -33,7 +33,8 @@ class PMHCI_Network01(Module):
     def __init__(self, input_shape: int, output_shape: int, input_shape_edge: int):
         """
         First improved naive graph neural network.
-            Added batch normalization in the last mlp layer. 
+            Added batch normalization in the last mlp layers, and increased number of 
+            parameters by adding a convolutional layer and a dense layer. 
     
         Args:
             input_shape (int): Number of node input features.
@@ -43,16 +44,20 @@ class PMHCI_Network01(Module):
         super().__init__()
         self._external1 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
         self._external2 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
+        self._external3 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
         hidden_size = 128
         self._graph_mlp = Sequential(
             Linear(input_shape, hidden_size),
+            BatchNorm1d(hidden_size), ReLU(),
+            Linear(hidden_size, output_shape),
             BatchNorm1d(hidden_size), ReLU(),
             Linear(hidden_size, output_shape))
 
     def forward(self, data):
         external_updated1_node_features = self._external1(data.x, data.edge_index, data.edge_attr)
         external_updated2_node_features = self._external2(external_updated1_node_features, data.edge_index, data.edge_attr)
-        means_per_graph_external = scatter_mean(external_updated2_node_features, data.batch, dim=0)
+        external_updated3_node_features = self._external3(external_updated2_node_features, data.edge_index, data.edge_attr)
+        means_per_graph_external = scatter_mean(external_updated3_node_features, data.batch, dim=0)
         graph_input = means_per_graph_external
         z = self._graph_mlp(graph_input)
         return z
