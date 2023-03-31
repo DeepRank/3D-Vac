@@ -49,19 +49,53 @@ def length_agnostic_encode_p(p):
     return left_al + center_al + right_al
 
 def allele_peptide2blosum(allele, peptide):
+    """Encodes the allele with the peptide using the BLOSUM62 encoding matrice.
+
+    Args:
+        allele (String): Pseudosequence of the allele
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: Concatenated representation of the allele and peptide with shape (allele+peptide)*21
+    """
     peptide_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
     allele_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in allele]
     return allele_arr + peptide_arr
 
 def allele_peptide2onehot(allele, peptide):
+    """Encodes the allele with the peptide using one-hot representation.
+
+    Args:
+        allele (String): Pseudosequence of the allele
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: Concatenated representation of the allele and peptide with shape (allele+peptide)*21
+    """
     allele_arr = [AA_eye[aminoacids.index(res)].tolist() for res in allele]
     peptide_arr = [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
     return allele_arr + peptide_arr
 
 def peptide2onehot(peptide):
+    """Encodes the peptide into a one-hot representation.
+
+    Args:
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: One hot representation of the peptide with shape peptide*21
+    """
     return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
 
 def peptide2blosum(peptide):
+    """Encodes the peptide into a BLOSUM62 representation.
+
+    Args:
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: One hot representation of the peptide with shape peptide*21
+    """
     return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
 
 class Class_Seq_Dataset(Dataset):
@@ -72,14 +106,17 @@ class Class_Seq_Dataset(Dataset):
         task="classification",
         allele_to_pseudosequence_csv_path="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
     ):
-        """Class used to store the dataset for the sequence based classification.
+        """Class used to store the dataset for the sequence based MLP. Prepare the data both for classification and regression
+        as well as different data splitting methods (shuffled, clustered or train (and validation) and test in different csv).
+        Once the data is loaded it can be split using these different methods.
+        The features are the encoding used for peptides or allele and peptides. Supports different length peptides.
 
         Args:
             csv (array): Path to DB1 csv.
             encoder (string): Encoding methods. Peptide only or peptide + allele encoding.
-            labels (array): Binder/non-binder labels in the same order as csv_peptides.
-            encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
-            device (torch.device): can be either "cpu" or torch.device("cuda:0").
+            device (string): CPU or CUDA.
+            threshold (array): Value to define binders/non binders for the classification task.
+            cluster_column (string): Column of the csv file to use containing cluster mapping for samples. Only for clustered data.
             allele_to_pseudosoquence_csv_path (string): path to the mhcflurry csv file containing mapings for alleles to pseudosequences
         """
         df = pd.read_csv(csv)
@@ -148,6 +185,11 @@ class Class_Seq_Dataset(Dataset):
         return labels, groups
 
     def load_reg_data(self):
+        """Converts measurement_value into float values between 0 and 1 using MHCflurry 2.0 ic50 conversion.
+
+        Returns:
+            torch.tensor: Transformed binding affinity values.
+        """
         measurements = numpy.array(self.df.measurement_value.tolist())
         x = from_ic50(measurements) 
         return torch.tensor(x, dtype=torch.float32)
@@ -219,6 +261,18 @@ def custom_denorm(ds):
     return ds
 
 def create_unique_csv(train_csv, test_csv, model_name):
+    """Concatenates train_csv (containing validation as well) with the test_csv into one csv which can be
+    loaded into the Class_Seq_Dataset. This csv will have an added `test` column indicating which sample
+    is used for train and validation (test == 0) and which is used for test (test == 1).
+
+    Args:
+        train_csv (_type_): csv containing train and validation cases
+        test_csv (_type_): _description_
+        model_name (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     aa = list("ABCDEFGHIJKLMOPQRSTUV0123456789")
     rand_str = "".join(random.sample(aa, 5))
     tvt_csv_path = f"train_validation_test_cases_{model_name}-{rand_str}.csv"
