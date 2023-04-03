@@ -49,7 +49,7 @@ class PMHCI_Network01(Module):
         self._graph_mlp = Sequential(
             Linear(input_shape, hidden_size),
             BatchNorm1d(hidden_size), ReLU(),
-            Linear(hidden_size, output_shape),
+            Linear(hidden_size, hidden_size),
             BatchNorm1d(hidden_size), ReLU(),
             Linear(hidden_size, output_shape))
 
