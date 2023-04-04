@@ -41,7 +41,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_pssm_rm_std_classw_bs64_net1_'
+exp_name = 'exp_100k_std_classw_bs64_net1_cl_allele_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -51,30 +51,32 @@ task = 'classif'
 standardize = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None # 'allele_type'
+cluster_dataset = 'cl_allele' # 'cl_allele'# None # 'allele_type'
 cluster_dataset_type = None # 'string'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
-test_clusters = ['C']
+test_clusters = [1]
 # Dataset
-node_features = [
-    'bsa', 'hb_acceptors', 'hb_donors',
-    'hse', 'info_content', 'irc_negative_negative',
-    'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
-    'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
-    'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
-    'irc_total', 'polarity',
-    'res_charge', 'res_depth', 'res_mass',
-    'res_pI', 'res_size', 'res_type', 'sasa']
-edge_features = [
-    "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
+# node_features = [
+#     'bsa', 'hb_acceptors', 'hb_donors',
+#     'hse', 'info_content', 'irc_negative_negative',
+#     'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
+#     'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
+#     'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
+#     'irc_total', 'polarity',
+#     'res_charge', 'res_depth', 'res_mass',
+#     'res_pI', 'res_size', 'res_type', 'sasa']
+node_features = "all"
+# edge_features = [
+#     "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
+edge_features = "all"
 # Trainer
 net = PMHCI_Network01
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 60
+epochs = 70
 save_model = 'best'
 class_weights = True # weighted loss function
 cuda = True
@@ -83,7 +85,7 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 15
+earlystop_patience = 20
 earlystop_maxgap = 0.06
 min_epoch = 45
 ####################

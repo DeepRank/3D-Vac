@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Linear, Module, ReLU, Sequential, BatchNorm1d
+from torch.nn import Linear, Module, ReLU, Sequential
 from torch_scatter import scatter_mean, scatter_sum
 
 
@@ -47,10 +47,8 @@ class PMHCI_Network01(Module):
         self._external3 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
         hidden_size = 128
         self._graph_mlp = Sequential(
-            Linear(input_shape, hidden_size),
-            BatchNorm1d(hidden_size), ReLU(),
-            Linear(hidden_size, hidden_size),
-            BatchNorm1d(hidden_size), ReLU(),
+            Linear(input_shape, hidden_size), ReLU(),
+            Linear(hidden_size, hidden_size), ReLU(),
             Linear(hidden_size, output_shape))
 
     def forward(self, data):
