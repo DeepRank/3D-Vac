@@ -22,6 +22,7 @@ import torch
 from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
+from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
 from pmhc_gnn import PMHCI_Network01
 
 # initialize
@@ -41,7 +42,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_std_classw_bs64_net1_cl_allele_'
+exp_name = 'exp_100k_pssm_rm_std_bs64_net1bn_cl_allele_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -57,19 +58,19 @@ cluster_dataset_type = None # 'string'
 # val_clusters = [5, 8]
 test_clusters = [1]
 # Dataset
-# node_features = [
-#     'bsa', 'hb_acceptors', 'hb_donors',
-#     'hse', 'info_content', 'irc_negative_negative',
-#     'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
-#     'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
-#     'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
-#     'irc_total', 'polarity',
-#     'res_charge', 'res_depth', 'res_mass',
-#     'res_pI', 'res_size', 'res_type', 'sasa']
-node_features = "all"
-# edge_features = [
-#     "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
-edge_features = "all"
+node_features = [
+    'bsa', 'hb_acceptors', 'hb_donors',
+    'hse', 'info_content', 'irc_negative_negative',
+    'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
+    'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
+    'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
+    'irc_total', 'polarity',
+    'res_charge', 'res_depth', 'res_mass',
+    'res_pI', 'res_size', 'res_type', 'sasa']
+# node_features = "all"
+edge_features = [
+    "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
+# edge_features = "all"
 # Trainer
 net = PMHCI_Network01
 batch_size = 64
@@ -78,7 +79,7 @@ lr = 1e-3
 weight_decay = 0
 epochs = 70
 save_model = 'best'
-class_weights = True # weighted loss function
+class_weights = False # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
