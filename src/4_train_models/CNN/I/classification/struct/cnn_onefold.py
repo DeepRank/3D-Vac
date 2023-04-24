@@ -5,9 +5,11 @@ import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
 from CNN.CNN_models import *
+from CNN.NeuralNet import NeuralNet
 # import multiprocessing as mp
-from deeprank.learn import DataSet, NeuralNet
+from deeprank.learn import DataSet#, NeuralNet
 from deeprank.learn.modelGenerator import *
+import h5py
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -103,13 +105,13 @@ data_set = DataSet(train_database=train_db,
     chain1 = "M",
     chain2 = "P",
     grid_info = (35,30,30),
-    select_feature ='all', #{#'AtomicDensities_ind': 'all',
-        #"Feature_ind": ['Edesolv',
-        #'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
+    select_feature = {'AtomicDensities_ind': 'all',
+        "Feature_ind": ['Edesolv', 'anch', 'SkipGram*',
+        'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
     select_target = "BIN_CLASS",
     normalize_features = False, #Change back to True
     normalize_targets = False,
-    pair_chain_feature = None,
+    pair_chain_feature = np.add,
     mapfly = False,
     tqdm = True,
     clip_features = False,
@@ -127,7 +129,8 @@ model = NeuralNet(data_set=data_set,
     ngpu = a.with_cuda,
     plot = True,
     save_classmetrics = True,
-    outdir = outdir
+    outdir = outdir,
+    optimizer='adam'
 )
 
 model.train(
@@ -138,8 +141,13 @@ model.train(
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
     num_workers=18,
-    prefetch_factor=20
+    prefetch_factor=40,
+    save_fraction=1,
+    pin_memory_cuda=False
 )
 
 # START TRAINING
 #---------------
+
+print('CLASSMETRICS:')
+print(model.classmetrics)
