@@ -13,6 +13,7 @@ import random
 import pandas as pd
 import pickle
 import tqdm
+from collections import Counter
 
 arg_parser = argparse.ArgumentParser(
     epilog="""
@@ -101,8 +102,8 @@ arg_parser.add_argument("--train-val-split", "-S",
 
 arg_parser.add_argument("--parallel", "-p",
     help = "runs the process in parallel on a slurm cluster",
-    default = False,
-    action = "store_true",
+    default = 1,
+    type = int,
 )
 
 arg_parser.add_argument("--csv-file", "-d",
@@ -242,11 +243,31 @@ def symlink_in_h5(indices, f1_path, f2):
             group_path = f1[idx].name
             f2[group_path] = h5py.ExternalLink(f1_path, group_path)
         
+def split_one_fold(df, test_group, train_split):
+    test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(test_group))
+    test_cases = df[test_mask]["ID"]
+    print(f'test cases: {test_cases.shape}')
+    not_test_cases = np.array(df[test_mask == False]["ID"])
+    print(f'not test case {not_test_cases.shape}')
+    random.shuffle(not_test_cases)
+    ds_l = not_test_cases.shape[0]
+    train_cases, validation_cases = np.split(
+        not_test_cases, 
+        [int((train_split/100)*ds_l)]
+    )
+    print(f'train shape: {train_cases.shape}')
+    print(f'validation shape: {validation_cases.shape}')
+
+    print(f"### SAVING SPLITS FOR CLUSTER {i}")
+    save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
+        f"clustered/{i}/train.hdf5",
+        f"clustered/{i}/valid.hdf5",
+        f"clustered/{i}/test.hdf5"
+    )
 
 if __name__ == '__main__':
     
-    if a.parallel:
-        n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    n_cores = a.parallel
     try:
         train_split = int(a.train_val_split.split('-')[0])
         val_split = int(a.train_val_split.split('-')[1])
@@ -257,6 +278,18 @@ if __name__ == '__main__':
         
     # Combine the h5 files using the csv as a filter:
     df = pd.read_csv(a.csv_file)
+    #Fill in the nan values (empty fileds belonging to trashbin clusters) with n_clusters + 1 
+    # if a.cluster:
+        # try:
+        #     trashbin_cluster = len(a.train_clusters) + len(a.test_clusters) + 1
+        # except TypeError:
+        #     try:
+        #         trashbin_cluster = int(a.cluster_column.split('_')[-1])
+        #     except:
+        #         raise Exception('Something went wrong in defining trashbin cluster')
+                
+        # df.fillna(trashbin_cluster,inplace=True)
+    
     symlinks, labels = h5_symlinks(a.features_path, df["ID"].tolist())
 
     n_splits=a.n_fold
@@ -285,20 +318,22 @@ if __name__ == '__main__':
             
             tr = all_cases[training_idx]
             va = all_cases[validation_idx]
-            t = all_cases[test_idx]
+            te = all_cases[test_idx]
             # create training and validation hdf5 files
             print(f"### SAVING SPLITS for {i} ###")
-            save_train_valid(tr, va, t,symlinks, output_h5_path,
+            save_train_valid(tr, va, te, symlinks, a.features_path, output_h5_path,
                 f"shuffled/{i}/train.hdf5", 
                 f"shuffled/{i}/valid.hdf5", 
-                f"shuffled/{i}/test.hdf5") 
+                f"shuffled/{i}/test.hdf5")
             i+=1
     else:
         groups = [int(x) for x in set(df[a.cluster_column])]
         all_cases = list(symlinks.keys())
-        if len(a.train_clusters) > 0 and len(a.test_clusters) > 0:
+        if a.test_clusters:
+            split_one_fold(df, a.test_clusters, train_split)
+            
             test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.test_clusters))
-            train_val_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.train_clusters))
+            train_val_mask = (df["ID"].isin(all_cases)) & (~df[a.cluster_column].isin(a.test_clusters))
 
             test_cases = df[test_mask]["ID"]
             train_val_cases = np.array(df[train_val_mask]["ID"])
@@ -310,10 +345,10 @@ if __name__ == '__main__':
             )
 
             print(f"""
-            ### SAVING TRAINING SPLITS FROM CLUSTERS {a.train_clusters} AND
-            ### TESTING SPLITS FROM CLUSTERS {a.test_clusters} FROM CLUSTER COLUMN 
+            ### SAVING TEST SPLITS FROM CLUSTERS {a.test_clusters}
             
             """)
+            
             save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
                 f"clustered/train.hdf5",
                 f"clustered/valid.hdf5",
@@ -321,34 +356,5 @@ if __name__ == '__main__':
             )
 
         else: #perform normal clustering
-            for i in groups:
-                test_mask = (df["ID"].isin(all_cases)) & (df["cluster"] == i)
-                test_cases = df[test_mask]["ID"]
-                print(f'test cases: {test_cases.shape}')
-                not_test_cases = np.array(df[test_mask == False]["ID"])
-                print(f'not test case {not_test_cases.shape}')
-                random.shuffle(not_test_cases)
-                ds_l = not_test_cases.shape[0]
-                train_cases, validation_cases = np.split(
-                    not_test_cases, 
-                    [int((train_split/100)*ds_l)]
-                )
-                print(f'train shape: {train_cases.shape}')
-                print(f'validation shape: {validation_cases.shape}')
-
-                if a.single_split:
-                    print(f"### SAVING SPLITS FOR TRAIN/TEST/VALIDATION")
-                    save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
-                        f"clustered/train.hdf5",
-                        f"clustered/valid.hdf5",
-                        f"clustered/test.hdf5"
-                    )
-                    # only single split so break loop
-                    break
-                else:
-                    print(f"### SAVING SPLITS FOR CLUSTER {i}")
-                    save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
-                        f"clustered/{i}/train.hdf5",
-                        f"clustered/{i}/valid.hdf5",
-                        f"clustered/{i}/test.hdf5"
-                    )
+            jobs = min([len(groups), n_cores])
+            Parallel(verbose=True, n_jobs=jobs)(delayed(split_one_fold)(df, test_group, train_split) for test_group in groups)

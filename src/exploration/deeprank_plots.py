@@ -6,6 +6,11 @@ import h5py
 import os
 import argparse
 import numpy as np
+from copy import deepcopy
+
+import sys
+sys.path.append('/home/dmarz/3D-Vac/src/4_train_models')
+from CNN import classMetrics
 
 arg_parser = argparse.ArgumentParser(
     description = ""
@@ -25,7 +30,7 @@ def check_path_exists(pathname):
     if os.path.exists(pathname):
         return True
     
-def export_losses(losses_dict, n_epochs, outdir, best_model=False, show=False, overwrite=False):
+def export_losses(losses_dict, n_epochs, outdir, best_model=False, show=False, overwrite=False, title=False):
     """Plot the losses vs the epoch.
     
     Args:
@@ -71,6 +76,8 @@ def export_losses(losses_dict, n_epochs, outdir, best_model=False, show=False, o
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Losses')
     ax.set_xticks(np.arange(0, len(x)+1, 1))
+    if title:
+        plt.title(f'{title} loss')
     
     if show:
         plt.show()
@@ -85,7 +92,7 @@ def export_losses(losses_dict, n_epochs, outdir, best_model=False, show=False, o
     plt.close()
     
 def export_metrics(metricname:str, classmetrics:dict, exec_epochs:int, outdir:str=None, 
-                   best_model=False, show=False, overwrite=False):
+                   best_model=False, show=False, overwrite=False, title=False):
     """seperate plot for each metric (e.g accuracy/auc) over the epochs
     
     Args:
@@ -120,6 +127,8 @@ def export_metrics(metricname:str, classmetrics:dict, exec_epochs:int, outdir:st
     ax.set_xlabel('Epoch')
     ax.set_ylabel(metricname.upper())
     ax.set_xticks(np.arange(0, len(x)+1, 1))
+    if title:
+        plt.title(f'{title} {metricname}')
     
     if show:
         print(f'\n --> {metricname.upper()} Plot')
@@ -128,7 +137,7 @@ def export_metrics(metricname:str, classmetrics:dict, exec_epochs:int, outdir:st
         # outdir= '/home/severin/teststuff/deeprank_plot'
         figname = os.path.join(outdir, metricname + '.png')
         if not check_path_exists(figname) or overwrite:
-            print(f'writing metrics ({m}) plot to {figname}')
+            print(f'writing metrics ({metricname}) plot to {figname}')
             plt.savefig(figname, dpi=300)
         elif check_path_exists(figname):
             print(f'path {figname} exists, give --overwrite as argument if file needs to be overwritten')
@@ -137,10 +146,12 @@ def export_metrics(metricname:str, classmetrics:dict, exec_epochs:int, outdir:st
     if best_model:
         return np.array(data[name])[best_model]
     
-    
-    
 def get_losses_per_epoch(f_metrics, f_metrics_keys):
-    criterion = nn.CrossEntropyLoss(weight = None, reduction='mean')
+
+    if np.array(f_metrics[f'epoch_0001/train/outputs']).shape[1] == 2:
+        criterion = nn.CrossEntropyLoss(weight = None, reduction='mean')
+    elif np.array(f_metrics[f'epoch_0001/train/outputs']).shape[1] == 1:
+        criterion = nn.MSELoss(reduction='mean')
     losses_dict = {'train': [], 'valid': [], 'test': []}
     for epoch in f_metrics_keys:
         for subset in f_metrics[epoch]:
@@ -179,6 +190,94 @@ def get_metrics_per_epoch(f_metrics, f_metrics_keys, metrics):
                 metrics_dir[m]['test'].append(f_metrics[f'{epoch}/test/{m}'][()])
     return metrics_dir
 
+def calculate_metrics_per_epoch(outputs_dict, f_metrics_keys, metrics):
+    metrics_dir = {}
+    for m in metrics:
+        metrics_dir[m] = {'train': [], 'valid': [], 'test': []}
+        
+    for i, epoch in enumerate(outputs_dict['valid']['outputs']):
+        if i == 0:
+            for m in metrics:
+                try:
+                    metrics_dir[m]['valid'].append(calculate_metric(m,outputs_dict['valid']['outputs'][i][:], outputs_dict['valid']['targets'][i][:]))
+                    metrics_dir[m]['test'].append(calculate_metric(m,outputs_dict['test']['outputs'][i][:], outputs_dict['test']['targets'][i][:]))
+                except KeyError:
+                    raise Exception(f'exception caused by m {m} and epoch {epoch}')
+            
+        else:
+            for m in metrics:
+                metrics_dir[m]['train'].append(calculate_metric(m,outputs_dict['train']['outputs'][i-1][:], outputs_dict['train']['targets'][i-1][:]))
+                metrics_dir[m]['valid'].append(calculate_metric(m,outputs_dict['valid']['outputs'][i][:], outputs_dict['valid']['targets'][i][:]))
+                metrics_dir[m]['test'].append(calculate_metric(m,outputs_dict['test']['outputs'][i][:], outputs_dict['test']['targets'][i][:]))
+    return metrics_dir
+
+
+def get_outputs_per_epoch(f_metrics, f_metrics_keys, metrics):
+    outputs_dict = {'train': {'outputs': [], 'targets': [], 'continuous_outputs': [],'continuous_targets': []}, 
+                    'valid': {'outputs': [], 'targets': [], 'continuous_outputs': [],'continuous_targets': []}, 
+                    'test': {'outputs': [], 'targets': [], 'continuous_outputs': [],'continuous_targets': []}}
+    for i, epoch in enumerate(f_metrics_keys):
+        #print(i)
+        for subset in f_metrics[epoch]:
+            outputs = np.array(f_metrics[f'{epoch}/{subset}/outputs'])
+            targets = np.array(f_metrics[f'{epoch}/{subset}/targets'])
+            continuous_targets = deepcopy(targets)
+            continuous_outputs = deepcopy(outputs)
+
+            output_2dim = np.zeros((outputs.shape[0], 2))
+            output_2dim[:,0] = 1-outputs[:,0]
+            output_2dim[:,1] = outputs[:,0]
+            outputs = np.array(torch.Tensor(output_2dim))
+            
+            # also convert targets to binary
+            class_label_cutoff = 1-(np.log10(max(min(500, 50_000), 1))/np.log10(50_000))
+            targets = (targets > class_label_cutoff).astype('int')
+            try:
+                targets = targets[:,0]
+            except IndexError:
+                pass
+            outputs_dict[subset]['outputs'].append(get_binclass_prediction(outputs))
+            outputs_dict[subset]['targets'].append(targets)
+            outputs_dict[subset]['continuous_outputs'].append(continuous_outputs)
+            outputs_dict[subset]['continuous_targets'].append(continuous_targets)
+            
+    return outputs_dict
+
+def get_binclass_prediction(outputs):
+
+    probility = F.softmax(torch.FloatTensor(outputs), dim=1).data.numpy()
+    pred = probility[:, 0] <= probility[:, 1]
+    return pred.astype(int)
+
+def calculate_metric(metricname, pred, targets):
+    if metricname == 'acc':
+        return classMetrics.accuracy(pred, targets)
+        # acc = classMetrics.accuracy(pred, targets)
+        # raise Exception((acc, pred, targets))
+    elif metricname == 'tpr':
+        return classMetrics.sensitivity(pred, targets)
+    elif metricname == 'tnr':
+        return classMetrics.specificity(pred, targets)
+    elif metricname == 'ppv':
+        return classMetrics.precision(pred, targets)
+    elif metricname == 'f1':
+        return classMetrics.F1(pred, targets)
+    elif metricname == 'mcc':
+        return classMetrics.mcc(pred, targets)
+    elif metricname == 'auc':
+        #pred = data['outputs'][:,1] if self.task == 'class' else data['outputs']
+        try:
+            #pred = np.array(pred)[:,0]
+            #targets = [x[0] for x in targets]
+            roc = classMetrics.roc_auc(pred, targets)
+        except Exception as e:
+            raise Exception(('PRED:', pred, 'TARGETS:', targets))
+        return roc
+    elif metricname == 'rmse':
+        #return classMetrics.rmse(pred, targets)
+        pass
+
+
 if __name__ == "__main__":
     
     metrics = ['acc', 'auc', 'f1', 'mcc', 'tnr', 'tpr']
@@ -208,3 +307,4 @@ if __name__ == "__main__":
     
     for m in metrics:
         export_metrics(m, metrics_dict, len(f_metrics_keys), training_path, best_model=best_model)
+

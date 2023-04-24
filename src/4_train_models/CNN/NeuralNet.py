@@ -14,6 +14,7 @@ import numpy as np
 from numpy import mean
 import pandas as pd
 import warnings
+from math import ceil
 
 import torch
 import torch.cuda
@@ -28,6 +29,7 @@ from deeprank.learn import DataSet, rankingMetrics#, classMetrics
 from torch.autograd import Variable
 
 from . import classMetrics
+from copy import deepcopy
 
 matplotlib.use('agg')
 torch.manual_seed(0)
@@ -35,7 +37,7 @@ torch.manual_seed(0)
 class NeuralNet():
 
     def __init__(self, data_set, model,
-                 model_type='3d', proj2d=0, task='reg',
+                 model_type='3d', proj2d=0, task='reg', n_bins=10,
                  optimizer='sgd',
                  learn_rate=1e-3,
                  contrastive = False,
@@ -47,7 +49,8 @@ class NeuralNet():
                  plot=False,
                  save_hitrate=False,
                  save_classmetrics=False,
-                 outdir='./'):
+                 outdir='./',
+                 pin_memory=False):
         """Train a Convolutional Neural Network for DeepRank.
 
         Args:
@@ -188,6 +191,7 @@ class NeuralNet():
         if self.ngpu == 0 and self.cuda:
             self.ngpu = 1
 
+        self.pin=pin_memory
         # ------------------------------------------
         # Regression or classification
         # ------------------------------------------
@@ -196,17 +200,20 @@ class NeuralNet():
         self.task = task
 
         # Set the loss functiom
-        if self.task == 'class' or self.contrastive:
+        if self.task == 'class' or self.task == 'binned_reg' or self.contrastive:
             self.criterion = nn.CrossEntropyLoss(weight = self.class_weights, reduction='mean')
-            self._plot = self._plot_boxplot_class
+            #self._plot = self._plot_boxplot_class
             self.data_set.normalize_targets = False
         elif self.task == 'reg':
             self.criterion = nn.MSELoss(reduction='mean')
-            self._plot = self._plot_scatter_hist_reg
+            #self._plot = self._plot_scatter_hist_reg
         else:
             raise ValueError(
                 f"Task {self.task} not recognized. Options are:\n\t "
                 f"reg': regression \n\t 'class': classifiation\n")
+            
+        if self.task =='binned_reg':
+            self.n_bins=n_bins
 
         # ------------------------------------------
         # Output
@@ -221,10 +228,10 @@ class NeuralNet():
         # plot and save classification metrics or not
         self.save_classmetrics = save_classmetrics
         if self.save_classmetrics:
-            if self.task == 'class' or self.contrastive:
+            if self.task == 'class' or self.task == 'binned_reg' or self.contrastive:
                 self.metricnames = ['acc', 'tpr', 'tnr', 'mcc', 'auc', 'f1']
             elif self.task == 'reg':
-                self.metricnames = ['rmse']
+                self.metricnames = ['acc', 'tpr', 'tnr', 'mcc', 'auc', 'f1', 'rmse']
 
         # output directory
         self.outdir = outdir
@@ -296,7 +303,6 @@ class NeuralNet():
         
         if self.pretrained_model:
             self.load_optimizer_params()
-
         # ------------------------------------------
         # print
         # ------------------------------------------
@@ -476,7 +482,7 @@ class NeuralNet():
         index = list(range(self.data_set.__len__()))
         sampler = data_utils.sampler.SubsetRandomSampler(index)
         #sampler = torch.utils.data.distributed.DistributedSampler(self.data_set)
-        loader = data_utils.DataLoader(self.data_set, sampler=sampler)
+        loader = data_utils.DataLoader(self.data_set, sampler=sampler, batch_size=128)
 
         # define the target value threshold to compute the hits if save_hitrate is True
         if self.save_hitrate and hit_cutoff is not None:
@@ -489,10 +495,16 @@ class NeuralNet():
 
         # plot results
         if self.plot is True :
-            self._plot(os.path.join(self.outdir, 'prediction.png'))
+            self._plot_boxplot_class(os.path.join(self.outdir, 'prediction.png'))
+            if self.task =='reg':
+                self._plot_scatter_hist_reg(os.path.join(self.outdir, 'prediction.png'))
+                
         if self.save_hitrate:
             self.plot_hit_rate(os.path.join(self.outdir + 'hitrate.png'))
 
+        if not hasattr(self, 'fname'):
+            self.fname = os.path.join(self.outdir, hdf5)
+            
         self._export_epoch_hdf5(0, self.data)
         self.f5.close()
 
@@ -663,7 +675,6 @@ class NeuralNet():
         nprint = np.max([1, int(nepoch / 10)])
 
         # pin memory for cuda
-        self.pin = False
         if self.cuda:
             self.pin = pin_cuda
 
@@ -738,9 +749,14 @@ class NeuralNet():
                         'valid': float('Inf'),
                         'test': float('Inf')}
 
-        epoch_method = self._epoch
+    
+        if self.task == 'binned_reg':
+            self.bins = self.get_binned_labels(train_loader)
+    
         if self.contrastive:
             epoch_method = self._epoch_contrastive
+        else:
+            epoch_method = self._epoch
 
         # training loop
         av_time = 0.0
@@ -825,9 +841,11 @@ class NeuralNet():
                 epoch == 0 or epoch == nepoch - 1:
 
                 if self.plot:
-                    figname = os.path.join(self.outdir,
-                        f"prediction_{epoch:04d}.png")
-                    self._plot(figname)      
+                    figname = os.path.join(self.outdir, f"prediction_{epoch:04d}.png")
+                    self._plot_boxplot_class(figname)
+                    if self.task =='reg':
+                        figname = os.path.join(self.outdir, f"prediction_reg_{epoch:04d}.png")
+                        self._plot_scatter_hist_reg(figname)      
                                       
                     for i in self.metricnames:
                         self._plot_metric(i, n_epochs=epoch)
@@ -862,16 +880,16 @@ class NeuralNet():
         self._export_losses(os.path.join(self.outdir, 'losses.png'), n_epochs=epoch, plot_best_model=True)
         # plot ROC for best epoch
         index_best = self._get_best_epoch()
-        if self.task=='class':
-            # plot ROC for best valid
-            figname = os.path.join(self.outdir,f"ROC_valid_{index_best:04d}.png")
-            self._plot_roc(figname=figname, data=self.best['valid'])
-            # plot ROC for test of that best valid epoch
-            figname = os.path.join(self.outdir,f"ROC_test_{index_best:04d}.png")
-            self._plot_roc(figname=figname, data=self.best['test'])
-            # plot ROC for train of that best valid epoch
-            figname = os.path.join(self.outdir,f"ROC_train_{index_best:04d}.png")
-            self._plot_roc(figname=figname, data=self.best['train'])
+        #if self.task=='class':
+        # plot ROC for best valid
+        figname = os.path.join(self.outdir,f"ROC_valid_{index_best:04d}.png")
+        self._plot_roc(figname=figname, data=self.best['valid'])
+        # plot ROC for test of that best valid epoch
+        figname = os.path.join(self.outdir,f"ROC_test_{index_best:04d}.png")
+        self._plot_roc(figname=figname, data=self.best['test'])
+        # plot ROC for train of that best valid epoch
+        figname = os.path.join(self.outdir,f"ROC_train_{index_best:04d}.png")
+        self._plot_roc(figname=figname, data=self.best['train'])
 
         self._export_loss_table(self.exec_epochs)
 
@@ -898,7 +916,8 @@ class NeuralNet():
 
         # variables of the epoch
         running_loss = 0
-        data = {'outputs': [], 'targets': [], 'mol': []}
+        data = {'outputs': [], 'targets': [], 'mol': [],
+                'continuous_outputs':[], 'continuous_targets':[]}
         if self.save_hitrate:
             data['hit'] = None
 
@@ -973,15 +992,38 @@ class NeuralNet():
                 outputs = outputs.data.numpy()
                 targets = targets.data.numpy()
 
+            if self.task == 'reg':
+                continuous_targets = deepcopy(targets)
+                continuous_outputs = deepcopy(outputs)
+
+                output_2dim = np.zeros((outputs.shape[0], 2))
+                output_2dim[:,0] = 1-outputs[:,0]
+                output_2dim[:,1] = outputs[:,0]
+                outputs = np.array(torch.Tensor(output_2dim))
+                
+                # also convert targets to binary
+                class_label_cutoff = 1-(np.log10(max(min(500, 50_000), 1))/np.log10(50_000))
+                targets = (targets > class_label_cutoff).astype('int32')
+                targets = targets[:, 0]
+            
+            elif self.task == 'binned_reg':
+                targets = np.searchsorted(self.bins, targets, side='right')
+
+            #raise Exception((targets, outputs))
             # get the outputs for export
             data['outputs'] += outputs.tolist()
             data['targets'] += targets.tolist()
+
+            if self.task == 'reg':
+                data['continuous_outputs'] += continuous_outputs.tolist()
+                data['continuous_targets'] += continuous_targets.tolist()
 
             fname, molname = mol[0], mol[1]
             data['mol'] += [(f, m) for f, m in zip(fname, molname)]
             
             #  mini_batch%np.ceil(len(self.train_index)/self.batch_size)*self.frac_measure == 0 and 
             # check every few minibatches for overfitting during 'train' phases
+            '''
             if train_model == True and \
                 n_mini in [round(total_minibatches*self.frac_measure) * i for i in range(1, int(total_minibatches/(total_minibatches*self.frac_measure)))] and \
                 n_mini != total_minibatches and \
@@ -1004,6 +1046,7 @@ class NeuralNet():
                 # finally reset train/eval mode
                 self.net.train(mode=train_model)
                 torch.set_grad_enabled(train_model)
+            '''
 
         #### done with minibatch loop 
         
@@ -1012,9 +1055,17 @@ class NeuralNet():
                 np.array(data['outputs']))  # .flatten())
             data['targets'] = self.data_set.backtransform_target(
                 np.array(data['targets']))  # .flatten())
+            if self.task == 'reg':
+                data['continuous_outputs'] = self.data_set.backtransform_target(
+                    np.array(data['continuous_outputs']))  # .flatten())
+                data['continuous_targets'] = self.data_set.backtransform_target(
+                    np.array(data['continuous_targets']))  # .flatten())                
         else:
             data['outputs'] = np.array(data['outputs'])  # .flatten()
             data['targets'] = np.array(data['targets'])  # .flatten()
+            if self.task == 'reg':
+                data['continuous_outputs'] = np.array(data['continuous_outputs'])  # .flatten()
+                data['continuous_targets'] = np.array(data['continuous_targets'])  # .flatten()                
 
         # make np for export
         data['mol'] = np.array(data['mol'], dtype=object)
@@ -1200,7 +1251,26 @@ class NeuralNet():
 
         return running_loss, data
             
-            
+
+    def get_binned_labels(self, train_loader):
+        ## reverse label calculation for BA = 10**((1-x)*np.log10(50_000))
+        targets = []
+        for mini_batch in train_loader:
+            targets.extend([float(x) for x in mini_batch['target']])
+        s_targets = sorted(targets)
+        step = ceil(len(s_targets)/self.n_bins)
+        bins = []
+        for i in range(1,self.n_bins):
+            #if i != n_bins-1:
+                bins.append(s_targets[i*step])
+                #bins.append((s_targets[i*step],s_targets[(i+1)*step]))
+            #else:
+                #bins.append((s_targets[i*step],1.0))
+        #raise Exception([len([x for x in np.searchsorted(bins, targets, side='right') if x == y]) for y in range(10)])
+        raise Exception(bins)
+        #return bins
+    
+
     def _get_variables(self, inputs, targets):
         # xue: why not put this step to DataSet.py?
         """Convert the feature/target in torch.Variables.
@@ -1257,10 +1327,17 @@ class NeuralNet():
                 np.array(data['outputs']))  # .flatten())
             data['targets'] = self.data_set.backtransform_target(
                 np.array(data['targets']))  # .flatten())
+            if self.task == 'reg':
+                data['continuous_outputs'] = self.data_set.backtransform_target(
+                    np.array(data['continuous_outputs']))  # .flatten())
+                data['continuous_targets'] = self.data_set.backtransform_target(
+                    np.array(data['continuous_targets']))  # .flatten())                
         else:
             data['outputs'] = np.array(data['outputs'])  # .flatten()
             data['targets'] = np.array(data['targets'])  # .flatten()
-        return data
+            if self.task == 'reg':
+                data['continuous_outputs'] = np.array(data['continuous_outputs'])  # .flatten()
+                data['continuous_targets'] = np.array(data['continuous_targets'])  # .flatten()   
 
     def _export_losses(self, figname, n_epochs, plot_best_model=False):
         """Plot the losses vs the epoch.
@@ -1404,7 +1481,11 @@ class NeuralNet():
             
         data = self.classmetrics[metricname]
         for k, v in data.items():
-            grp.create_dataset(k, data=v)
+            try:
+                grp.create_dataset(k, data=v)
+            except TypeError as e:
+                print(e)
+                raise Exception((metricname, k, v))
 
     def _export_metric_table(self, metricname:str, epoch, exec_epochs:int):
 
@@ -1463,14 +1544,14 @@ class NeuralNet():
 
             if l in self.data:
                 try:
-                    targ = self.data[l]['targets'].flatten()
+                    targ = self.data[l]['continuous_targets'].flatten()
                 except Exception:
                     logger.exception(
                         f'No target values are provided for the {l} set, ',
                         f'skip {l} in the scatter plot')
                     continue
 
-                out = self.data[l]['outputs'].flatten()
+                out = self.data[l]['continuous_outputs'].flatten()
 
                 xvalues = np.append(xvalues, targ)
                 yvalues = np.append(yvalues, out)
@@ -1544,14 +1625,14 @@ class NeuralNet():
                 xvalues = np.array([])
                 yvalues = np.array([])
                 try:
-                    targ = self.data[l]['targets'].flatten()
+                    targ = self.data[l]['continuous_targets'].flatten()
                 except Exception:
                     logger.exception(
                         f'No target values are provided for the {l} set, ',
                         f'skip {l} scatter/hist plot {figname}')
                     continue
 
-                out = self.data[l]['outputs'].flatten()
+                out = self.data[l]['continuous_outputs'].flatten()
 
                 # X mean line
                 ax.axvline(mean(targ), color='k', ls=':', lw=2.5)
@@ -1640,10 +1721,13 @@ class NeuralNet():
         # elif self.task == 'reg':
         pred = data['outputs']
         
-        if self.task == 'class':
-            pred = pred[:, 1]
+        #if self.task == 'class':
+        pred = pred[:, 1]
             
         targets = data['targets']
+        #raise Exception((type(targets), targets))
+        # if self.task=='reg':
+        #     targets = targets[:, 0]
 
         auc_score = classMetrics.roc_auc(pred, targets)
         tprs, fprs = classMetrics.tpr_fpr_thresholds(pred, targets)
@@ -1702,6 +1786,7 @@ class NeuralNet():
                 confusion = [[0, 0], [0, 0]]
 
                 for pts, t in zip(out, tar):
+                    t = int(t)
                     r = F.softmax(torch.FloatTensor(pts), dim=0).data.numpy()
                     data[t].append(r[1])
                     confusion[t][bool(r[1] > 0.5)] += 1
@@ -1859,16 +1944,18 @@ class NeuralNet():
     def _get_classmetrics(self, data, metricname):
 
         # get predctions
-        if self.task == 'class' or self.contrastive:
-            pred = self._get_binclass_prediction(data)
-        elif self.task == 'reg':
-            pred = data['outputs']
+        # if self.task == 'class' or self.contrastive:
+        pred = self._get_binclass_prediction(data)
+        # elif self.task == 'reg':
+        #     pred = data['outputs']
         # get real targets
         targets = data['targets']
 
         # get metric values
         if metricname == 'acc':
             return classMetrics.accuracy(pred, targets)
+            # acc = classMetrics.accuracy(pred, targets)
+            # raise Exception((acc, pred, targets))
         elif metricname == 'tpr':
             return classMetrics.sensitivity(pred, targets)
         elif metricname == 'tnr':
@@ -1880,7 +1967,8 @@ class NeuralNet():
         elif metricname == 'mcc':
             return classMetrics.mcc(pred, targets)
         elif metricname == 'auc':
-            pred = data['outputs'][:,1] if self.task == 'class' else data['outputs']
+            #pred = data['outputs'][:,1] if self.task == 'class' else data['outputs']
+            pred = data['outputs'][:,1]
             return classMetrics.roc_auc(pred, targets)
         elif metricname == 'rmse':
             return classMetrics.rmse(pred, targets)
@@ -1918,7 +2006,7 @@ class NeuralNet():
         # loop over the pass_type: train/valid/test
         for pass_type, pass_data in data.items():
 
-            # we don't want to breack the process in case of issue
+            # we don't want to break the process in case of issue
             try:
 
                 # create subgroup for the pass

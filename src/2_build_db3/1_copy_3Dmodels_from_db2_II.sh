@@ -2,8 +2,9 @@
 #SBATCH -p thin
 #SBATCH -N 1
 #SBATCH --cpus-per-task 128
-#SBATCH --time 01:00:00
+#SBATCH --time 05:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/II/copy_3Dmodels_from_db2_II-%J.out
+#SBATCH -e /projects/0/einf2380/data/modelling_logs/II/copy_3Dmodels_from_db2_II-%J.err
 
 # Load modules:
 module load 2021
