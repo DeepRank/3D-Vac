@@ -1,18 +1,14 @@
-import h5py
 import os
 import sys
 import glob
 from pathlib import Path
-import torch
+from datetime import datetime
+import logging
+import cProfile, pstats, io
+import h5py
 import pandas as pd
 import numpy as np
-import logging
-from datetime import datetime
 from sklearn.model_selection import train_test_split
-from deeprankcore.trainer import Trainer
-from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
-from deeprankcore.utils.exporters import HDF5OutputExporter
-from deeprankcore.dataset import GraphDataset
 from sklearn.metrics import (
     roc_curve,
     auc,
@@ -22,7 +18,12 @@ from sklearn.metrics import (
     accuracy_score,
     f1_score,
     matthews_corrcoef)
-import cProfile, pstats, io
+import torch
+from deeprankcore.trainer import Trainer
+from deeprankcore.utils.exporters import HDF5OutputExporter
+from deeprankcore.dataset import GraphDataset
+from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
+from pmhc_gnn import PMHCI_Network01
 
 # initialize
 starttime = datetime.now()
@@ -30,10 +31,8 @@ torch.manual_seed(22)
 
 #################### To fill
 # Input data
-# run_day_data = '230130' # 692 data points (local folder)
-# run_day_data = '11122022' # 140k data points (proj folder)
-run_day_data = '230202' # 100k data points (proj folder)
-# run_day_data = '08122022'
+# run_day_data = '230329' # 692 data points (local folder)
+run_day_data = '230329' # 100k data points (proj folder)
 # Paths
 protein_class = 'I'
 target_data = 'BA'
@@ -43,7 +42,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_std_es_classw_gpu_nw16_'
+exp_name = 'exp_100k_dist_res_type_std_bs16_cl_allele_C_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -51,28 +50,47 @@ target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
 standardize = True
-# # Clusters
-# cluster_dataset = 'cluster'
+# Clusters
+# If cluster_dataset is None, sets are randomly splitted
+cluster_dataset = 'allele_type' # 'cl_allele'# None # 'allele_type'
+cluster_dataset_type = 'string' # None # 'string'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
-# test_clusters = [6]
+test_clusters = ['C']
+# Dataset
+# node_features = [
+#     'bsa', 'hb_acceptors', 'hb_donors',
+#     'hse', 'info_content', 'irc_negative_negative',
+#     'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
+#     'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
+#     'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
+#     'irc_total', 'polarity',
+#     'res_charge', 'res_depth', 'res_mass',
+#     'res_pI', 'res_size', 'res_type', 'sasa']
+# node_features = "all"
+node_features = ["res_type"]
+# edge_features = [
+#     "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
+# edge_features = "all"
+edge_features = ["distance"]
 # Trainer
 net = NaiveNetwork
 batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 50
+epochs = 70
 save_model = 'best'
-class_weights = True # weighted loss function
+class_weights = False # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 10
-earlystop_maxgap = 0.1
+earlystop_patience = 20
+earlystop_maxgap = 0.06
+min_epoch = 45
 ####################
 
 
@@ -124,8 +142,9 @@ if __name__ == "__main__":
     summary = {}
     summary['entry'] = []
     summary['target'] = []
-    # summary['cluster'] = []
-    # summary['phase'] = []
+
+    if cluster_dataset is not None:
+        summary['cluster'] = []
 
     for fname in input_data_path:
         try:
@@ -135,22 +154,30 @@ if __name__ == "__main__":
                     summary['entry'].append(mol)
                     summary['target'].append(target_value)
 
-                    # cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
-                    # summary['cluster'].append(cluster_value)
-                    # if cluster_value in train_clusters:
-                    #     summary['phase'].append('train')
-                    # elif cluster_value in val_clusters:
-                    #     summary['phase'].append('valid')
-                    # elif cluster_value in test_clusters:
-                    #     summary['phase'].append('test')
+                    if cluster_dataset is not None:
+                        if cluster_dataset_type == 'string':
+                            cluster_value = hdf5[mol][target_group][cluster_dataset].asstr()[()]
+                        else:
+                            cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+
+                        summary['cluster'].append(cluster_value)
+
         except Exception as e:
             _log.error(e)
             _log.info(f'Error in opening {fname}, please check the file.')
-
+    
     df_summ = pd.DataFrame(data=summary)
 
-    df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
-    df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+    if cluster_dataset is None:
+        # random split
+        df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
+        df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+    else:
+        # use cluster for test, random split for train and valid
+        df_test = df_summ[df_summ.cluster.isin(test_clusters)]
+        df_train = df_summ[~df_summ.cluster.isin(test_clusters)]
+        df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+
     df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
 
     df_summ.to_hdf(
@@ -159,16 +186,24 @@ if __name__ == "__main__":
         mode='w')
 
     _log.info(f'Data statistics:\n')
-    _log.info(f'Total samples: {len(df_summ)}')
+    _log.info(f'Total samples: {len(df_summ)}\n')
+    if cluster_dataset is not None:
+        _log.info(f'Clustering on Dataset: {cluster_dataset}.\n')
     _log.info(f'Training set: {len(df_train)} samples, {round(100*len(df_train)/len(df_summ))}%')
     _log.info(f'\t- Class 0: {len(df_train[df_train.target == 0])} samples, {round(100*len(df_train[df_train.target == 0])/len(df_train))}%')
     _log.info(f'\t- Class 1: {len(df_train[df_train.target == 1])} samples, {round(100*len(df_train[df_train.target == 1])/len(df_train))}%')
+    if cluster_dataset is not None:
+        _log.info(f'Clusters present: {df_train.cluster.unique()}\n')
     _log.info(f'Validation set: {len(df_valid)} samples, {round(100*len(df_valid)/len(df_summ))}%')
     _log.info(f'\t- Class 0: {len(df_valid[df_valid.target == 0])} samples, {round(100*len(df_valid[df_valid.target == 0])/len(df_valid))}%')
     _log.info(f'\t- Class 1: {len(df_valid[df_valid.target == 1])} samples, {round(100*len(df_valid[df_valid.target == 1])/len(df_valid))}%')
+    if cluster_dataset is not None:
+        _log.info(f'Clusters present: {df_valid.cluster.unique()}\n')
     _log.info(f'Testing set: {len(df_test)} samples, {round(100*len(df_test)/len(df_summ))}%')
     _log.info(f'\t- Class 0: {len(df_test[df_test.target == 0])} samples, {round(100*len(df_test[df_test.target == 0])/len(df_test))}%')
     _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
+    if cluster_dataset is not None:
+        _log.info(f'Clusters present: {df_test.cluster.unique()}\n')
     ####################
 
     # for cl in sorted(df_summ.cluster.unique(), reverse=True):
@@ -187,6 +222,8 @@ if __name__ == "__main__":
         subset = list(df_train.entry),
         target = target_dataset,
         task = task,
+        node_features = node_features,
+        edge_features = edge_features,
         standardize = standardize,
         check_integrity = check_integrity
     )
@@ -195,6 +232,8 @@ if __name__ == "__main__":
         subset = list(df_valid.entry),
         target = target_dataset,
         task = task,
+        node_features = node_features,
+        edge_features = edge_features,
         standardize = standardize,
         train = False,
         dataset_train = dataset_train,
@@ -205,6 +244,8 @@ if __name__ == "__main__":
         subset = list(df_test.entry),
         target = target_dataset,
         task = task,
+        node_features = node_features,
+        edge_features = edge_features,
         standardize = standardize,
         train = False,
         dataset_train = dataset_train,
@@ -213,6 +254,11 @@ if __name__ == "__main__":
     _log.info(f'Len df train: {len(dataset_train)}')
     _log.info(f'Len df valid: {len(dataset_val)}')
     _log.info(f'Len df test: {len(dataset_test)}')
+    _log.info(f'Node features: {dataset_train.node_features}')
+    _log.info(f'Edge features: {dataset_train.edge_features}')
+    _log.info(f'Target: {dataset_train.target}')
+    _log.info(f'Task: {dataset_train.task}')
+    _log.info(f'Standardize: {standardize}')
     ####################
 
     #################### Trainer
@@ -232,12 +278,13 @@ if __name__ == "__main__":
     trainer.configure_optimizers(optimizer, lr, weight_decay)
 
     if train_profiling:
-        _log.info(f"Batch size set to {batch_size}.")
         _log.info(f"Number of workers set to {num_workers}.")
         pr = cProfile.Profile()
         pr.enable()
         trainer.train(nepoch = epochs, batch_size = batch_size, validate = True, num_workers = num_workers)
         pr.disable()
+
+        _log.info(f"Batch size set to {trainer.batch_size_train}.")
 
         s_tot = io.StringIO()
         s_cum = io.StringIO()
@@ -257,13 +304,23 @@ if __name__ == "__main__":
         
         _log.info(f"Train ended, complexity profiled.")
     else:
+        _log.info(f"Number of workers set to {num_workers}.")
+        _log.info(f"Class weight: {trainer.class_weights}.")
+        _log.info(f"Learning rate set to {trainer.lr}.")
+        _log.info(f"Max number of epochs set to {epochs}.")
+        _log.info(f"earlystop_patience set to {earlystop_patience}.")
+        _log.info(f"earlystop_maxgap set to {earlystop_maxgap}.")
+        _log.info(f"min_epoch set to {min_epoch}.")
+
         trainer.train(
             nepoch = epochs,
             batch_size = batch_size,
             earlystop_patience = earlystop_patience,
             earlystop_maxgap = earlystop_maxgap,
+            min_epoch = min_epoch,
             validate = True,
             num_workers = num_workers)
+        _log.info(f"Batch size set to {trainer.batch_size_train}.")
         trainer.test(batch_size = batch_size, num_workers = num_workers)
         trainer.save_model(filename = os.path.join(exp_path, 'model.tar'))
 
@@ -302,9 +359,10 @@ if __name__ == "__main__":
         exp_json['val_datapoints'] = len(df_valid)
         exp_json['test_datapoints'] = len(df_test)
         exp_json['total_datapoints'] = len(df_summ)
-        # exp_json['train_clusters'] = [train_clusters]
-        # exp_json['val_clusters'] = [val_clusters]
-        # exp_json['test_clusters'] = [test_clusters]
+        if cluster_dataset is not None:
+            # exp_json['train_clusters'] = [train_clusters]
+            # exp_json['val_clusters'] = [val_clusters]
+            exp_json['test_clusters'] = [test_clusters]
 
         ## load output and retrieve metrics
         exp_json['saved_epoch'] = epoch
