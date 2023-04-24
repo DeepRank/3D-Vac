@@ -17,16 +17,19 @@ project_folder = '/projects/0/einf2380'
 # Group name in the hdf5 files
 hdf5_target_group = 'target_values'
 # clustering target Dataset name to be added to the hdf5 files
-hdf5_target_cl = 'cl_peptide' # 'cl_allele'
+hdf5_target_cl = 'allele_type' #'cl_peptide' # 'cl_allele'
 # csv file containing the clustering
-csv_file_cl =  'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' # 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv'
+csv_file_cl =  'BA_pMHCI_human_quantitative_only_eq.csv' #'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' # 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv'
 # clustering col name in the csv file
-csv_target_col = 'cluster_set_10' # 'allele_clustering'
+csv_target_col = 'allele_type'#'cluster_set_10' # 'allele_clustering'
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
 #############
-csv_file_cl_path = f'{project_folder}/data/external/processed/I/clusters/{csv_file_cl}'
+if csv_target_col == 'allele_type':
+    csv_file_cl_path = f'{project_folder}/data/external/processed/I/{csv_file_cl}'
+else:
+    csv_file_cl_path = f'{project_folder}/data/external/processed/I/clusters/{csv_file_cl}'
 hdf5_target_path = hdf5_target_group + '/' + hdf5_target_cl
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
@@ -80,7 +83,10 @@ def add_targets():
                 p = re.compile('residue-ppi:M-P:(\w+-\d+)')
                 csv_id = p.findall(mol)[0]
                 target_csv_value = csv_data.loc[csv_data['ID'] == csv_id][csv_target_col].values[0]
-                target_hdf5_value = hdf5[mol][hdf5_target_path][()]
+                if csv_target_col == 'allele_type':
+                    target_hdf5_value = hdf5[mol][hdf5_target_path].asstr()[()]
+                else:
+                    target_hdf5_value = hdf5[mol][hdf5_target_path][()]
                 if not target_csv_value == target_hdf5_value:
                     _log.warning(f'\nSomething went wrong for data point with id {mol} in {fname}.')
                     _log.info(f'HDF5 value: {hdf5[mol][hdf5_target_path][()]}')
