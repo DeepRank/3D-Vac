@@ -27,7 +27,7 @@ from pmhc_gnn import PMHCI_Network01
 
 # initialize
 starttime = datetime.now()
-torch.manual_seed(22)
+torch.manual_seed(44)
 
 #################### To fill
 # Input data
@@ -42,7 +42,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_bs16_std_gpu_nw16_'
+exp_name = 'exp_100k_bs16_std_gpu_nw16_test'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -135,7 +135,7 @@ batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 70
+epochs = 21
 save_model = 'best'
 class_weights = False # weighted loss function
 cuda = True
@@ -144,9 +144,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 20
-earlystop_maxgap = 0.06
-min_epoch = 45
+earlystop_patience = None
+earlystop_maxgap = None
+min_epoch = 10
 ####################
 
 
@@ -281,8 +281,8 @@ if __name__ == "__main__":
         node_features = node_features,
         edge_features = edge_features,
         standardize = standardize,
-        check_integrity = check_integrity,
-        feat_trans_dict=feat_notrans_dict
+        check_integrity = check_integrity
+        #feat_trans_dict=feat_notrans_dict
     )
     dataset_val = GraphDataset(
         hdf5_path = input_data_path,
@@ -294,8 +294,8 @@ if __name__ == "__main__":
         standardize = standardize,
         train = False,
         dataset_train = dataset_train,
-        check_integrity = check_integrity,
-        feat_trans_dict=feat_notrans_dict
+        check_integrity = check_integrity
+        #feat_trans_dict=feat_notrans_dict
     )
     dataset_test = GraphDataset(
         hdf5_path = input_data_path,
@@ -307,8 +307,8 @@ if __name__ == "__main__":
         standardize = standardize,
         train = False,
         dataset_train = dataset_train,
-        check_integrity = check_integrity,
-        feat_trans_dict=feat_notrans_dict
+        check_integrity = check_integrity
+        #feat_trans_dict=feat_notrans_dict
     )
     _log.info(f'Len df train: {len(dataset_train)}')
     _log.info(f'Len df valid: {len(dataset_val)}')
