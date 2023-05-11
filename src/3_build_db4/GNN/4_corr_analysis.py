@@ -23,7 +23,7 @@ images_path = os.path.join(output_folder, 'images')
 _log = logging.getLogger('')
 _log.setLevel(logging.INFO)
 
-fh = logging.FileHandler(os.path.join(output_folder, '2_feat_pandas_hist.log'))
+fh = logging.FileHandler(os.path.join(output_folder, '4_corr_analysis.log'))
 sh = logging.StreamHandler(sys.stdout)
 fh.setLevel(logging.INFO)
 sh.setLevel(logging.INFO)
