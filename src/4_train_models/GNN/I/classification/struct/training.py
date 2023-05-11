@@ -23,7 +23,7 @@ from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
 from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
-from pmhc_gnn import PMHCI_Network01
+from pmhc_gnn import PMHCI_Network01, PMHCI_Network02
 
 # initialize
 starttime = datetime.now()
@@ -42,7 +42,7 @@ project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_name = 'exp_100k_dist_res_type_std_bs16_cl_allele_C_'
+exp_name = 'exp_100k_std_bs16_net2_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -52,8 +52,8 @@ task = 'classif'
 standardize = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = 'allele_type' # 'cl_allele'# None # 'allele_type'
-cluster_dataset_type = 'string' # None # 'string'
+cluster_dataset = None #'allele_type' # 'cl_allele'# None # 'allele_type'
+cluster_dataset_type = None # None # 'string'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
 test_clusters = ['C']
@@ -67,14 +67,14 @@ test_clusters = ['C']
 #     'irc_total', 'polarity',
 #     'res_charge', 'res_depth', 'res_mass',
 #     'res_pI', 'res_size', 'res_type', 'sasa']
-# node_features = "all"
-node_features = ["res_type"]
+node_features = "all"
+# node_features = ["res_type"]
 # edge_features = [
 #     "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
-# edge_features = "all"
-edge_features = ["distance"]
+edge_features = "all"
+# edge_features = ["distance"]
 # Trainer
-net = NaiveNetwork
+net = PMHCI_Network02
 batch_size = 16
 optimizer = torch.optim.Adam
 lr = 1e-3
