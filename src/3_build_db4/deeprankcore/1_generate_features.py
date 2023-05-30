@@ -7,9 +7,10 @@ import logging
 from deeprankcore.query import QueryCollection
 from deeprankcore.utils.grid import GridSettings, MapMethod
 
+# ONGOING job 2815733 for regenerating data with graphs only (time expected 4h)
 
 ####### please modify here #######
-run_day = '230515'
+run_day = '230530'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 project_folder = '/projects/0/einf2380/'
 csv_file_name = 'BA_pMHCI_human_quantitative_only_eq.csv'
@@ -25,12 +26,14 @@ feature_modules = ['components',
 		   'irc',
 		   'surfacearea']
 combine_output = False
-grid_settings = GridSettings( # None if you don't want grids
-	# the number of points on the x, y, z edges of the cube
-	points_counts = [35, 30, 30],
-	# x, y, z sizes of the box in Å
-	sizes = [1.0, 1.0, 1.0])
-grid_map_method = MapMethod.GAUSSIAN # None if you don't want grids
+grid_settings = None
+# grid_settings = GridSettings( # None if you don't want grids
+# 	# the number of points on the x, y, z edges of the cube
+# 	points_counts = [35, 30, 30],
+# 	# x, y, z sizes of the box in Å
+# 	sizes = [1.0, 1.0, 1.0])
+# grid_map_method = MapMethod.GAUSSIAN # None if you don't want grids
+grid_map_method = None
 ##################################
 models_folder_path = f'{project_folder}data/{data}/features_input_folder/{models_folder_name}'
 output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
