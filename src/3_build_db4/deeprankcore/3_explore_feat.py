@@ -8,14 +8,14 @@ import pandas as pd
 import logging
 import sys
 
-run_day = '230329'
+run_day = '230515'
 project_folder = '/projects/0/einf2380/'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
 features = 'electrostatic'
-output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
 
 
 # Loggers

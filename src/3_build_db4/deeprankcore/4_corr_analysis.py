@@ -7,16 +7,19 @@ import matplotlib.pyplot as plt
 import logging
 import sys
 
-run_day = '230329'
+# for now we do the correlation analysis for graphs only
+# we could do the same for the features mapped to the grid
+
+run_day = '230515'
 # project_folder = '/projects/0/einf2380/'
 project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
 
-output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
 hdf5_files = glob.glob(os.path.join(output_folder, '*.hdf5'))
-df_path = f"{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}/residue_pandas.feather"
+df_path = f"{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}/residue_pandas.feather"
 images_path = os.path.join(output_folder, 'images')
 
 # Loggers
@@ -40,8 +43,10 @@ with h5py.File(hdf5_files[0], 'r') as hdf5:
     edge_feat = list(hdf5[mol]["edge_features"].keys())
 
 df = pd.read_feather(df_path)
-df.drop(columns=['id'], inplace=True)
-_log.info("df read.")
+pssm_cols = [pssm_feat for pssm_feat in list(df.columns) if 'pssm' in pssm_feat]
+cols_to_drop = ['id'] + pssm_cols
+df.drop(columns = cols_to_drop, inplace=True)
+_log.info(f"df read. Features: \n{df.columns}")
 
 node_df = pd.DataFrame()
 edge_df = pd.DataFrame()
