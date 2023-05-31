@@ -7,15 +7,18 @@ import matplotlib.pyplot as plt
 import logging
 import sys
 
+
 # for now we do the correlation analysis for graphs only
 # we could do the same for the features mapped to the grid
 
-run_day = '230515'
+####### please modify here #######
+run_day = '230530'
 # project_folder = '/projects/0/einf2380/'
 project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
+##################################
 
 output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
 hdf5_files = glob.glob(os.path.join(output_folder, '*.hdf5'))

@@ -23,7 +23,17 @@ from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
 from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
-from pmhc_gnn import PMHCI_Network01, PMHCI_Network02
+from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03
+
+
+# rerun training 100k 230530 (only graphs) and new transformation thing for
+# DONE shuffled 2816985 (net1)
+
+# ONGOING shuffled 2820689 (net3)
+# TODO cl_peptide
+# TODO cl_peptide2
+# TODO cl_allele
+# TODO allele_type?
 
 # initialize
 starttime = datetime.now()
@@ -31,7 +41,8 @@ torch.manual_seed(22)
 
 #################### To fill
 # Input data
-run_day_data = '230515' # 100k and 692 data points (proj folder)
+# run_day_data = '230515' # 100k and 692 data points, grids + graphs
+run_day_data = '230530' # 100k and 692 data points, only graphs
 # Paths
 protein_class = 'I'
 target_data = 'BA'
@@ -42,16 +53,39 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
-exp_name = 'exp_100k_std_bs64_net1bn_'
+exp_name = 'exp_100k_std_transf_bs64_net3_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
-features_transform = {'all':
-    {'transform': None, 'standardize': True}
-}
+features_transform = {'bsa': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'res_depth': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'info_content': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'sasa': {'Transformation': lambda t: np.sqrt(t), 'Standardization': True},
+               'electrostatic': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
+               'vanderwaals': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
+               'res_size': {'Transformation': None, 'Standardization': True},
+               'res_charge': {'Transformation': None, 'Standardization': True},
+               'hb_donors': {'Transformation': None, 'Standardization': True},
+               'hb_acceptors': {'Transformation': None, 'Standardization': True},
+               'hse': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_negative': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_nonpolar': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_polar': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_positive': {'Transformation': None, 'Standardization': True},
+               'irc_polar_polar': {'Transformation': None, 'Standardization': True},
+               'irc_polar_positive': {'Transformation': None, 'Standardization': True},
+               'irc_total': {'Transformation': None, 'Standardization': True},
+               'irc_negative_positive': {'Transformation': None, 'Standardization': True},
+               'irc_positive_positive': {'Transformation': None, 'Standardization': True},
+               'irc_polar_negative': {'Transformation': None, 'Standardization': True},
+               'irc_negative_negative': {'Transformation': None, 'Standardization': True},
+               'res_mass': {'Transformation': None, 'Standardization': True},
+               'res_pI': {'Transformation': None, 'Standardization': True},
+               'distance': {'Transformation': None, 'Standardization': True},
+               'pssm': {'Transformation': None, 'Standardization': True}}
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
 cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
@@ -61,7 +95,7 @@ test_clusters = ['C']
 node_features = "all"
 edge_features = "all"
 # Trainer
-net = PMHCI_Network01
+net = PMHCI_Network03
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3

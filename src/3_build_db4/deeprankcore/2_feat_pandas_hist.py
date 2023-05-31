@@ -5,13 +5,16 @@ import time
 import logging
 from deeprankcore.dataset import GraphDataset
 
-run_day = '230515'
+
+####### please modify here #######
+run_day = '230530'
 project_folder = '/projects/0/einf2380/'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
 output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+##################################
 
 # Loggers
 _log = logging.getLogger('')

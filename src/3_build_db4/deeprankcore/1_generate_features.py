@@ -7,7 +7,6 @@ import logging
 from deeprankcore.query import QueryCollection
 from deeprankcore.utils.grid import GridSettings, MapMethod
 
-# ONGOING job 2815733 for regenerating data with graphs only (time expected 4h)
 
 ####### please modify here #######
 run_day = '230530'

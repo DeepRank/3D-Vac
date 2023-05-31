@@ -24,7 +24,9 @@ from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GridDataset
 from deeprankcore.neuralnets.cnn.model3d import CnnClassification
 
-# ONGOING: job 2815957 on 100k dataset with CNNs
+
+# DONE: CnnClassification with 100k, gave very bad results
+# TODO: rerun with Dario's model
 
 # initialize
 starttime = datetime.now()
@@ -32,7 +34,7 @@ torch.manual_seed(22)
 
 #################### To fill
 # Input data
-run_day_data = '230515' # 100k and 692 data points
+run_day_data = '230515' # 100k and 692 data points, grids + graphs
 # Paths
 protein_class = 'I'
 target_data = 'BA'
