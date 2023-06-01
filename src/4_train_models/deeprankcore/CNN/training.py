@@ -21,115 +21,68 @@ from sklearn.metrics import (
 import torch
 from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
-from deeprankcore.dataset import GraphDataset
-from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork_Increase2, NaiveNetwork_Increase1
-#from pmhc_gnn import PMHCI_Network01
+from deeprankcore.dataset import GridDataset
+from deeprankcore.neuralnets.cnn.model3d import CnnClassification
+
+
+# DONE: CnnClassification with 100k, gave very bad results
+# TODO: rerun with Dario's model
 
 # initialize
 starttime = datetime.now()
-torch.manual_seed(22) #11 22 33 44 55
+torch.manual_seed(22)
 
 #################### To fill
 # Input data
-# run_day_data = '230329' # 692 data points (local folder)
-run_day_data = '230329' # 100k data points (proj folder)
+run_day_data = '230515' # 100k and 692 data points, grids + graphs
 # Paths
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
 # project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
 project_folder = '/projects/0/einf2380'
-folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-#exp_name = 'exp_100k_final_increase2_seed22_rmpssm_'
-exp_name = 'exp_100k_final_feattrans_withIncrease1_seed11_rmpssm_'
+exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
+exp_name = 'exp_100k_cnn_bs64_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
-standardize = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None # 'cl_allele'# None # 'allele_type'
-cluster_dataset_type = 'string' # None # 'string'
+cluster_dataset = None #'allele_type' # 'cl_allele'# None # 'allele_type'
+cluster_dataset_type = None # None # 'string'
 # train_clusters = [0, 1, 2, 3, 4, 7, 9]
 # val_clusters = [5, 8]
 test_clusters = ['C']
 # Dataset
-node_features = [
-    'bsa', 'hb_acceptors', 'hb_donors',
-    'hse', 'info_content', 'irc_negative_negative',
-    'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
-    'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
-    'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
-    'irc_total', 'polarity',
-    'res_charge', 'res_depth', 'res_mass',
-    'res_pI', 'res_size', 'res_type', 'sasa']
-# node_features = "all"
-
-edge_features = [
-    "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
-# edge_features = "all"
-
-
-# standardize & transform Dictionary
-feat_trans_dict={'bsa':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'res_depth':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'info_content':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'sasa':{'transform':lambda t:np.sqrt(t),'standardize':True},
-               'electrostatic':{'transform':lambda t:np.cbrt(t),'standardize':True},
-               'vanderwaals':{'transform':lambda t:np.cbrt(t),'standardize':True},
-               'res_size':{'transform':None,'standardize':True},
-               'res_charge':{'transform':None,'standardize':True},
-               'hb_donors':{'transform':None,'standardize':True},
-               'hb_acceptors':{'transform':None,'standardize':True},
-               'hse':{'transform':None,'standardize':True},
-               'irc_nonpolar_negative':{'transform':None,'standardize':True},
-               'irc_nonpolar_nonpolar':{'transform':None,'standardize':True},
-               'irc_nonpolar_polar':{'transform':None,'standardize':True},
-               'irc_nonpolar_positive':{'transform':None,'standardize':True},
-               'irc_polar_polar':{'transform':None,'standardize':True},
-               'irc_polar_positive':{'transform':None,'standardize':True},
-               'irc_total':{'transform':None,'standardize':True},
-               'irc_negative_positive':{'transform':None,'standardize':True},
-               'irc_positive_positive':{'transform':None,'standardize':True},
-               'irc_polar_negative':{'transform':None,'standardize':True},
-               'irc_negative_negative':{'transform':None,'standardize':True},
-               'res_mass':{'transform':None,'standardize':True},
-               'res_pI':{'transform':None,'standardize':True},
-               'distance':{'transform':None,'standardize':True}}
-
-feat_notrans_dict={'all':{'transform':None,'standardize':True}}
-
-feat_notrans_nostd_dict={'all':{'transform':None,'standardize':False}}
-
+features = "all"
 # Trainer
-net = NaiveNetwork_Increase1
+net = CnnClassification
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 60
-save_model = 'best'
-class_weights = True # weighted loss function
+epochs = 70
+class_weights = False # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 15
-earlystop_maxgap = 0.1
-min_epoch = 30
+earlystop_patience = 20
+earlystop_maxgap = 0.06
+min_epoch = 45
 ####################
 
 
 #################### Folders and logger
 # Outputs folder
-exp_basepath = './experiments/'
 exp_id = exp_name + '0'
 if os.path.exists(exp_basepath):
     exp_list = [f for f in os.listdir(exp_basepath) if f.lower().startswith(exp_name.lower())]
@@ -237,69 +190,38 @@ if __name__ == "__main__":
     _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
     if cluster_dataset is not None:
         _log.info(f'Clusters present: {df_test.cluster.unique()}\n')
-    ####################
-
-    # for cl in sorted(df_summ.cluster.unique(), reverse=True):
-    #     if len(df_summ[df_summ.cluster == cl]):
-    #         _log.info(f'\t\tCluster {int(cl)}: {len(df_summ[df_summ.cluster == cl])} samples, {round(100*len(df_summ[df_summ.cluster == cl])/len(df_summ))}%')
-    #         _log.info(f'\t\t\t- Class 0: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 0)])/len(df_summ[df_summ.cluster == cl]))}%')
-    #         _log.info(f'\t\t\t- Class 1: {len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])} samples, {round(100*len(df_summ[(df_summ.cluster == cl) & (df_summ.target == 1)])/len(df_summ[df_summ.cluster == cl]))}%')
-    #     else:
-    #         _log.info(f'Cluster {int(cl)} not present!')
-
-    #################### GraphDataset
 
     _log.info(f'HDF5DataSet loading...\n')
-    dataset_train = GraphDataset(
+    dataset_train = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_train.entry),
         target = target_dataset,
         task = task,
-        node_features = node_features,
-        edge_features = edge_features,
-        #standardize = standardize,
-        check_integrity = check_integrity,
-        features_transform = feat_trans_dict
+        features = features,
+        check_integrity = check_integrity
     )
-    _log.info(f'Dataset_Train Setted\n')
-    
-    dataset_val = GraphDataset(
+    dataset_val = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_valid.entry),
         target = target_dataset,
         task = task,
-        node_features = node_features,
-        edge_features = edge_features,
-        #standardize = standardize,
-        train = False,
-        dataset_train = dataset_train,
-        check_integrity = check_integrity,
-        features_transform = feat_trans_dict
+        features = features,
+        check_integrity = check_integrity
     )
-    _log.info(f'Dataset_Validation Setted\n')
-    
-    dataset_test = GraphDataset(
+    dataset_test = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_test.entry),
         target = target_dataset,
         task = task,
-        node_features = node_features,
-        edge_features = edge_features,
-        #standardize = standardize,
-        train = False,
-        dataset_train = dataset_train,
-        check_integrity = check_integrity,
-        features_transform = feat_trans_dict
+        features = features,
+        check_integrity = check_integrity
     )
-    _log.info(f'Dataset_Test Setted\n')
     _log.info(f'Len df train: {len(dataset_train)}')
     _log.info(f'Len df valid: {len(dataset_val)}')
     _log.info(f'Len df test: {len(dataset_test)}')
-    _log.info(f'Node features: {dataset_train.node_features}')
-    _log.info(f'Edge features: {dataset_train.edge_features}')
+    _log.info(f'Features: {dataset_train.features}')
     _log.info(f'Target: {dataset_train.target}')
     _log.info(f'Task: {dataset_train.task}')
-    _log.info(f'Standardize: Standardize')
     ####################
 
     #################### Trainer
@@ -322,7 +244,12 @@ if __name__ == "__main__":
         _log.info(f"Number of workers set to {num_workers}.")
         pr = cProfile.Profile()
         pr.enable()
-        trainer.train(nepoch = epochs, batch_size = batch_size, validate = True, num_workers = num_workers)
+        trainer.train(
+            nepoch = epochs,
+            batch_size = batch_size,
+            validate = True,
+            num_workers = num_workers,
+            filename = os.path.join(exp_path, 'model.pth.tar'))
         pr.disable()
 
         _log.info(f"Batch size set to {trainer.batch_size_train}.")
@@ -352,7 +279,6 @@ if __name__ == "__main__":
         _log.info(f"earlystop_patience set to {earlystop_patience}.")
         _log.info(f"earlystop_maxgap set to {earlystop_maxgap}.")
         _log.info(f"min_epoch set to {min_epoch}.")
-        _log.info(f"batch size set to {batch_size}.")
 
         trainer.train(
             nepoch = epochs,
@@ -362,10 +288,9 @@ if __name__ == "__main__":
             min_epoch = min_epoch,
             validate = True,
             num_workers = num_workers,
-            filename = os.path.join(exp_path, 'model.tar'))
+            filename = os.path.join(exp_path, 'model.pth.tar'))
         _log.info(f"Batch size set to {trainer.batch_size_train}.")
         trainer.test(batch_size = batch_size, num_workers = num_workers)
-        #trainer._save_model(filename = os.path.join(exp_path, 'model.tar'))
 
         epoch = trainer.epoch_saved_model
         _log.info(f"Model saved at epoch {epoch}")
@@ -389,15 +314,14 @@ if __name__ == "__main__":
         exp_json['resolution'] = resolution_data
         exp_json['target_data'] = target_data
         exp_json['task'] = task
-        exp_json['node_features'] = 'all'
-        exp_json['edge_features'] = 'all'
+        exp_json['features'] = features
         exp_json['net'] = str(net)
         exp_json['optimizer'] = str(optimizer)
         exp_json['max_epochs'] = epochs
         exp_json['batch_size'] = batch_size
         exp_json['lr'] = lr
         exp_json['weight_decay'] = weight_decay
-        exp_json['save_state'] = save_model
+        exp_json['save_state'] = 'best'
         exp_json['train_datapoints'] = len(df_train)
         exp_json['val_datapoints'] = len(df_valid)
         exp_json['test_datapoints'] = len(df_test)

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name training_GNN
+#SBATCH --job-name deeprankcore_training_CNN
 #SBATCH --partition gpu
 #SBATCH --gpus 1
 # #SBATCH --partition fat

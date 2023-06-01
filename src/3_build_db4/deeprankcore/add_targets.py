@@ -9,31 +9,39 @@ from collections import Counter
 import logging
 import sys
 
+# ONGOING: add cl_peptide2 for 100k (2820744), using gpu bc fat partition was giving errors
+# TODO: add cl_allele for 100k
+# TODO: add allele_type for 100k
+
 ############ Modify
-run_day_data = '230329' # 100k data points (proj folder)
-# run_day_data = '230329' # 692 data points (local folder)
+run_day_data = '230530' # 100k and 692 data points
 project_folder = '/projects/0/einf2380'
 # project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
 # Group name in the hdf5 files
 hdf5_target_group = 'target_values'
 # clustering target Dataset name to be added to the hdf5 files
-hdf5_target_cl = 'allele_type' #'cl_peptide' # 'cl_allele'
+hdf5_target_cl = 'cl_peptide2' #'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type'
 # csv file containing the clustering
-csv_file_cl =  'BA_pMHCI_human_quantitative_only_eq.csv' #'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' # 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv'
+csv_file_cl = 'BA_pMHCI_human_quantitative_clustered_peptides_marieke_fixed.csv' 
+# 'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' for cl_peptide
+# 'BA_pMHCI_human_quantitative_clustered_peptides_marieke_fixed.csv' for cl_peptide2
+# 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv' for cl_allele
+# 'BA_pMHCI_human_quantitative_only_eq.csv' for allele_type
 # clustering col name in the csv file
-csv_target_col = 'allele_type'#'cluster_set_10' # 'allele_clustering'
+csv_target_col = 'Marieke_cluster' # 'cluster_set_10' # 'Marieke_cluster' # 'allele_clustering' # 'allele_type'
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
 #############
+
 if csv_target_col == 'allele_type':
     csv_file_cl_path = f'{project_folder}/data/external/processed/I/{csv_file_cl}'
 else:
     csv_file_cl_path = f'{project_folder}/data/external/processed/I/clusters/{csv_file_cl}'
 hdf5_target_path = hdf5_target_group + '/' + hdf5_target_cl
-folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
-output_folder = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/GNN/{resolution_data}/{run_day_data}'
+output_folder = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 csv_data = pd.read_csv(csv_file_cl_path)
 if hdf5_target_cl == 'allele_type':
     csv_data[hdf5_target_cl] = csv_data.allele.str.extract(r'HLA-(\w)\*.+')
@@ -57,6 +65,7 @@ def add_targets():
 
     _log.info('\nScript running has started ...\n')
 
+    count = 0
     for fname in input_data_path:
         try:
             with h5py.File(fname, 'r+') as hdf5:
@@ -68,6 +77,9 @@ def add_targets():
                         hdf5[mol][hdf5_target_path][()] = target_value
                     else:
                         hdf5[mol][hdf5_target_group].create_dataset(name=hdf5_target_cl, data=target_value)
+                    count +=1
+                    if count % 10000 == 0:
+                        _log.info(f'{count} data points modified.')
 
         except Exception as e:
             _log.error(e)
@@ -77,6 +89,7 @@ def add_targets():
     csv_target = []
     hdf5_target = []
     count = 0
+    _log.info("\nStarting verification...")
     for fname in input_data_path:
         with h5py.File(fname, 'r') as hdf5:
             for mol in hdf5.keys():
@@ -95,7 +108,7 @@ def add_targets():
                 hdf5_target.append(target_hdf5_value)
                 count +=1
                 if count % 10000 == 0:
-                    _log.info(f'{count} data points modified.')
+                    _log.info(f'{count} data points verified.')
     _log.info(f'Number of data points in the CSV file used in the HDF5 files: {len(csv_target)}')
     _log.info(f'{csv_target_col} values in the CSV corresponding to data in the HDF5 files:\n{Counter(csv_target)}\n')
     _log.info(f'Number of data points in the HDF5 files: {len(hdf5_target)}')
