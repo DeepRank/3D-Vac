@@ -22,7 +22,7 @@ import torch
 from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
-from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork, NaiveNetwork_Increase1, NaiveNetwork_Increase2
+from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
 from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03
 
 
@@ -37,91 +37,80 @@ from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03
 
 # initialize
 starttime = datetime.now()
-torch.manual_seed(11)
+torch.manual_seed(22)
 
 #################### To fill
 # Input data
-#run_day_data = '230515' # 100k and 692 data points, grids + graphs
+# run_day_data = '230515' # 100k and 692 data points, grids + graphs
 run_day_data = '230530' # 100k and 692 data points, only graphs
 # Paths
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-#project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
 project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/cyulin'
-#exp_name = 'exp_100k_final_feattrans_withIncrease1_seed11_rmpssm_'
-exp_name = 'exp_100k_final_feattrans_withIncrease1_seed11_rmpssm_'
+exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
+exp_name = 'exp_100k_std_transf_bs64_net3_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
-feat_trans_dict={'bsa':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'res_depth':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'info_content':{'transform':lambda t:np.log(t+1),'standardize':True},
-               'sasa':{'transform':lambda t:np.sqrt(t),'standardize':True},
-               'electrostatic':{'transform':lambda t:np.cbrt(t),'standardize':True},
-               'vanderwaals':{'transform':lambda t:np.cbrt(t),'standardize':True},
-               'res_size':{'transform':None,'standardize':True},
-               'res_charge':{'transform':None,'standardize':True},
-               'hb_donors':{'transform':None,'standardize':True},
-               'hb_acceptors':{'transform':None,'standardize':True},
-               'hse':{'transform':None,'standardize':True},
-               'irc_nonpolar_negative':{'transform':None,'standardize':True},
-               'irc_nonpolar_nonpolar':{'transform':None,'standardize':True},
-               'irc_nonpolar_polar':{'transform':None,'standardize':True},
-               'irc_nonpolar_positive':{'transform':None,'standardize':True},
-               'irc_polar_polar':{'transform':None,'standardize':True},
-               'irc_polar_positive':{'transform':None,'standardize':True},
-               'irc_total':{'transform':None,'standardize':True},
-               'irc_negative_positive':{'transform':None,'standardize':True},
-               'irc_positive_positive':{'transform':None,'standardize':True},
-               'irc_polar_negative':{'transform':None,'standardize':True},
-               'irc_negative_negative':{'transform':None,'standardize':True},
-               'res_mass':{'transform':None,'standardize':True},
-               'res_pI':{'transform':None,'standardize':True},
-               'distance':{'transform':None,'standardize':True}}
+features_transform = {'bsa': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'res_depth': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'info_content': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
+               'sasa': {'Transformation': lambda t: np.sqrt(t), 'Standardization': True},
+               'electrostatic': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
+               'vanderwaals': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
+               'res_size': {'Transformation': None, 'Standardization': True},
+               'res_charge': {'Transformation': None, 'Standardization': True},
+               'hb_donors': {'Transformation': None, 'Standardization': True},
+               'hb_acceptors': {'Transformation': None, 'Standardization': True},
+               'hse': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_negative': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_nonpolar': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_polar': {'Transformation': None, 'Standardization': True},
+               'irc_nonpolar_positive': {'Transformation': None, 'Standardization': True},
+               'irc_polar_polar': {'Transformation': None, 'Standardization': True},
+               'irc_polar_positive': {'Transformation': None, 'Standardization': True},
+               'irc_total': {'Transformation': None, 'Standardization': True},
+               'irc_negative_positive': {'Transformation': None, 'Standardization': True},
+               'irc_positive_positive': {'Transformation': None, 'Standardization': True},
+               'irc_polar_negative': {'Transformation': None, 'Standardization': True},
+               'irc_negative_negative': {'Transformation': None, 'Standardization': True},
+               'res_mass': {'Transformation': None, 'Standardization': True},
+               'res_pI': {'Transformation': None, 'Standardization': True},
+               'distance': {'Transformation': None, 'Standardization': True},
+               'pssm': {'Transformation': None, 'Standardization': True}}
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
 cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
 test_clusters = ['C']
 # Dataset
-node_features = [
-    'bsa', 'hb_acceptors', 'hb_donors',
-    'hse', 'info_content', 'irc_negative_negative',
-    'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
-    'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
-    'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
-    'irc_total', 'polarity',
-    'res_charge', 'res_depth', 'res_mass',
-    'res_pI', 'res_size', 'res_type', 'sasa']
-edge_features = [
-    "covalent", "distance", "same_chain", "electrostatic", "vanderwaals"]
-# node_features = 'all'
-# edge_features = 'all'
+node_features = "all"
+edge_features = "all"
 # Trainer
-net = NaiveNetwork_Increase1
+net = PMHCI_Network03
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
-epochs = 60
-class_weights = True # weighted loss function
+epochs = 70
+class_weights = False # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 15
-earlystop_maxgap = 0.1
-min_epoch = 40
+earlystop_patience = 20
+earlystop_maxgap = 0.06
+min_epoch = 45
 ####################
 
 
@@ -245,7 +234,7 @@ if __name__ == "__main__":
         task = task,
         node_features = node_features,
         edge_features = edge_features,
-        features_transform = feat_trans_dict,
+        features_transform = features_transform,
         check_integrity = check_integrity
     )
 
@@ -258,7 +247,7 @@ if __name__ == "__main__":
         edge_features = edge_features,
         train = False,
         dataset_train = dataset_train,
-        check_integrity = check_integrity, 
+        check_integrity = check_integrity
     )
     dataset_test = GraphDataset(
         hdf5_path = input_data_path,
@@ -278,7 +267,7 @@ if __name__ == "__main__":
     _log.info(f'Edge features: {dataset_train.edge_features}')
     _log.info(f'Target: {dataset_train.target}')
     _log.info(f'Task: {dataset_train.task}')
-    _log.info(f'Standardize: Feature Transformed')
+    _log.info(f'Standardize: {features_transform}')
     ####################
 
     #################### Trainer
