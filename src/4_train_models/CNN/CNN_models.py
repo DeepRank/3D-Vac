@@ -529,11 +529,12 @@ class CnnClass4ConvKS3Lin128ChannExpand(nn.Module):
         for the architecture class.
 
         Args:
-            input_shape (int): Number of features (64 as of now)
+            input_shape (int): Number of features (24 as of now)
         """
         super(CnnClass4ConvKS3Lin128ChannExpand, self).__init__()
         
-        input_shape = torch.tensor(input_shape)
+        raise Exception(input_shape)
+        input_shape = torch.tensor(type(input_shape), input_shape)
         
     
         self.conv_layers = nn.Sequential(
