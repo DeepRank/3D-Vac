@@ -37,7 +37,7 @@ from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork, NaiveNetwork_Inc
 
 # initialize
 starttime = datetime.now()
-torch.manual_seed(11)
+torch.manual_seed(55)
 
 #################### To fill
 # Input data
@@ -47,13 +47,13 @@ run_day_data = '230530' # 100k and 692 data points, only graphs
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
-# project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
+# project_folder = '/home/cyulin/snellius_data_sample' # local resized df path
 project_folder = '/projects/0/einf2380'
 folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/cyulin'
-exp_name = 'exp_100k_final_feattrans_withIncrease1_seed11_rmpssm_'
+exp_name = 'exp_100k_final_feattrans_Increase1_cl_allele_seed55_rmpssm_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -85,15 +85,17 @@ feat_trans_dict={'bsa':{'transform':lambda t:np.log(t+1),'standardize':True},
                'res_mass':{'transform':None,'standardize':True},
                'res_pI':{'transform':None,'standardize':True},
                'distance':{'transform':None,'standardize':True}}
+
+feat_notrans_dict={'all':{'transform':None,'standardize':True}}
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
+cluster_dataset = 'cl_allele' # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
-test_clusters = ['C']
+test_clusters = [1]
 # Dataset
 node_features = [
     'bsa', 'hb_acceptors', 'hb_donors',
-    'hse', 'info_content', 'irc_negative_negative',
+    'hse', 'irc_negative_negative',
     'irc_negative_positive', 'irc_nonpolar_negative', 'irc_nonpolar_nonpolar',
     'irc_nonpolar_polar', 'irc_nonpolar_positive', 'irc_polar_negative',
     'irc_polar_polar', 'irc_polar_positive', 'irc_positive_positive',
@@ -117,12 +119,12 @@ train_profiling = False
 check_integrity = True
 # early stopping
 earlystop_patience = 15
-earlystop_maxgap = 0.1
+earlystop_maxgap = 0.06
 min_epoch = 40
-####################
+###################
 
 
-#################### Folders and logger
+################### Folders and logger
 # Outputs folder
 exp_id = exp_name + '0'
 if os.path.exists(exp_basepath):
@@ -162,7 +164,6 @@ _log.addHandler(sh)
 
 if __name__ == "__main__":
     _log.info(f'Created folder {exp_path}\n')
-
     _log.info("training.py has started!\n")
 
     #################### Data summary
@@ -210,7 +211,8 @@ if __name__ == "__main__":
     df_summ.to_hdf(
         os.path.join(output_path, 'summary_data.hdf5'),
         key='summary',
-        mode='w')
+        mode='w',
+        )
 
     _log.info(f'Data statistics:\n')
     _log.info(f'Total samples: {len(df_summ)}\n')
@@ -255,6 +257,7 @@ if __name__ == "__main__":
         edge_features = edge_features,
         train = False,
         dataset_train = dataset_train,
+        features_transform = feat_trans_dict,
         check_integrity = check_integrity
     )
     dataset_test = GraphDataset(
@@ -266,6 +269,7 @@ if __name__ == "__main__":
         edge_features = edge_features,
         train = False,
         dataset_train = dataset_train,
+        features_transform = feat_trans_dict,
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')
@@ -468,4 +472,4 @@ if __name__ == "__main__":
 
         _log.info("Saved! End of the training script")
 
-    ####################
+    # ####################
