@@ -23,10 +23,8 @@ from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GridDataset
 from deeprankcore.neuralnets.cnn.model3d import CnnClassification
+from pmhc_cnn import CnnClass4ConvKS3Lin128ChannExpand
 
-
-# DONE: CnnClassification with 100k, gave very bad results
-# TODO: rerun with Dario's model
 
 # initialize
 starttime = datetime.now()
@@ -45,7 +43,7 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
-exp_name = 'exp_100k_cnn_bs64_'
+exp_name = 'exp_100k_cnn_bs128_CnnClass4ConvKS3Lin128ChannExpand_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -56,18 +54,18 @@ task = 'classif'
 # If cluster_dataset is None, sets are randomly splitted
 cluster_dataset = None #'allele_type' # 'cl_allele'# None # 'allele_type'
 cluster_dataset_type = None # None # 'string'
-# train_clusters = [0, 1, 2, 3, 4, 7, 9]
-# val_clusters = [5, 8]
 test_clusters = ['C']
 # Dataset
 features = "all"
 # Trainer
-net = CnnClassification
-batch_size = 64
-optimizer = torch.optim.Adam
+net = CnnClass4ConvKS3Lin128ChannExpand
+batch_size = 128
+optimizer = 'SGD'
+# I modified it manually to give also the momentum as input (see below after Trainer init)
 lr = 1e-3
-weight_decay = 0
-epochs = 70
+momentum = 0.9
+weight_decay = 0.001
+epochs = 30
 class_weights = False # weighted loss function
 cuda = True
 ngpu = 1
@@ -75,9 +73,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 20
+earlystop_patience = 15 # change
 earlystop_maxgap = 0.06
-min_epoch = 45
+min_epoch = 14
 ####################
 
 
@@ -238,7 +236,8 @@ if __name__ == "__main__":
         ngpu = ngpu,
         output_exporters = [HDF5OutputExporter(output_path)]
     )
-    trainer.configure_optimizers(optimizer, lr, weight_decay)
+    trainer.optimizer = torch.optim.SGD(trainer.model.parameters(), lr, momentum, weight_decay)
+    _log.info(f'Optimizer used: {trainer.optimizer}')
 
     if train_profiling:
         _log.info(f"Number of workers set to {num_workers}.")

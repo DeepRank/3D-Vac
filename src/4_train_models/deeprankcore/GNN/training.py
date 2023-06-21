@@ -23,17 +23,8 @@ from deeprankcore.trainer import Trainer
 from deeprankcore.utils.exporters import HDF5OutputExporter
 from deeprankcore.dataset import GraphDataset
 from deeprankcore.neuralnets.gnn.naive_gnn import NaiveNetwork
-from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03
+from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03, NaiveGNN1
 
-
-# rerun training 100k 230530 (only graphs) and new transformation thing for
-# DONE shuffled 2816985 (net1)
-
-# ONGOING shuffled 2820689 (net3)
-# TODO cl_peptide
-# TODO cl_peptide2
-# TODO cl_allele
-# TODO allele_type?
 
 # initialize
 starttime = datetime.now()
@@ -53,55 +44,56 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
-exp_name = 'exp_100k_std_transf_bs64_net3_'
+exp_name = 'exp_100k_std_transf_bs64_naivegnn1_wloss_wdecay_cl_allele_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
-features_transform = {'bsa': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
-               'res_depth': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
-               'info_content': {'Transformation': lambda t: np.log(t+1), 'Standardization': True},
-               'sasa': {'Transformation': lambda t: np.sqrt(t), 'Standardization': True},
-               'electrostatic': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
-               'vanderwaals': {'Transformation': lambda t: np.cbrt(t), 'Standardization': True},
-               'res_size': {'Transformation': None, 'Standardization': True},
-               'res_charge': {'Transformation': None, 'Standardization': True},
-               'hb_donors': {'Transformation': None, 'Standardization': True},
-               'hb_acceptors': {'Transformation': None, 'Standardization': True},
-               'hse': {'Transformation': None, 'Standardization': True},
-               'irc_nonpolar_negative': {'Transformation': None, 'Standardization': True},
-               'irc_nonpolar_nonpolar': {'Transformation': None, 'Standardization': True},
-               'irc_nonpolar_polar': {'Transformation': None, 'Standardization': True},
-               'irc_nonpolar_positive': {'Transformation': None, 'Standardization': True},
-               'irc_polar_polar': {'Transformation': None, 'Standardization': True},
-               'irc_polar_positive': {'Transformation': None, 'Standardization': True},
-               'irc_total': {'Transformation': None, 'Standardization': True},
-               'irc_negative_positive': {'Transformation': None, 'Standardization': True},
-               'irc_positive_positive': {'Transformation': None, 'Standardization': True},
-               'irc_polar_negative': {'Transformation': None, 'Standardization': True},
-               'irc_negative_negative': {'Transformation': None, 'Standardization': True},
-               'res_mass': {'Transformation': None, 'Standardization': True},
-               'res_pI': {'Transformation': None, 'Standardization': True},
-               'distance': {'Transformation': None, 'Standardization': True},
-               'pssm': {'Transformation': None, 'Standardization': True}}
+features_transform = {
+    'bsa': {'transform': lambda t: np.log(t+1), 'standardize': True},
+    'res_depth': {'transform': lambda t:np.log(t+1), 'standardize': True},
+    'info_content':{'transform':lambda t:np.log(t+1), 'standardize': True},
+    'sasa': {'transform': lambda t:np.sqrt(t), 'standardize': True},
+    'electrostatic': {'transform': lambda t:np.cbrt(t), 'standardize': True},
+    'vanderwaals': {'transform': lambda t:np.cbrt(t), 'standardize': True},
+    'res_size': {'transform': None, 'standardize': True},
+    'res_charge': {'transform': None, 'standardize': True},
+    'hb_donors': {'transform': None, 'standardize': True},
+    'hb_acceptors':{'transform': None, 'standardize': True},
+    'hse': {'transform': None, 'standardize':True},
+    'irc_nonpolar_negative': {'transform': None, 'standardize': True},
+    'irc_nonpolar_nonpolar': {'transform': None, 'standardize': True},
+    'irc_nonpolar_polar': {'transform': None, 'standardize': True},
+    'irc_nonpolar_positive': {'transform': None, 'standardize': True},
+    'irc_polar_polar': {'transform': None, 'standardize': True},
+    'irc_polar_positive': {'transform': None, 'standardize': True},
+    'irc_total': {'transform': None, 'standardize': True},
+    'irc_negative_positive': {'transform': None, 'standardize': True},
+    'irc_positive_positive': {'transform': None, 'standardize': True},
+    'irc_polar_negative': {'transform': None, 'standardize': True},
+    'irc_negative_negative': {'transform': None, 'standardize': True},
+    'res_mass': {'transform': None, 'standardize': True},
+    'res_pI': {'transform': None, 'standardize': True},
+    'distance': {'transform': None, 'standardize': True},
+    'pssm': {'transform': None, 'standardize': True}}
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
+cluster_dataset = 'cl_allele' # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
-test_clusters = ['C']
+test_clusters = [1] # cl_peptide2: [4] # cl_allele: [1]
 # Dataset
 node_features = "all"
 edge_features = "all"
 # Trainer
-net = PMHCI_Network03
+net = NaiveGNN1
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
-weight_decay = 0
+weight_decay = 0.001
 epochs = 70
-class_weights = False # weighted loss function
+class_weights = True # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16

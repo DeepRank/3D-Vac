@@ -9,9 +9,7 @@ from collections import Counter
 import logging
 import sys
 
-# ONGOING: add cl_peptide2 for 100k (2820744), using gpu bc fat partition was giving errors
-# TODO: add cl_allele for 100k
-# TODO: add allele_type for 100k
+# ONGOING: add allele_type for 100k (2821036) using gpu bc fat partition was giving errors
 
 ############ Modify
 run_day_data = '230530' # 100k and 692 data points
@@ -20,15 +18,15 @@ project_folder = '/projects/0/einf2380'
 # Group name in the hdf5 files
 hdf5_target_group = 'target_values'
 # clustering target Dataset name to be added to the hdf5 files
-hdf5_target_cl = 'cl_peptide2' #'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type'
+hdf5_target_cl = 'allele_type' #'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type'
 # csv file containing the clustering
-csv_file_cl = 'BA_pMHCI_human_quantitative_clustered_peptides_marieke_fixed.csv' 
+csv_file_cl = 'BA_pMHCI_human_quantitative_only_eq.csv' 
 # 'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' for cl_peptide
 # 'BA_pMHCI_human_quantitative_clustered_peptides_marieke_fixed.csv' for cl_peptide2
 # 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv' for cl_allele
 # 'BA_pMHCI_human_quantitative_only_eq.csv' for allele_type
 # clustering col name in the csv file
-csv_target_col = 'Marieke_cluster' # 'cluster_set_10' # 'Marieke_cluster' # 'allele_clustering' # 'allele_type'
+csv_target_col = 'allele_type' # 'cluster_set_10' # 'Marieke_cluster' # 'allele_clustering' # 'allele_type'
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'

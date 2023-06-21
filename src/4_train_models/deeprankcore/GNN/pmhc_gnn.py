@@ -182,3 +182,31 @@ class PMHCI_Network03(Module):
         graph_input = means_per_graph_external
         z = self._graph_mlp(graph_input)
         return z
+    
+class NaiveGNN1(Module):
+
+    def __init__(self, input_shape: int, output_shape: int, input_shape_edge: int):
+        """
+        Args:
+            input_shape (int): Number of node input features.
+            output_shape (int): Number of output value per graph.
+            input_shape_edge (int): Number of edge input features.
+        """
+        super().__init__()
+        self._external1 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
+        self._external2 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
+        self._external3 = NaiveConvolutionalLayer(input_shape, input_shape_edge)
+        hidden_size = 128
+        self._graph_mlp = Sequential(
+            Linear(input_shape, hidden_size), ReLU(),
+            Linear(hidden_size, hidden_size), ReLU(),
+            Linear(hidden_size, output_shape))
+
+    def forward(self, data):
+        external_updated1_node_features = self._external1(data.x, data.edge_index, data.edge_attr)
+        external_updated2_node_features = self._external2(external_updated1_node_features, data.edge_index, data.edge_attr)
+        external_updated3_node_features = self._external3(external_updated2_node_features, data.edge_index, data.edge_attr)
+        means_per_graph_external = scatter_mean(external_updated3_node_features, data.batch, dim=0)
+        graph_input = means_per_graph_external
+        z = self._graph_mlp(graph_input)
+        return z
