@@ -82,7 +82,7 @@ features_transform = {
 # If cluster_dataset is None, sets are randomly splitted
 cluster_dataset = 'cl_allele' # 'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
-test_clusters = [1] # cl_peptide2: [4] # cl_allele: [1]
+test_clusters = [1] # cl_peptide1 (Gibbs): [3], cl_peptide2 (Marieke): [4], cl_allele: [1]
 # Dataset
 node_features = "all"
 edge_features = "all"
