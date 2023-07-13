@@ -121,11 +121,12 @@ class Class_Seq_Dataset(Dataset):
         """
         df = pd.read_csv(csv)
         self.task = task
-        self.df = df.loc[df["peptide"].str.len() <= 15]
+        self.df = df.loc[df.peptide.str.len() <= 15]
         self.threshold = threshold
         self.cluster_column = cluster_column
         allele_to_pseudoseq_df = pd.read_csv(allele_to_pseudosequence_csv_path)
         allele_to_pseudoseq = dict(zip(allele_to_pseudoseq_df.allele, allele_to_pseudoseq_df.sequence))
+        self.df = df.loc[df.allele.isin(list(allele_to_pseudoseq.keys()))]
         self.pseudosequences = [allele_to_pseudoseq[a] for a in self.df.allele]
 
         self.labels, self.groups = self.load_class_seq_data()

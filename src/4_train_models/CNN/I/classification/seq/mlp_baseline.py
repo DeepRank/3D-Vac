@@ -230,8 +230,8 @@ if rank == 0:
             kfold = LeaveOneGroupOut()       
             # same as shuffled but using sklearn.metrics leavonegroupout function
             for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels, dataset.groups):
-                if 0 in dataset.groups[test_idx]:
-                    continue
+                # if 0 in dataset.groups[test_idx]:
+                #     continue
                 # here the test is from groups not in train,
                 # the validation is comming from the same group as train.
                 if a.task == "classification":
