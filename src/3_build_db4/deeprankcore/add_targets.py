@@ -18,21 +18,22 @@ project_folder = '/projects/0/einf2380'
 # Group name in the hdf5 files
 hdf5_target_group = 'target_values'
 # clustering target Dataset name to be added to the hdf5 files
-hdf5_target_cl = 'allele_type' #'cl_peptide' # 'cl_peptide2' # 'cl_allele' # 'allele_type'
+hdf5_target_cl = 'cl_peptide2_10set' #'cl_peptide' # 'cl_peptide2' # 'cl_peptide2_10set' # 'cl_allele' # 'allele_type'
 # csv file containing the clustering
-csv_file_cl = 'BA_pMHCI_human_quantitative_only_eq.csv' 
+csv_file_cl = 'Marieke_10C_BA_pMHCI_human_quantitative.csv' 
 # 'BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv' for cl_peptide
 # 'BA_pMHCI_human_quantitative_clustered_peptides_marieke_fixed.csv' for cl_peptide2
+# 'Marieke_10C_BA_pMHCI_human_quantitative.csv' for cl_peptide2_10set
 # 'BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv' for cl_allele
 # 'BA_pMHCI_human_quantitative_only_eq.csv' for allele_type
 # clustering col name in the csv file
-csv_target_col = 'allele_type' # 'cluster_set_10' # 'Marieke_cluster' # 'allele_clustering' # 'allele_type'
+csv_target_col = 'cluster' # 'cluster_set_10' # 'Marieke_cluster' # 'cluster' # 'allele_clustering' # 'allele_type'
 protein_class = 'I'
 target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
 #############
 
-if csv_target_col == 'allele_type':
+if (csv_target_col == 'allele_type') or (csv_target_col == 'cluster'):
     csv_file_cl_path = f'{project_folder}/data/external/processed/I/{csv_file_cl}'
 else:
     csv_file_cl_path = f'{project_folder}/data/external/processed/I/clusters/{csv_file_cl}'
@@ -41,6 +42,10 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 output_folder = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
 csv_data = pd.read_csv(csv_file_cl_path)
+if hdf5_target_cl == 'cl_peptide2_10set':
+    csv_data.cluster = csv_data.cluster.apply(lambda x: -1 if x == ' ' else x)
+    # csv_data = csv_data.reset_index(drop=True)
+    csv_data.cluster = csv_data.cluster.astype(int)
 if hdf5_target_cl == 'allele_type':
     csv_data[hdf5_target_cl] = csv_data.allele.str.extract(r'HLA-(\w)\*.+')
 log_file_name = hdf5_target_path.split('/')[1]
@@ -72,9 +77,8 @@ def add_targets():
                     csv_id = p.findall(mol)[0]
                     target_value = csv_data.loc[csv_data['ID'] == csv_id][csv_target_col].values[0]
                     if hdf5_target_path in hdf5[mol]:
-                        hdf5[mol][hdf5_target_path][()] = target_value
-                    else:
-                        hdf5[mol][hdf5_target_group].create_dataset(name=hdf5_target_cl, data=target_value)
+                        del hdf5[mol][hdf5_target_path]
+                    hdf5[mol][hdf5_target_group].create_dataset(name=hdf5_target_cl, data=target_value)
                     count +=1
                     if count % 10000 == 0:
                         _log.info(f'{count} data points modified.')
