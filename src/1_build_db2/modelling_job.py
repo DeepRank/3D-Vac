@@ -86,7 +86,7 @@ wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class,
                     benchmark=True, verbose=True, delimiter=',',
                     header=True, num_cores=a.num_cores, use_netmhcpan=True,
                     n_loop_models=a.n_structures, clip_C_domain=True,
-                    start_row=start_row, end_row=end_row)
+                    start_row=start_row, end_row=end_row, restraints_stdev=0.3)
 
 t3 = time.time()
 print(f"Time to model: {t3-t2}")
