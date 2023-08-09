@@ -5,13 +5,16 @@ import time
 import logging
 from deeprankcore.dataset import GraphDataset
 
-run_day = '230329'
+
+####### please modify here #######
+run_day = '230530'
 project_folder = '/projects/0/einf2380/'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
 data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
-output_folder = f'{project_folder}data/{data}/features_output_folder/GNN/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+##################################
 
 # Loggers
 _log = logging.getLogger('')
@@ -42,6 +45,7 @@ dataset = GraphDataset(
 
 start = time.perf_counter()
 df = dataset.hdf5_to_pandas()
+_log.info(f"Number of datapoints loaded: {df.shape[0]}")
 finish = time.perf_counter()
 _log.info(f"Loading to pandas {len(hdf5_files)} hdf5 files took {round(finish-start, 2)} seconds.")
 

@@ -93,4 +93,6 @@ model = NeuralNet(a.test_hdf5,
     pretrained_model=a.pretrained_model,
 )
 
-model.test()
+    model.test()
+else:
+    print(f"Skipping fold {rank}")

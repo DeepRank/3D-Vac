@@ -6,8 +6,10 @@ import logging
 import sys
 
 ####### please modify here #######
-src_dir = "/projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative"
-dest_dir = "/home/ccrocion/snellius_data_sample/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative"
+models_folder_name = 'HLA_quantitative'
+data = 'pMHCI'
+src_dir = f'/projects/0/einf2380/data/{data}/features_input_folder/{models_folder_name}'
+dest_dir = f"/home/ccrocion/snellius_data_sample/data/pMHCI/features_input_folder/{models_folder_name}"
 n_files = 1000
 ##################################
 

@@ -1,6 +1,7 @@
 import glob
 from joblib import Parallel, delayed
 import pandas as pd
+import numpy as np
 import os
 import pdb2sql
 import argparse
@@ -27,11 +28,11 @@ arg_parser.add_argument("--output-csv", "-o",
     type=str,
     required=True
 )
-# arg_parser.add_argument("--mhc-class", "-m",
-#     help="MHC class",
-#     type=str,
-#     choices=['I','II']
-# )
+arg_parser.add_argument("--mhc-class", "-m",
+    help="MHC class",
+    type=str,
+    choices=['I','II']
+)
 arg_parser.add_argument("--n-jobs", "-n",
     help="number of jobs",
     type=int,
@@ -44,126 +45,143 @@ aminoacids = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
      'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
      'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
 
-def check_case(path, IDs_csv, mhc_class):
-    checks = {x: None for x in ['pdb','pdb_M','M_len',
-                'pdb_P','P_len', 'M_pssm', 'M_pssm_as_pdb',
-                'P_pssm', 'P_pssm_as_pdb', 'P_chain_all_same']}
+def check_case(paths, df, mhc):
+
     #CHECKS:
-    ID = ('_').join(path.split('/')[-1].split('_')[:2])
-    #pdb is in there
-    pdb_file = f'{path}/pdb/{ID}.pdb'
-    if os.path.isfile(pdb_file):
-        checks['pdb'] = True
-    else:
-        checks['pdb'] = False
-        return (ID, checks)
-
-    #load data
-    sql = pdb2sql.pdb2sql(pdb_file)
-
-    #there is chain M
-    if 'M' in sql.get_chains():
-        checks['pdb_M'] = True
-    else:
-        checks['pdb_M'] = False
-        return (ID, checks)
-
-    #chain M has 170<x<184 res (store residues)
-    M_length = len(set(sql.get('resSeq', chainID='M')))
-    if 170<=M_length<=184:
-        checks['M_len'] = M_length
-    else:
-        checks['M_len'] = False
-        return (ID, checks)
-
-    #there is chain P
-    if 'P' in sql.get_chains():
-        checks['pdb_P'] = True
-    else:
-        checks['pdb_P'] = False
-        return (ID, checks)
-    #chain P has 7<x<25 res (store residues)
-    P_length = len(set(sql.get('resSeq', chainID='P')))
-    if 7<=P_length<=25:
-        checks['P_len'] = P_length
-    else:
-        checks['P_len'] = False
-        return (ID, checks)
-
-    #there is NO chain N
-    if 'N' not in sql.get_chains():
-        checks['no_N'] = True
-    else:
-        checks['no_N'] = False
-        return (ID, checks)
-
-    # M.pssm is in there
-    M_pssm_file = f'{path}/pssm/{ID}.M.pdb.pssm'
-    if os.path.isfile(M_pssm_file):
-        checks['M_pssm']=True
-    else:
-        checks['M_pssm'] = False
-        return (ID, checks)
-
-    #has same n residues and numbering as pdb
-    with open(M_pssm_file) as Mpssm:
-        next(Mpssm)
-        resIDs = [int(line.split()[0]) for line in Mpssm]
-    if sorted(resIDs) == sorted(list(set(sql.get('resSeq', chainID='M')))):
-        checks['M_pssm_as_pdb'] = True
-    else:
-        checks['M_pssm_as_pdb'] = False
-        return (ID, checks)
+    IDs_list = []
+    checks_list = []
+    for path in paths:
+        checks = {x: None for x in ['pdb','pdb_M','M_len',
+            'pdb_P','P_len', 'M_pssm', 'M_pssm_as_pdb',
+            'P_pssm', 'P_pssm_as_pdb', 'P_chain_all_same']}
         
-    # P.pssm is in there
-    P_pssm_file = f'{path}/pssm/{ID}.P.pdb.pssm'
-    if os.path.isfile(P_pssm_file):
-        checks['P_pssm']=True
-    else:
-        checks['P_pssm'] = False
-        return (ID, checks)
+        ID = ('-').join(path.split('/')[-1].split('-')[:2])
+        #pdb is in there
+        pdb_file = f'{path}/pdb/{ID}.pdb'
+        if os.path.isfile(pdb_file):
+            checks['pdb'] = True
+        else:
+            checks['pdb'] = False
+            checks_list.append(checks)
+            IDs_list.append(ID)
+            continue
 
-    #has same n residues and numbering as pdb
-    with open(P_pssm_file) as Ppssm:
-        next(Ppssm)
-        resIDs = []
-        pssm_P_seq = ''
-        for line in Ppssm:
-            row = line.split()
-            resIDs.append(int(row[0]))
-            pssm_P_seq += row[1]
-    if sorted(resIDs) == sorted(list(set(sql.get('resSeq', chainID='P')))):
-        checks['P_pssm_as_pdb'] = True
-    else:
-        checks['P_pssm_as_pdb'] = False
-        return (ID, checks)
+        #load data
+        sql = pdb2sql.pdb2sql(pdb_file)
 
-    #ID, P chain lenght and seq correspond to csv data
-    pdb_P_seq = sorted(list(set([tuple(x) for x in sql.get('resSeq,resName', chainID='P')])))
-    pdb_P_seq = ('').join([aminoacids[aa[1]] for aa in pdb_P_seq])
-    if pdb_P_seq == pssm_P_seq == df[df['ID']==ID]['peptide'].item():
-        checks['P_chain_all_same'] = True
-    else:
-        checks['P_chain_all_same'] = False
-        return (ID, checks)
+        #there is chain M
+        if 'M' in sql.get_chains():
+            checks['pdb_M'] = True
+        else:
+            checks['pdb_M'] = False
+
+        #chain M has 170<x<184 res (store residues)
+        M_length = len(set(sql.get('resSeq', chainID='M')))
+        if mhc == 'II' and 170<=M_length<=184:
+            checks['M_len'] = M_length
+        elif mhc == 'I' and 170<=M_length<=188:
+            
+            checks['M_len'] = M_length
+        else:
+            checks['M_len'] = False
+
+        #there is chain P
+        if 'P' in sql.get_chains():
+            checks['pdb_P'] = True
+        else:
+            checks['pdb_P'] = False
+
+        #chain P has 7<x<25 res (store residues)
+        P_length = len(set(sql.get('resSeq', chainID='P')))
+        if mhc == 'II' and 7<=P_length<=25:
+            checks['P_len'] = P_length
+        elif mhc == 'I' and 7<=P_length<=15:
+            checks['P_len'] = P_length
+        else:
+            checks['P_len'] = False
+
+        #there is NO chain N
+        if mhc == 'I':
+            checks['no_N'] = False
+        elif mhc == 'II' and 'N' not in sql.get_chains():
+            checks['no_N'] = True
+        else:
+            checks['no_N'] = False
+
+        # M.pssm is in there
+        M_pssm_file = f'{path}/pssm/{ID}.M.pdb.pssm'
+        if os.path.isfile(M_pssm_file):
+            checks['M_pssm']=True
+        else:
+            checks['M_pssm'] = False
+
+        #has same n residues and numbering as pdb
+        with open(M_pssm_file) as Mpssm:
+            next(Mpssm)
+            resIDs = [int(line.split()[0]) for line in Mpssm]
+        if sorted(resIDs) == sorted(list(set(sql.get('resSeq', chainID='M')))):
+            checks['M_pssm_as_pdb'] = True
+        else:
+            checks['M_pssm_as_pdb'] = False
+
+        # P.pssm is in there
+        P_pssm_file = f'{path}/pssm/{ID}.P.pdb.pssm'
+        if os.path.isfile(P_pssm_file):
+            checks['P_pssm']=True
+        else:
+            checks['P_pssm'] = False
+
+        #has same n residues and numbering as pdb
+        with open(P_pssm_file) as Ppssm:
+            next(Ppssm)
+            resIDs = []
+            pssm_P_seq = ''
+            for line in Ppssm:
+                row = line.split()
+                resIDs.append(int(row[0]))
+                pssm_P_seq += row[1]
+        if sorted(resIDs) == sorted(list(set(sql.get('resSeq', chainID='P')))):
+            checks['P_pssm_as_pdb'] = True
+        else:
+            checks['P_pssm_as_pdb'] = False
+
+        #ID, P chain lenght an d seq correspond to csv data
+        pdb_P_seq = sorted(list(set([tuple(x) for x in sql.get('resSeq,resName', chainID='P')])))
+        pdb_P_seq = ('').join([aminoacids[aa[1]] for aa in pdb_P_seq])
+        if pdb_P_seq == pssm_P_seq == df[df['ID']==ID]['peptide'].item():
+            checks['P_chain_all_same'] = True
+        else:
+            checks['P_chain_all_same'] = False
 
 
-    return (ID, checks)
+        IDs_list.append(ID)
+        checks_list.append(checks)
+
+    return IDs_list, checks_list
 
 
 
 if __name__=='__main__':
-
+    n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
     args = arg_parser.parse_args()
     
+    # mhc class
+    mhc = args.mhc_class 
+
     #db2_path = '/projects/0/einf2380/data/pMHCII/db2_selected_models/BA/*/*'
-    paths = glob.glob(args.db2_path)
+    db2_path = args.db2_path.replace('\\', '')
+    all_paths = glob.glob(db2_path)
+
+    print(f'Total number of pdb paths {len(all_paths)}')
 
     #IDs_csv = '/projects/0/einf2380/data/external/processed/II/IDs_BA_DRB10101_MHCII_15mers.csv'
     df = pd.read_csv(args.ids_csv)
 
-    checks = Parallel(n_jobs = 128, verbose = 1)(delayed(check_case)(path, df) for path in paths)
-    checks = {x[0] : x[1] for x in checks}
+    ids, checks = zip(*Parallel(n_jobs = n_cores, verbose = 1)(delayed(check_case)(paths, df, mhc) for paths in np.array_split(all_paths, n_cores)))
+    # print(checks)
+    # checks = [{ID: check} for sublist in checks for (ID, check) in sublist]
+    checks = {id: check for chunk_id, chunk_check in zip(ids, checks) for id, check in zip(chunk_id, chunk_check)}
+    #checks = {x[0] : x[1] for x in checks}
 
     with open(args.output_csv, 'w') as outfile:
         header = ['ID'] + list(list(checks.values())[0].keys())
