@@ -88,7 +88,8 @@ def retrieve_best_model(case):
             return
     else:
         # go back to the run function to break processing case and print traceback
-        raise Exception
+        print(f'WARNING: molpdf file not found for case {case}')
+        return
     target_scores = molpdf_df.iloc[:,1].sort_values()[0:a.structure_rank]
     target_mask = [score in target_scores.tolist() for score in molpdf_df.iloc[:,1]]
     target_ids = molpdf_df[target_mask].iloc[:,0]
@@ -127,8 +128,12 @@ def copy_best_model(case, pdb_names):
 
 def run(case_paths):
     for case in case_paths:
+        targets = retrieve_best_model(case)
+        if targets == None:
+            print(traceback.format_exc())
+            print(f'Target empty, probably missing molpdf file: {case}')
+            return case
         try:
-            targets = retrieve_best_model(case)
             copy_best_model(case, targets)
         except:
             print(traceback.format_exc())
@@ -136,44 +141,46 @@ def run(case_paths):
             return case
 
 
-a = arg_parser.parse_args()
+if __name__ == '__main__':
+    a = arg_parser.parse_args()
 
-db2_selected_models_path = a.best_models_path
-# TMP dir to write temporary files to 
-base_tmp = os.environ["TMPDIR"]
-temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
-if not os.path.exists(temp):
-    os.mkdir(temp)
+    db2_selected_models_path = a.best_models_path
+    # TMP dir to write temporary files to 
+    base_tmp = os.environ["TMPDIR"]
+    temp = os.path.join(base_tmp, "db3_copy_3Dmodels")
+    if not os.path.exists(temp):
+        os.mkdir(temp)
 
-# do a check if models dir is passed in the correct way
-if "*" not in a.models_path and type(a.models_path)!=list:
-    print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
-    raise SystemExit
+    # do a check if models dir is passed in the correct way
+    if "*" not in a.models_path and type(a.models_path)!=list:
+        print("Expected a wild card path, please provide a path like this: mymodelsdir/\*/\*")
+        raise SystemExit
 
-# read the csv from db2 to find all case ids
-csv_path = f"{a.csv_file}"
-df = pd.read_csv(csv_path, header=0)
+    # read the csv from db2 to find all case ids
+    csv_path = f"{a.csv_file}"
+    df = pd.read_csv(csv_path, header=0)
+    df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
 
-wildcard_path = a.models_path.replace('\\', '')
-folders = glob.glob(wildcard_path)
-folders = [folder for folder in folders if '.tar' in folder]
-all_models = [case.split('.')[0] for case in folders]
-# filter out the models that match in the original csv from db2
-db2 = [folder for folder in all_models if folder.split("/")[-1] in df["ID"].tolist()]
+    wildcard_path = a.models_path.replace('\\', '')
+    folders = glob.glob(wildcard_path)
+    folders = [folder for folder in folders if '.tar' in folder]
+    all_models = [case.split('.')[0] for case in folders]
+    # filter out the models that match in the original csv from db2
+    db2 = [folder for folder in all_models if folder.split("/")[-1] in df["ID"].tolist()]
+    db2 = all_models
+    n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
+    # n_cores = 2
 
-n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
-# n_cores = 2
+    all_paths_lists = []
+    print(f'len db2 {len(db2)}')
+    print(f'n_cores {n_cores}')
+    chunk = math.ceil(len(db2)/n_cores)
+    # cut the process into pieces to prevent spawning too many parallel processing
+    for i in range(0, len(db2), chunk):
+        all_paths_lists.append(db2[i:min(i+chunk, len(db2))])
+    # let each inner list be handled by exactly one thread
+    failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
 
-all_paths_lists = []
-print(f'len db2 {len(db2)}')
-print(f'n_cores {n_cores}')
-chunk = math.ceil(len(db2)/n_cores)
-# cut the process into pieces to prevent spawning too many parallel processing
-for i in range(0, len(db2), chunk):
-    all_paths_lists.append(db2[i:min(i+chunk, len(db2))])
-# let each inner list be handled by exactly one thread
-failed_cases = Parallel(n_jobs = n_cores, verbose = 1)(delayed(run)(case) for case in all_paths_lists)
-
-if failed_cases:
     failed_cases_str = '\n'.join(failed_cases)
-    print(f'List of cases that could not be processed:\n{failed_cases_str}')
+    if failed_cases_str:    
+        print(f'List of cases that could not be processed:\n{failed_cases_str}')
