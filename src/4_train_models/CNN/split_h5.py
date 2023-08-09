@@ -254,7 +254,8 @@ def symlink_in_h5(indices, f1_path, f2):
             f2[group_path] = h5py.ExternalLink(f1_path, group_path)
         
 def split_one_fold(df, test_group, train_split):
-    test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(test_group))
+    cluster_id = test_group[0]
+    test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin([str(x) for x in test_group]))
     test_cases = df[test_mask]["ID"]
     print(f'test cases: {test_cases.shape}')
     not_test_cases = np.array(df[test_mask == False]["ID"])
@@ -268,11 +269,11 @@ def split_one_fold(df, test_group, train_split):
     print(f'train shape: {train_cases.shape}')
     print(f'validation shape: {validation_cases.shape}')
 
-    print(f"### SAVING SPLITS FOR CLUSTER {i}")
+    print(f"### SAVING SPLITS FOR CLUSTER {cluster_id}")
     save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
-        f"clustered/{i}/train.hdf5",
-        f"clustered/{i}/valid.hdf5",
-        f"clustered/{i}/test.hdf5"
+        f"clustered/{cluster_id}/train.hdf5",
+        f"clustered/{cluster_id}/valid.hdf5",
+        f"clustered/{cluster_id}/test.hdf5"
     )
 
 if __name__ == '__main__':
@@ -373,33 +374,33 @@ if __name__ == '__main__':
         )
 
     elif a.cluster:
-        groups = [int(x) for x in set(df[a.cluster_column])]
+        groups = [int(x) for x in set(df[a.cluster_column]) if x != ' ']
         all_cases = list(symlinks.keys())
         if a.test_clusters:
             split_one_fold(df, a.test_clusters, train_split)
             
-            test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.test_clusters))
-            train_val_mask = (df["ID"].isin(all_cases)) & (~df[a.cluster_column].isin(a.test_clusters))
+            # test_mask = (df["ID"].isin(all_cases)) & (df[a.cluster_column].isin(a.test_clusters))
+            # train_val_mask = (df["ID"].isin(all_cases)) & (~df[a.cluster_column].isin(a.test_clusters))
 
-            test_cases = df[test_mask]["ID"]
-            train_val_cases = np.array(df[train_val_mask]["ID"])
+            # test_cases = df[test_mask]["ID"]
+            # train_val_cases = np.array(df[train_val_mask]["ID"])
 
-            ds_l = train_val_cases.shape[0]
-            train_cases, validation_cases = np.split(
-                train_val_cases, 
-                [int((train_split/100)*ds_l)]
-            )
+            # ds_l = train_val_cases.shape[0]
+            # train_cases, validation_cases = np.split(
+            #     train_val_cases, 
+            #     [int((train_split/100)*ds_l)]
+            # )
 
-            print(f"""
-            ### SAVING TEST SPLITS FROM CLUSTERS {a.test_clusters}
+            # print(f"""
+            # ### SAVING TEST SPLITS FROM CLUSTERS {a.test_clusters}
             
-            """)
+            # """)
             
-            save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
-                f"clustered/train.hdf5",
-                f"clustered/valid.hdf5",
-                f"clustered/test.hdf5"
-            )
+            # save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
+            #     f"clustered/train.hdf5",
+            #     f"clustered/valid.hdf5",
+            #     f"clustered/test.hdf5"
+            # )
 
         else: #perform normal clustering
             jobs = min([len(groups), n_cores])
