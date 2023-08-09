@@ -533,8 +533,8 @@ class CnnClass4ConvKS3Lin128ChannExpand(nn.Module):
         """
         super(CnnClass4ConvKS3Lin128ChannExpand, self).__init__()
         
-        raise Exception(input_shape)
-        input_shape = torch.tensor(type(input_shape), input_shape)
+        #raise Exception(input_shape)
+        input_shape = torch.tensor(input_shape)#(type(input_shape), input_shape)
         
     
         self.conv_layers = nn.Sequential(
