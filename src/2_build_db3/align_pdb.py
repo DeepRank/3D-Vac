@@ -2,6 +2,7 @@ import torch.multiprocessing as mp
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
+import pandas as pd
 import warnings
 import torch
 import glob
@@ -27,6 +28,11 @@ arg_parser.add_argument("--template", "-t",
     """,
     required=True
 )
+arg_parser.add_argument('-c',
+                    '--csv',
+                    type=str,
+                    required= False,
+                    help='A csv to filter the pdbs that need to be aligned instead of aligning everything from db3')
 arg_parser.add_argument("--n-cores", "-n",
     help="""
     Number of cores
@@ -198,9 +204,9 @@ class PDB2dataset():
                 # 	raise Exception(f'Something went wrong with pdb {pdbIndex}, path: {self.pdbs[pdbIndex]}')
     
     # Rotate all, or a selection of pdbs
-    def rotateAll(self, nmbr=-1):
+    def rotateAll(self, nmbr=None, filter_ids=None):
         t0 = time.time()
-        nmbr = min(nmbr, len(self.pdbs)) if nmbr != -1 else len(self.pdbs)
+        nmbr = len(self.pdbs) if not nmbr else min(nmbr, len(self.pdbs))
         print(f'self.pdbs len: {len(self.pdbs)}')
         print(f'nmbr: {nmbr}')
         self.rotator.ar = self.rotator.ar.detach()
@@ -210,7 +216,16 @@ class PDB2dataset():
         self.rotator.mean = self.rotator.mean.detach()
         self.rotator.coordinates = self.rotator.coordinates.detach()
         
-        Parallel(n_jobs=self.cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in np.array_split(list(range(nmbr)), self.cores))
+        if filter_ids:
+            pdb_indices = [n for n in range(nmbr) if os.path.basename(self.pdbs[n]).split('.')[0] in filter_ids]
+        else:
+            pdb_indices = list(range(nmbr))
+        
+        pdb_names = [self.pdbs[i] for i in pdb_indices]
+        
+        print(f'total of pdbs to be realigned: {len(pdb_indices)}')
+        print(pdb_names)
+        Parallel(n_jobs=self.cores, verbose=1)(delayed(self._rotate)(pdbIndex) for pdbIndex in np.array_split(pdb_indices, self.cores))
         print('Rotating and saving data took: %.2f seconds' % (time.time()-t0))
         
     # Train the function
@@ -253,14 +268,14 @@ class PDB2dataset():
         print('Epochs:', epoch, ', train-time: %.2f seconds!' % (time.time()-t0))
         self.rotator.ar, self.rotator.br, self.rotator.yr, self.rotator.bias = ar, br, yr, bias
         
-def align(pdbInpFolder, residues, chain='M', template = -1, n_cores=-1):
+def align(pdbInpFolder, residues, chain='M', template = -1, filter_ids=None, n_cores=-1):
     pdbInpFolder = pdbInpFolder.replace('\\','')
     print('PROCESS DATA')
     dataProcessor = PDB2dataset(pdbInpFolder, residues, chain, n_cores)	
     print('TRAINING')
     dataProcessor.train(template)
     print('ROTATING')
-    dataProcessor.rotateAll()#nmbr = n_cores)
+    dataProcessor.rotateAll(nmbr=None, filter_ids=filter_ids)#nmbr = n_cores)
 
 
 def extractPdbCa(fileName, chain):
@@ -274,10 +289,17 @@ if __name__=='__main__':
 
     # for REPRODUCIBILITY
     warnings.filterwarnings("ignore")
+    
+        # if csv is provided
+    if a.csv:
+        df = pd.read_csv(a.csv, header=0)
+        filter_ids = df['ID'].tolist()
+    else:
+        filter_ids = False
 
     # Align the pdbs to the template file
     align(a.pdbs_path, range(86), 
-        template = a.template, n_cores = a.n_cores,
+        template = a.template, filter_ids= filter_ids, n_cores = a.n_cores,
     )
 
 

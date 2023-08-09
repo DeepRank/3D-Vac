@@ -4,8 +4,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=128
 #SBATCH --partition=thin
-#SBATCH --time=03:00:00
-#SBATCH -o /projects/0/einf2380/data/modelling_logs/I/db3/align_pdb_I-%J.out
+#SBATCH --time=02:00:00
+#SBATCH -o /projects/0/einf2380/data/modelling_logs/I/db3/align_pdb_3step_I-%J.out
 
 # Load modules:
 module load 2021
@@ -15,8 +15,8 @@ module load foss/2021a
 source activate deeprank
 
 # export pdbs_path='/projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA/'
-export pdbs_path='/projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA'
-export original_pdb='/projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA/68001_69000/BA-68085/pdb/BA-68085.pdb'
+export pdbs_path='/projects/0/einf2380/data/pMHCI/db2_selected_models/BA'
+export original_pdb='/projects/0/einf2380/data/pMHCI/db2_selected_models/BA/68001_69000/BA-68085/pdb/BA-68085.pdb'
 export alignment_template='/projects/0/einf2380/data/pMHCI/alignment/alignment_template.pdb'
 
 # Renumber the pdbs
