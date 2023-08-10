@@ -6,6 +6,7 @@ import traceback
 import argparse
 import subprocess
 import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed 
 
 parser = argparse.ArgumentParser(
@@ -18,10 +19,16 @@ parser.add_argument('-f',
                     '--folder',
                     type=str,
                     help='The directory containing the pdbs')
+parser.add_argument('-c',
+                    '--csv',
+                    type=str,
+                    required= False,
+                    help='A csv to filter the pdbs that need to be renumbered instead of renumbering everything from db3')
 parser.add_argument('-n',
                     '--n-cores',
                     type=int,
                     help='Number of cores available (specify the same number in sbatch script if applicable')
+
 
 aaDict = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLU': 'E', 'GLN': 'Q',
           'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F',
@@ -148,7 +155,13 @@ def fast_load_dirs(sub_folder):
     pdb_files = glob.glob(os.path.join(sub_folder, '*/pdb/*.pdb'))    
     return pdb_files
 
-def main(folder, n_cores):
+def main(folder, csv, n_cores):
+    # if csv is provided
+    if csv:
+        df = pd.read_csv(csv, header=0)
+        filter_ids = df['ID'].tolist()
+    else:
+        filter_ids = False
     # this yields a list of all the sub folders
     pdb_subs = glob.glob(os.path.join(folder, '*'))
     
@@ -179,13 +192,20 @@ def main(folder, n_cores):
     for unique_seq, alignment in aligned:
         corresponding = combined_pdb_dict[unique_seq]
         for pdb_ind in corresponding:
-            pdb_new_alignment_pair.append([pdbs_complete[pdb_ind], alignment])
-
-    # perform the renumbering in parallel
+            if filter_ids and os.path.basename(pdbs_complete[pdb_ind]).split('.')[0] in filter_ids:
+                pdb_new_alignment_pair.append([pdbs_complete[pdb_ind], alignment])
+            elif not filter_ids:
+                pdb_new_alignment_pair.append([pdbs_complete[pdb_ind], alignment])
+    print(f'Number of pdbs to be renamed {len(pdb_new_alignment_pair)}')
+    
+    # perform filtering if needed 
+    if filter_ids:
+        pdb_new_alignment_pair = [[pdb,seq] for pdb, seq in zip(pdb_new_alignment_pair) if os.path.basename(pdbs_complete[pdb_ind]).split('.')[0] in filter_ids]
+    #perform the renumbering in parallel
     Parallel(n_jobs = n_cores, verbose=1)(delayed(renumber)(path_list) for path_list in np.array_split(pdb_new_alignment_pair, n_cores))
     print('done!')
 
 
 if __name__ == '__main__':
     a = parser.parse_args()
-    main(a.folder, a.n_cores)
+    main(a.folder, a.csv, a.n_cores)

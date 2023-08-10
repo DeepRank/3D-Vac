@@ -93,10 +93,11 @@ def chunk_folders(folders):
         all_paths_lists.append(folders[i:min(i+chunk, len(folders))])
 
 def fast_load_dirs(sub_folders):
-    folders = []
+    folder_list = []
     for folder in sub_folders:
-        folders.extend(glob.glob(os.path.join(folder, '*/pdb/*.pdb')))
-    return folders
+        folder_list.extend(glob.glob(os.path.join(folder, '*/pdb/*.pdb')))
+    return folder_list
+
 
 if __name__ == '__main__':
     a = arg_parser.parse_args()
@@ -105,16 +106,13 @@ if __name__ == '__main__':
 
     csv_path = f"{a.csv_file}"
     df = pd.read_csv(csv_path)
-    df['ID'] = df['ID'].apply(lambda x: '_'.join(x.split('-')))
 
     all_models_sub = glob.glob(f"/projects/0/einf2380/data/pMHC{a.mhc_class}/db2_selected_models/BA/*")
     all_models = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(folders_sub) for folders_sub in np.array_split(all_models_sub, n_cores))
     print(f'debug: {type(all_models)}')
-    try:
-        print(len(all_models))
-        print(all_models[0])
-    except:
-        pass
+    
+    total_len = [len(sub) for sub in all_models]
+    print(f'Total size of models: {np.sum(total_len)}')
 
     Parallel(n_jobs=n_cores, verbose=1)(delayed(map_pssms)(db2_sub) for db2_sub in all_models if type(db2_sub) != 'NoneType')
 

@@ -9,4 +9,4 @@
 # Activate conda env:
 source activate deeprank
 
-srun python ./peptide2onehot.py  --mhc-class I --input-csv /projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative.csv --models-dir /projects/0/einf2380/data/pMHCI/db2_selected_models_1/BA/\*
+srun python ./peptide2onehot.py  --mhc-class I --input-csv /projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative.csv --models-dir /projects/0/einf2380/data/pMHCI/db2_selected_models/BA/\*

@@ -48,7 +48,7 @@ def generate_onehot(IDs: np.array):
     succesful_cases = []    
     for _, idx in enumerate(IDs):
         sequence = db2.loc[idx,"peptide"]
-        sequence_id = db2.loc[idx, "ID"].replace('-', '_')
+        sequence_id = db2.loc[idx, "ID"]
         peptide_pssm_rows = [pssm_template]
         for i,res in enumerate(sequence):
             pdbresi = str(i+1)
@@ -85,6 +85,7 @@ if __name__ == "__main__":
     n_cores = int(os.getenv('SLURM_CPUS_ON_NODE'))
     a = arg_parser.parse_args()
 
+    #TODO should be filtered based on csv file just like map_pssm2pdb
     pssm_folders = fast_load_dirs(a.models_dir.replace('\\', ''))
     pssm_template_path = "/projects/0/einf2380/data/templates/M_chain_mapped_template.pssm"
 
