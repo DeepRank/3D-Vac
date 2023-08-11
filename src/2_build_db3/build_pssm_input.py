@@ -54,7 +54,9 @@ def find_alleles(db1: str):
     """    
     df = pd.read_csv(db1, header=0, sep=',')
     unique_alleles = df['allele'].unique()
-    allele_list = unique_alleles.tolist()
+    # Make sure columns with alpha and beta chain (MHCII) are split
+    allele_list = []
+    [allele_list.extend(x.split(";")) for x in unique_alleles.tolist()]
     return allele_list
 
 def find_fasta_entries(fasta_db: str, allele_list: list):

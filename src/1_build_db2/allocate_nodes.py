@@ -82,6 +82,7 @@ modelling_job_cmd_temp = [
     f"--time={sbatch_hours}",
     "--cpus-per-task={}",
     f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/3D_modelling_job-%J.out",
+    f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/3D_modelling_job-%J.err",
     "modelling_job.sh",
     "--node-index={}",
     '--running-time', str(running_time_hms), 
@@ -110,7 +111,7 @@ for n in range(int(a.num_nodes)):
     modelling_job_cmd = deepcopy(modelling_job_cmd_temp)
     # fill in missing parameters
     modelling_job_cmd[2] = modelling_job_cmd[2].format(n_cores)
-    modelling_job_cmd[4] = modelling_job_cmd[4].format(n)
+    modelling_job_cmd[6] = modelling_job_cmd[4].format(n)
 
     print(f"running:\n {modelling_job_cmd}")
 
@@ -133,6 +134,7 @@ clean_out = subprocess.run([
     f"--time={str(running_time_hms)}",
     f"--cpus-per-task", str(NUM_CORES), 
     f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/clean_models_job-%J.out",
+    f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/clean_models_job-%J.err",
     "clean_outputs.sh",
     "--models-dir", a.models_dir,
     "--mhc-class", a.mhc_class
@@ -144,6 +146,7 @@ subprocess.run([
     "sbatch",
     f"--dependency=afterok:{clean_output_job_id}",
     f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.out",
+    f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.err",
     "get_unmodelled_cases.sh",
     "--csv-file", a.input_csv,
     "--models-dir", a.models_dir,

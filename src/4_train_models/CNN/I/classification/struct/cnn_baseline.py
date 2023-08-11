@@ -4,9 +4,8 @@ import os
 import sys
 sys.path.append(path.abspath("../../../../"))
 from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-from CNN.models import CnnClassificationBaseline
+from CNN.CNN_models import *
 # import multiprocessing as mp
-from mpi4py import MPI
 from deeprank.learn import DataSet, NeuralNet
 from deeprank.learn.modelGenerator import *
 
@@ -22,16 +21,16 @@ arg_parser = argparse.ArgumentParser(
     will perform a shuffled cross validation, for a clustered please provide --cluster argument.",
 )
 
-arg_parser.add_argument("--splits-path", "-s",
+arg_parser.add_argument("--data-path", "-d",
     help="Path to shuffled and clustered folders containing subfolders named from 0 to 9 each with \
-    train.hdf5, valid.hdf5 and test.hdf5 files as the splits for each fold. Default path \
-    /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits",
-    default="/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/hla_a_02_01_9_length_peptide/splits"
+    train.hdf5, valid.hdf5 and test.hdf5 files as the splits for each fold.",
+    required=True,
 )
 arg_parser.add_argument("--cluster", "-c",
     help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
-    default=False,
-    action="store_true"
+    default=0,
+    type=int,
+    choices=[0,1]
 )
 arg_parser.add_argument("--batch", "-B",
     help="Batch size. Default 64.",
@@ -47,44 +46,56 @@ arg_parser.add_argument("--output-dir", "-o",
     help="Name of the folder where 10 subfolders will be created for each cross validation. Required.",
     required = True,
 )
+arg_parser.add_argument("--exp-name", "-x",
+    help="Name of the folder where 10 subfolders will be created for each cross validation. Required.",
+    required = True,
+)
 arg_parser.add_argument("--with-cuda", "-C",
     help="By default True. It is not provided directly by the user but is hardcoded in cnn_baseline.sh or cnn_baseline.cuda.sh\
     To use cuda cores please run the cnn_baseline_cuda.sh (--with-cuda automatically set to True), otherwise \
     cnn_baseline.sh file (--with-cuda set to False).",
-    default=False,
-    action="store_true"
+    default=0,
+    type=int
+)
+arg_parser.add_argument("--model", "-m",
+    help="Model architecture to use. It will be imported from ",
+    default='CnnClassificationBaseline'
+)
+arg_parser.add_argument("--task-id", "-t",
+    help="Task id signaling which cross-validation fold this job is running",
+    default=None,
 )
 
 a = arg_parser.parse_args()
 
-# MPI INITIALIZATION
-#-------------------
-mpi_conn = MPI.COMM_WORLD
-rank = mpi_conn.Get_rank()
-size = mpi_conn.Get_size()
+
 datasets = []
 
-# handle printing messages only for one task so the logs are not messy:
-if rank != 0:
-    sys.stdout = open(os.devnull, 'w')
+sys.stdout = open(os.devnull, 'w')
+
 
 # LOAD DATA
 #----------
 
-# if the --cluster argument is provided, loads train, valid and test from the --splits-path/cluster/ folder
-train_db = (f"{a.splits_path}/shuffled/{rank}/train.hdf5", f"{a.splits_path}/clustered/{rank}/train.hdf5")[a.cluster]
-val_db = (f"{a.splits_path}/shuffled/{rank}/valid.hdf5", f"{a.splits_path}/clustered/{rank}/valid.hdf5")[a.cluster]
-test_db = (f"{a.splits_path}/shuffled/{rank}/test.hdf5", f"{a.splits_path}/clustered/{rank}/test.hdf5")[a.cluster]
 
-# create dirs:
-if rank == 0:
-    for i in range(10):
-        folder = f"./trained_models/{a.output_dir}/{i}"
-        try:
-            os.makedirs(folder)
-        except OSError as error:
-            print(f"folder {folder} already created")
-outdir = f"./trained_models/{a.output_dir}/{rank}"
+# if the --cluster argument is provided, loads train, valid and test from the --splits-path/cluster/ folder
+if not a.task_id:
+    train_db = f"{a.data_path}/train.hdf5"
+    val_db = f"{a.data_path}/valid.hdf5"
+    test_db = f"{a.data_path}/test.hdf5"
+    
+    outdir = f'{a.output_dir}/{a.exp_name}/{a.model}/'
+else:
+    train_db = f"{a.data_path}/{a.task_id}/train.hdf5"
+    val_db = f"{a.data_path}/{a.task_id}/valid.hdf5"
+    test_db = f"{a.data_path}/{a.task_id}/test.hdf5"
+    
+    outdir = f'{a.output_dir}/{a.exp_name}/{a.model}/{a.task_id}'
+try:
+    os.makedirs(outdir)
+except OSError as error:
+    print(f"folder {outdir} already created")
+    
 
 data_set = DataSet(train_database=train_db,
     test_database = test_db,
@@ -92,9 +103,11 @@ data_set = DataSet(train_database=train_db,
     chain1 = "M",
     chain2 = "P",
     grid_info = (35,30,30),
-    select_feature = "all",
+    select_feature ='all', #{#'AtomicDensities_ind': 'all',
+        #"Feature_ind": ['Edesolv',
+        #'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
     select_target = "BIN_CLASS",
-    normalize_features = True,
+    normalize_features = False, #Change back to True
     normalize_targets = False,
     pair_chain_feature = None,
     mapfly = False,
@@ -103,13 +116,15 @@ data_set = DataSet(train_database=train_db,
     process = True,
 )
 
+architecture='' #Useless, but it makes vscode not complain
+exec('architecture='+a.model)
 model = NeuralNet(data_set=data_set,
-    model = CnnClassificationBaseline,
+    model = architecture,
     task = "class",
     chain1 = "M",
     chain2 = "P",
     cuda = bool(a.with_cuda),
-    ngpu = (0,1)[a.with_cuda],
+    ngpu = a.with_cuda,
     plot = True,
     save_classmetrics = True,
     outdir = outdir
@@ -122,6 +137,9 @@ model.train(
     save_model = "best",
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
+    num_workers=18,
+    prefetch_factor=20
 )
+
 # START TRAINING
 #---------------

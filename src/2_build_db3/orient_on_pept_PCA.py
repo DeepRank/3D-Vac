@@ -3,6 +3,7 @@ import pdb2sql
 from sklearn.decomposition import PCA
 from joblib import Parallel, delayed
 import numpy as np
+import pandas as pd
 import sys
 import os
 import traceback
@@ -21,6 +22,11 @@ arg_parser.add_argument("--pdbs-path", "-p",
     """,
     required=True
 )
+arg_parser.add_argument('-c',
+                    '--csv',
+                    type=str,
+                    required= False,
+                    help='A csv to filter the pdbs that need to be aligned instead of aligning everything from db3')
 arg_parser.add_argument("--n-cores", "-n",
     help="""
     Number of cores
@@ -62,6 +68,13 @@ a.pdbs_path = a.pdbs_path.replace('\\','')
 
 sub_folders = glob.glob(os.path.join(a.pdbs_path,'*'))
 
+    # if csv is provided
+if a.csv:
+    df = pd.read_csv(a.csv, header=0)
+    filter_ids = df['ID'].tolist()
+else:
+    filter_ids = False
+
 print('GLOB')
 t0 = time.time()
 pdbs_list = Parallel(n_jobs=n_cores, verbose=1)(delayed(fast_load_dirs)(pdb_sub) for pdb_sub in sub_folders)
@@ -87,7 +100,12 @@ print('PCA')
 pca = PCA(n_components=3)
 pca.fit(all_coords)
 print(f'PCA:\n {pca.components_}')
-    
+
+if filter_ids:
+    models = [m for m in models if os.path.basename(m).split('.')[0] in filter_ids]
+
+print(f'total amount of models to orient with PCA: {len(models)}')
+
 t3 = time.time()
 print( t3 - t2)
 print('APPLY PCA AND SAVE')

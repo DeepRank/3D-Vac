@@ -48,7 +48,7 @@ arg_parser.add_argument(
 )
 arg_parser.add_argument("--measurement-type", "-t",
     help='The type of measurement to filter from the input csv. Choices: "BA" or "MS"',
-    choices=["MS", "BA"],
+    choices=["MS", "BA", "ALL"],
     required=True
 )
 arg_parser.add_argument("--include_inequality", "-e",
@@ -64,7 +64,7 @@ arg_parser.add_argument("--include_qualitative", "-q",
     action=argparse.BooleanOptionalAction
 )
 
-a = arg_parser.parse_args();
+a = arg_parser.parse_args()
 
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
 
@@ -76,7 +76,10 @@ input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/3d_models/{a.pre
 query = []
 if a.measurement_type == "BA":
     query.append("measurement_kind == 'affinity'")
-else:
+elif a.measurement_type == "MS":
+    query.append("measurement_kind == 'mass_spec'")
+elif a.measurement_type == "ALL":
+    query.append("measurement_kind == 'affinity'")
     query.append("measurement_kind == 'mass_spec'")
 
 if not a.include_qualitative:
