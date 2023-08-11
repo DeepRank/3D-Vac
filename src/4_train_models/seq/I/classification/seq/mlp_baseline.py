@@ -7,6 +7,9 @@ import copy
 import os.path as path
 import os
 import sys
+sys.path.append(path.abspath("."))
+sys.path.append(path.abspath("../"))
+sys.path.append(path.abspath("../../"))
 sys.path.append(path.abspath("../../../../"))
 sys.path.append(path.abspath("../../../../../"))
 sys.path.append(path.abspath("../../../../../../"))
