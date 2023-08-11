@@ -9,8 +9,6 @@ from collections import Counter
 import logging
 import sys
 
-# ONGOING: add allele_type for 100k (2821036) using gpu bc fat partition was giving errors
-
 ############ Modify
 run_day_data = '230530' # 100k and 692 data points
 project_folder = '/projects/0/einf2380'
