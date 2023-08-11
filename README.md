@@ -300,8 +300,10 @@ python tools/gibbs_cluster_parser.py --help
 * This tool is used to generate clusters using Gibbs sampling based on Shannon's entropy minimization. 
 * Can be found at https://services.healthtech.dtu.dk/services/GibbsCluster-2.0/
 * Clusters can be generated directly on the website or by downloading the binary. Optimal parameters for MHCI and MHCII can be checked on the website too.
-* Once clusters are generated, peptides can be mapped to their respective cluster using the script in `tools/gibbs_cluster_parser.py`
-* 
+* Given some parameters for the gibbs cluster binary, each run generates a cluster set made of *g* number of clusters. Next lines list available scripts to explore data distribution, cluster quality of the newly generated cluster set and map clusters for each peptide in db1.
+* Once clusters are generated, peptides from db1 can be mapped to their respective cluster using the script in `tools/gibbs_cluster_parser.py`.
+* `/src/exploration/explore_gibbs_output.ipynb` can be used to evaluate the clustering quality (assess noisy clusters) and plot binders/non-binders distribution. 
+* `/src/exploration/explore_gibbs_kld.ipynb` calculates and plots Kullback-Leibler divergence (KLD score) between clusters (one2one and one2many). This script generates figures in `/reports/figures/gibbs-cluster` showing barplots of KLD scores for one2one or one2many cluster to cluster(s) comparison.
 
 ### GNNs
 - Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
