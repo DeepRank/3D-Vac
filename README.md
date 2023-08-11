@@ -178,7 +178,7 @@ python src/1_build_db1/generate_db1_I.py --source-csv curated_training_data.no_a
 * Outputs: DB1 in 'path-to-destination.csv'.
 * Run `python src/0_build_db1/generate_db1_I.py --help` for more details on how to filter for specific allele and peptide length.
 
-### 1.2 Cluster the peptides based on their sequence similarity
+### 1.2 Cluster the peptides based on their sequence similarity (option 1)
 ```
 python src/1_build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 ```
@@ -186,6 +186,12 @@ python src/1_build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 * Output: a .pkl file in `data/external/processed` containing the clusters.
 * Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
 * Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
+
+### 1.2 Cluster the peptides based on their sequence similarity (option 2)
+* Download gibbs cluster software from https://services.healthtech.dtu.dk/services/GibbsCluster-2.0/
+* Change the path to the binary in `src/0_build_db1/generate_gibbs_clusters.sh` to the installed path. Run the script.
+* Provide the gibbs cluster output to the `src/0_build_db1/gibbs_cluster_parser.py` as a parameter to map each peptide of db1 to its cluster. See `src/0_build_db1/gibbs_cluster_parser.py --help` for more information.
+* Gibbs cluster binary provides sequence motifs in the output directory.
 
 ## 2. Generate DB2
 ### 2.1 Build DB2 from DB1
