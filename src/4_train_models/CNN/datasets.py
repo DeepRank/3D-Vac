@@ -2,154 +2,199 @@ from torch.utils.data import Dataset
 import torch
 import blosum
 import pandas as pd
+import random
+from mhcflurry.regression_target import from_ic50, to_ic50
+import numpy
+import time
+import os
 
-# encoding functions:
-aminoacids = ('ACDEFGHIKLMNPQRSTVWY')
+# define the aminoacid alphabet and build the one-hot tensor:
+aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
+AA_eye = torch.eye(len(aminoacids), dtype=torch.float16)
+
+# build the blosum62 tensor and its alphabet:
+mat = blosum.BLOSUM(62)
+blosum_t = [[]]
+blosum_aa = ["A"]
+for aa in mat.keys():
+    if aa[0] in aminoacids and aa[1] in aminoacids:
+        if len(blosum_t[-1]) < len(aminoacids):
+            blosum_t[-1].append(mat[aa])
+        else:
+            blosum_aa.append(aa[0])
+            blosum_t.append([mat[aa]])
+blosum_t = torch.tensor(blosum_t, dtype=torch.float16)
+blosum_aa = "".join(blosum_aa)
+
+def length_agnostic_encode_p(p):
+    """Build a length agnostic representation of peptide having a sequence length not greater than 15.
+    MHCflurry type of encoding. Given any length, returns a concatenation of left, center and right align
+    of the peptide sequence. For instance, given a peptide "ACGHDGDDF": "ACGHDGDDFXXXXXX", "XXXACGHDGDDFXXX" and
+    "XXXXXXACGHDGDDF" are its left-aligned, center-aligned and right aligned representations, respectively.
+
+    Args:
+        p (String): Amino acid sequence of the peptide.
+
+    Returns:
+        String: Concatenation of left align, center align and right align of the peptide
+    """
+    rep_len = 15 # this can be updated if in the future the threshold for peptide representation is modified
+    x = "X"*(rep_len-len(p))
+    half_x = x[:len(x)//2]
+    left_al = p + x
+    right_al = x + p
+    center_al = half_x + p + half_x
+    if len(center_al) < 15:
+        center_al = center_al + "X"*(15-len(center_al))
+    return left_al + center_al + right_al
+
+def allele_peptide2blosum(allele, peptide):
+    """Encodes the allele with the peptide using the BLOSUM62 encoding matrice.
+
+    Args:
+        allele (String): Pseudosequence of the allele
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: Concatenated representation of the allele and peptide with shape (allele+peptide)*21
+    """
+    peptide_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
+    allele_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in allele]
+    return allele_arr + peptide_arr
+
+def allele_peptide2onehot(allele, peptide):
+    """Encodes the allele with the peptide using one-hot representation.
+
+    Args:
+        allele (String): Pseudosequence of the allele
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: Concatenated representation of the allele and peptide with shape (allele+peptide)*21
+    """
+    allele_arr = [AA_eye[aminoacids.index(res)].tolist() for res in allele]
+    peptide_arr = [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
+    return allele_arr + peptide_arr
+
 def peptide2onehot(peptide):
-    AA_eye = torch.eye(20, dtype=torch.float)
+    """Encodes the peptide into a one-hot representation.
+
+    Args:
+        peptide (String): Sequence of the peptide
+
+    Returns:
+        List: One hot representation of the peptide with shape peptide*21
+    """
     return [AA_eye[aminoacids.index(res)].tolist() for res in peptide]
 
 def peptide2blosum(peptide):
-    """Function used to generate a multidimentional array (which is later 
-    converted to tensor) containing arrays of BLOSUM62 encoded residue.
+    """Encodes the peptide into a BLOSUM62 representation.
 
     Args:
-        peptide (string): sequence of the peptide
+        peptide (String): Sequence of the peptide
 
     Returns:
-        array: array containing len(peptide) arrays (of len 20) of encoded residue
+        List: One hot representation of the peptide with shape peptide*21
     """
-    mat = blosum.BLOSUM(62)
-    blosum_t = [[]]
-    blosum_aa = ["A"]
-    for aa in mat.keys():
-        if aa[0] in aminoacids and aa[1] in aminoacids:
-            if len(blosum_t[-1]) < 20:
-                blosum_t[-1].append(mat[aa])
-            else:
-                blosum_aa.append(aa[0])
-                blosum_t.append([mat[aa]])
-    blosum_t = torch.tensor(blosum_t)
-    blosum_aa = "".join(blosum_aa)
     return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
 
-def peptide2mixed(peptide):
-    """Function used to encode the residues with a first vector of 20
-    (onehot encoding) followed by a vector of 20 for BLOSUM62.
-
-    Args:
-        peptide (string): Sequence of the peptide.
-
-    Returns:
-        _type_: Array containing len(peptides) of arrays (of len 40) encoded residue.
-    """
-    AA_eye = torch.eye(20, dtype=torch.float)
-    mat = blosum.BLOSUM(62)
-    blosum_t = [[]]
-    blosum_aa = ["A"]
-    for aa in mat.keys():
-        if aa[0] in aminoacids and aa[1] in aminoacids:
-            if len(blosum_t[-1]) < 20:
-                blosum_t[-1].append(mat[aa]) 
-            else:
-                blosum_aa.append(aa[0])
-                blosum_t.append([mat[aa]])
-    blosum_t = torch.tensor(blosum_t)
-    blosum_aa = "".join(blosum_aa)
-    return [blosum_t[blosum_aa.index(res)].tolist() + AA_eye[aminoacids.index(res)].tolist() for res in peptide]
-
-# the whole dataset class, which extends the torch Dataset class
-class Reg_Seq_Dataset(Dataset):
-    def __init__(self, csv_peptides,csv_ba_values, encoder):
-        """Class used to store the dataset for the sequence based regression. This function
-        was not developed further when the focus shifted towards classification.
-
-        Args:
-            csv_peptides (array): Array of peptides generated before calling the function.
-            csv_ba_values (array): Labels of csv_peptides in the same order as csv_peptides.
-            encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
-        """
-        self.csv_peptides = csv_peptides
-        self.csv_ba_values = csv_ba_values
-        self.ba_values = torch.tensor(self.csv_ba_values, dtype=torch.float64)
-        if encoder == "blosum":
-            self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
-        else:
-            self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-    def __getitem__(self, idx):
-        return self.peptides[idx], self.ba_values[idx]
-    def __len__(self):
-        return len(self.peptides)
-
 class Class_Seq_Dataset(Dataset):
-    def __init__(self, csv_peptides,labels, encoder, device):
-        """Class used to store the dataset for the sequence based classification.
+    def __init__(
+        self, csv, encoder, device,
+        threshold=500,
+        cluster_column=None,
+        task="classification",
+        allele_to_pseudosequence_csv_path="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+    ):
+        """Class used to store the dataset for the sequence based MLP. Prepare the data both for classification and regression
+        as well as different data splitting methods (shuffled, clustered or train (and validation) and test in different csv).
+        Once the data is loaded it can be split using these different methods.
+        The features are the encoding used for peptides or allele and peptides. Supports different length peptides.
 
         Args:
-            csv_peptides (array): Array of peptides generated before calling the function.
-            labels (array): Binder/non-binder labels in the same order as csv_peptides.
-            encoder (string): Type of encoding used. Might be `sparse`, `blosum` or `mixed`.
-            device (torch.device): can be either "cpu" or torch.device("cuda:0").
+            csv (array): Path to DB1 csv.
+            encoder (string): Encoding methods. Peptide only or peptide + allele encoding.
+            device (string): CPU or CUDA.
+            threshold (array): Value to define binders/non binders for the classification task.
+            cluster_column (string): Column of the csv file to use containing cluster mapping for samples. Only for clustered data.
+            allele_to_pseudosoquence_csv_path (string): path to the mhcflurry csv file containing mapings for alleles to pseudosequences
         """
-        self.csv_peptides = csv_peptides
-        self.labels = torch.tensor(labels).long()
+        df = pd.read_csv(csv)
+        self.task = task
+        self.df = df.loc[df.peptide.str.len() <= 15]
+        self.threshold = threshold
+        self.cluster_column = cluster_column
+        allele_to_pseudoseq_df = pd.read_csv(allele_to_pseudosequence_csv_path)
+        allele_to_pseudoseq = dict(zip(allele_to_pseudoseq_df.allele, allele_to_pseudoseq_df.sequence))
+        self.df = df.loc[df.allele.isin(list(allele_to_pseudoseq.keys()))]
+        self.pseudosequences = [allele_to_pseudoseq[a] for a in self.df.allele]
+
+        self.labels, self.groups = self.load_class_seq_data()
+
+        self.csv_peptides = [length_agnostic_encode_p(p) for p in self.df.peptide.tolist()]
+
+        if encoder == "blosum_with_allele":
+            self.peptides = torch.tensor([allele_peptide2blosum(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
+        if encoder == "sparse_with_allele":
+            self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
         if encoder == "blosum":
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
-        else:
+        if encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
-        if encoder == "mixed":
-            self.peptides = torch.tensor([peptide2mixed(p) for p in self.csv_peptides])
-        self.peptides = self.peptides.to(device)
-        self.labels = self.labels.to(device)
+        self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
+
+        # convert NaN trash cluster to 0:
+        # self.groups = torch.tensor(self.groups)+1
+        # self.groups = torch.nan_to_num(self.groups)
+        
     def __getitem__(self, idx):
         return self.peptides[idx], self.labels[idx]
+
     def __len__(self):
         return len(self.peptides)
 
-def load_reg_seq_data(csv_file, threshold):
-    """Function used to read the data from the csv_file and generate the csv_peptides
-    and csv_ba_values arrays.
+    def load_class_seq_data(self): # if cluster_file is set, performs a clustered data loading
+        """Function used to read the data from the csv_file and generate the csv_peptides,
+        labels and groups arrays.
 
-    Args:
-        csv_file (string): Path to db1.
-        threshold (int): Threshold to define binding/non binding.
+        Args:
+            csv_file (string): Path to db1.
+            threshold (int): Threshold to define binding/non binding.
 
-    Returns:
-        csv_peptides: Array used as an argument for Class_Seq_Dataset.
-        csv_ba_values: Array used as an argument for Class_Seq_Dataset.
-    """
-    df = pd.read_csv(csv_file)
-    csv_peptides = df["peptide"].tolist()
-    csv_ba_values = [value for value in df["measurement_value"] if value <= threshold]
-    return csv_peptides, csv_ba_values
+        Returns:
+            csv_peptides: Array used as an argument for Class_Seq_Dataset.
+            labels: Array used as an argument for Class_Seq_Dataset.
+            groups: Array indicating cluster to which csv_peptides value belong.
+        """
 
-def load_class_seq_data(csv_file, threshold): # if cluster_file is set, performs a clustered data loading
-    """Function used to read the data from the csv_file and generate the csv_peptides,
-    labels and groups arrays.
 
-    Args:
-        csv_file (string): Path to db1.
-        threshold (int): Threshold to define binding/non binding.
+        # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
+        # different values)
+        if self.task == "classification":
+            labels = [(0,1)[value < self.threshold] for value in self.df["measurement_value"]]
+            labels = torch.tensor(labels, dtype=torch.long)
 
-    Returns:
-        csv_peptides: Array used as an argument for Class_Seq_Dataset.
-        labels: Array used as an argument for Class_Seq_Dataset.
-        groups: Array indicating cluster to which csv_peptides value belong.
-    """
-    df = pd.read_csv(csv_file)
+            # binder or non binder if the mean value of redundant peptides less than the threshold:
+            # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
+        else:
+            labels = self.load_reg_data()
 
-    csv_peptides = df["peptide"].tolist()
+        # peptides grouped by clusters for the clustered classification
+        groups = []
+        if self.cluster_column != None:
+            groups = torch.tensor(self.df[self.cluster_column].tolist(), dtype=torch.float16)# used for LeaveOneGroupOut sklearn function when doing the clustered classification
+        return labels, groups
 
-    # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
-    # different values)
-    labels = [(0.,1.,)[value < threshold] for value in df["measurement_value"]]
+    def load_reg_data(self):
+        """Converts measurement_value into float values between 0 and 1 using MHCflurry 2.0 ic50 conversion.
 
-    # binder or non binder if the mean value of redundant peptides less than the threshold:
-    # labels = [(0.,1.,)[ df[df["peptide"] == peptide]["measurement_value"].mean() < threshold ] for peptide in csv_peptides]
-
-    # peptides grouped by clusters for the clustered classification
-    groups = df["cluster"].tolist() # used for LeaveOneGroupOut sklearn function when doing the clustered classification
-    return csv_peptides, labels, groups
+        Returns:
+            torch.tensor: Transformed binding affinity values.
+        """
+        measurements = numpy.array(self.df.measurement_value.tolist())
+        x = from_ic50(measurements) 
+        return torch.tensor(x, dtype=torch.float32)
+    
 
 # functions to transform/transform back binding affinity values
 def sig_norm(ds,training_mean,training_std):
@@ -215,3 +260,47 @@ def custom_norm(ds): # custom normalization
 
 def custom_denorm(ds):
     return ds
+
+def create_unique_csv(train_csv, test_csv, model_name):
+    """Concatenates train_csv (containing validation as well) with the test_csv into one csv which can be
+    loaded into the Class_Seq_Dataset. This csv will have an added `test` column indicating which sample
+    is used for train and validation (test == 0) and which is used for test (test == 1).
+
+    Args:
+        train_csv (_type_): csv containing train and validation cases
+        test_csv (_type_): _description_
+        model_name (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    aa = list("ABCDEFGHIJKLMOPQRSTUV0123456789")
+    rand_str = "".join(random.sample(aa, 5))
+    tvt_csv_path = f"train_validation_test_cases_{model_name}-{rand_str}.csv"
+    test_df = pd.read_csv(test_csv)
+    test_df["test"] = 1
+    train_validation_df = pd.read_csv(train_csv)
+    train_validation_df["test"] = 0
+    concatenated_csv = pd.concat([train_validation_df, test_df], ignore_index=True).to_csv(tvt_csv_path, index=False)
+    csv_path = os.path.abspath(tvt_csv_path) 
+    return csv_path
+
+
+if __name__ == "__main__":
+    # dataset = Class_Seq_Dataset(
+    #     "/home/daqop/mountpoint_snellius/experiments/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv",
+    #     device="cpu",
+    #     encoder="blosum_with_allele",
+    #     cluster_column="cluster_set_10",
+    #     task="regression",
+    #     allele_to_pseudosequence_csv_path="/home/daqop/mountpoint_snellius/3D-Vac/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+    # )
+
+    dataset = Class_Seq_Dataset(
+        "/projects/0/einf2380/data/external/processed/I/experiments/BA_pMHCI_human_quantitative_only_eq_shuffled_train_validation.csv",
+        device="cpu",
+        encoder="blosum_with_allele",
+        cluster_column="cluster_set_10",
+        task="regression",
+        allele_to_pseudosequence_csv_path="/projects/0/einf2380/data/external/unprocessed/mhcflurry.allele_sequences.csv"
+    )
