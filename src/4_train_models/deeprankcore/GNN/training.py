@@ -44,7 +44,7 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
-exp_name = 'exp_100k_std_transf_bs64_naivegnn1_wloss_wdecay_cl_peptide2_10set_'
+exp_name = 'exp_100k_std_transf_bs64_naivegnn1_wloss_cl_peptide_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -80,7 +80,7 @@ features_transform = {
     'pssm': {'transform': None, 'standardize': True}}
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = 'cl_peptide2_10set' # 'cl_peptide' # 'cl_peptide2' # 'cl_peptide2_10set' # 'cl_allele' # 'allele_type' # None
+cluster_dataset = 'cl_peptide' # 'cl_peptide' # 'cl_peptide2' # 'cl_peptide2_10set' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
 test_clusters = [3]
 # cl_peptide1 (Gibbs): [3]
@@ -95,7 +95,7 @@ net = NaiveGNN1
 batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
-weight_decay = 0.001
+weight_decay = 1e-05
 epochs = 70
 class_weights = True # weighted loss function
 cuda = True
