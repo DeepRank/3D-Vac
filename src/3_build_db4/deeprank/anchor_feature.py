@@ -97,7 +97,7 @@ def __compute_feature__(pdb_data, featgrp, featgrp_raw, chain1, chain2):
     anchfeat.db._close()
 
 if __name__ == "__main__": #debuging purposes only
-    df = pd.read_csv("../../data/external/processed/all_hla.csv")
+    df = pd.read_csv("/home/lepikhovd/3D-Vac/data/external/processed/all_hla.csv")
     df["ID"] = df["ID"].apply(lambda x: x.replace("_","-"))
 
     csv_ids = df["ID"].tolist()
