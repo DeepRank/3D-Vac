@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data as data_utils
-from torchsummary import summary
+from torchsummary import summary#, summary_string
 
 from deeprank.config import logger
 from deeprank.learn import DataSet, rankingMetrics#, classMetrics
@@ -262,6 +262,8 @@ class NeuralNet():
         # print('#*'*100)
         # print('Not printing torch summary because of errors..')
         sys.stdout.flush()
+        # with open('/home/dmarz/torchsummary.out', 'w') as summaryfile:
+        #     print(self.net,  file=summaryfile)
 
         # load parameters of pretrained model if provided
         if self.pretrained_model:
