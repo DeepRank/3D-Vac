@@ -3,10 +3,10 @@ import os.path as path
 import os
 import sys
 sys.path.append(path.abspath("../../../../"))
-from CNN.CNN_models import *
+from DeepRank.CNN_models import *
 # import multiprocessing as mp
 # from mpi4py import MPI
-from CNN.NeuralNet import NeuralNet
+from DeepRank.NeuralNet import NeuralNet
 from deeprank.learn.modelGenerator import *
 
 # DEFINE CLI ARGUMENTS

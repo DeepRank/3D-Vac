@@ -3,9 +3,9 @@ import os.path as path
 import os
 import sys
 sys.path.append(path.abspath("../../../../"))
-from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-from CNN.CNN_models import *
-from CNN.NeuralNet import NeuralNet
+from DeepRank.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
+from DeepRank.CNN_models import *
+from DeepRank.NeuralNet import NeuralNet
 # import multiprocessing as mp
 from deeprank.learn import DataSet#, NeuralNet
 from deeprank.learn.modelGenerator import *
