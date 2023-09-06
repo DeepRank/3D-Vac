@@ -17,5 +17,5 @@ source activate deeprank
 
 # Start the script:
 srun python -u generate_features.py \
-    --input-folder /projects/0/einf2380/data/pMHCI/features_input_folder \
-    --h5out /projects/0/einf2380/data/pMHCI/features_output_folder/hla_02_01_9_mers/hla_02_01_9_mers.hdf5
+    --input-folder /projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative \
+    --h5out /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/exp_nmers_all_HLA_quantitative/exp_nmers_all_HLA_quantitative.hdf5
