@@ -21,12 +21,12 @@
 # /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled_subsample/shuffled/0 \
 # 2 128
 
-# sbatch -o /projects/0/einf2380/data/training_logs/I/test_cnn_classification_%J.out \
-# -e /projects/0/einf2380/data/training_logs/I/test_cnn_classification_%J.err \
-# --job-name=test_class \
-# train_single_fold.sh cnn_onefold.py shuffled_test CnnClass4ConvKS3Lin128ChannExpand \
-# /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled_subsample/shuffled/0 \
-# 2 128
+sbatch -o /projects/0/einf2380/data/training_logs/I/test_cnn_classification_%J.out \
+-e /projects/0/einf2380/data/training_logs/I/test_cnn_classification_%J.err \
+--job-name=test_class \
+train_single_fold.sh cnn_onefold.py shuffled_test CnnClass4ConvKS3Lin128ChannExpand \
+/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled_subsample/shuffled/0 \
+2 128
 
 # #REGRESSION
 # ## Shuffled
@@ -75,9 +75,9 @@
 # 15 128 \
 
 ## Marieke's clustering
-sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_MarClust_%J.out \
--e /projects/0/einf2380/data/training_logs/I/cnn_classification_MarClust_%J.err \
---job-name=Marieke_class \
-train_single_fold.sh cnn_onefold.py clustMarieke_Cnn CnnClass4ConvKS3Lin128ChannExpand \
-/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/split_HLA_quant_Marieke_clust/clustered/3 \
-15 128 \
+# sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_MarClust_%J.out \
+# -e /projects/0/einf2380/data/training_logs/I/cnn_classification_MarClust_%J.err \
+# --job-name=Marieke_class \
+# train_single_fold.sh cnn_onefold.py clustMarieke_Cnn CnnClass4ConvKS3Lin128ChannExpand \
+# /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/split_HLA_quant_Marieke_clust/clustered/3 \
+# 15 128 \

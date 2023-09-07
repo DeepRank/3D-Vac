@@ -15,4 +15,4 @@ source activate deeprank
 
 srun python -u populate_features_input_folder.py \
     --input-folder /projects/0/einf2380/data/pMHCI/db2_selected_models/BA/\*/\* \
-    --output-folder /projects/0/einf2380/data/pMHCI/features_input_folder/hla_02_01_9_mers
+    --output-folder /projects/0/einf2380/data/pMHCI/features_input_folder/exp_nmers_all_HLA_quantitative
