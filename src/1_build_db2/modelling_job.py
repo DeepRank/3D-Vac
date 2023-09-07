@@ -83,7 +83,7 @@ t2 = time.time()
 wrap = Wrapper.Wrapper(a.csv_path, db, MHC_class=a.mhc_class, 
                     IDs_col=0, peptides_col=2, allele_name_col=1,
                     outdir_col=outdir_col, archive=True,
-                    benchmark=True, verbose=True, delimiter=',',
+                    benchmark=False, verbose=True, delimiter=',',
                     header=True, num_cores=a.num_cores, use_netmhcpan=True,
                     n_loop_models=a.n_structures, clip_C_domain=True,
                     start_row=start_row, end_row=end_row)
