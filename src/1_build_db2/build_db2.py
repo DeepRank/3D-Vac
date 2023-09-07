@@ -49,7 +49,7 @@ arg_parser.add_argument("--n-structures", "-s",
     type=str,
     default='20',
 )
-a = arg_parser.parse_args();
+a = arg_parser.parse_args()
 
 
 running_time = a.running_time; #in hour
@@ -63,11 +63,11 @@ if len(os.listdir(a.models_dir.split('*')[0])) == 0:
 # generate the to_model.csv containing all unmodelled cases from the input csv.  
 
 if a.skip_check == False:
-    command_output = subprocess.run(
-        [
+    command =[
             "sbatch",
             "--time", time_get_unmod, 
             f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.out",
+            f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/unmodelled_logs-%J.err",
             "get_unmodelled_cases.sh",
             "--csv-file", a.input_csv,
             "--update-csv", # this argument is mandatory to overwrite `to_model.csv`
@@ -75,17 +75,20 @@ if a.skip_check == False:
             "--to-model", to_model,
             '--parallel',
             "--archived"
-        ],
-    capture_output=True, check=True)
+        ]
+    print((' ').join(command))
+    command_output = subprocess.run(
+        command,
+        capture_output=True, check=True)
 
     jid_get_unmod = int(re.search(r"\d+", command_output.stdout.decode("ASCII")).group())
 
     # run the parallel modeling on n nodes
-    subprocess.run(
-        [
+    command = [
             "sbatch",
             f"--dependency=afterok:{jid_get_unmod}",
             f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.out",
+            f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.err",
             "allocate_nodes.sh",
             "--running-time", running_time,
             "--num-nodes", a.num_nodes,
@@ -93,14 +96,17 @@ if a.skip_check == False:
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
             "--n-structures", a.n_structures
-        ],
+        ]
+    print((' ').join(command))
+    subprocess.run(
+        command,
         check=True
     )
 else: 
-    subprocess.run(
-        [
+    command = [
             "sbatch",
             f"-o /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.out",
+            f"-e /projects/0/einf2380/data/modelling_logs/{a.mhc_class}/db2/allocate_nodes-%J.err",
             "allocate_nodes.sh",
             "--running-time", running_time,
             "--num-nodes", a.num_nodes,
@@ -108,6 +114,9 @@ else:
             "--input-csv", to_model,
             "--models-dir", a.models_dir,
             "--n-structures", a.n_structures
-        ],
+        ]
+    print((' ').join(command))
+    subprocess.run(
+        command,
         check=True
     )

@@ -4,10 +4,6 @@ import os
 import pandas as pd
 import re
 
-# This script is for saving the IDs of the data points not saved to the hdf5 files, but present in the initial list of
-# PDB models AND in the chosen CSV, so the ones which are missing BUT supposed to be in the hdf5 files. This may be a good
-# start for debugging the data generation process.
-
 ##########
 run_day = '230515'
 # project_folder = '/home/ccrocion/snellius_data_sample/'
