@@ -1,0 +1,52 @@
+CUDA available: False
+Device used: cpu
+Loading data for splitting...
+Data loaded, splitting into unique test datasets...
+Number of samples for training, validation and test for the 10 folds:
+Fold 0: 72933, 20839, 6434
+Fold 1: 72933, 20839, 6434
+Fold 2: 72933, 20839, 6434
+Fold 3: 72933, 20839, 6434
+Fold 4: 72933, 20839, 6434
+Fold 5: 72933, 20839, 6434
+Fold 6: 72933, 20839, 6434
+Fold 7: 72933, 20839, 6434
+Fold 8: 72933, 20839, 6434
+Fold 9: 72933, 20839, 6434
+10 datasets created, models loaded, starting training using this architecture:
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+           Flatten-1                 [-1, 1722]               0
+       BatchNorm1d-2                 [-1, 1722]           3,444
+            Linear-3                  [-1, 500]         861,500
+              ReLU-4                  [-1, 500]               0
+           Dropout-5                  [-1, 500]               0
+            Linear-6                  [-1, 500]         250,500
+              ReLU-7                  [-1, 500]               0
+           Dropout-8                  [-1, 500]               0
+            Linear-9                  [-1, 500]         250,500
+             ReLU-10                  [-1, 500]               0
+          Dropout-11                  [-1, 500]               0
+           Linear-12                    [-1, 1]             501
+================================================================
+Total params: 1,366,445
+Trainable params: 1,366,445
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.01
+Forward/backward pass size (MB): 0.06
+Params size (MB): 5.21
+Estimated Total Size (MB): 5.28
+----------------------------------------------------------------
+Training on 7 finished. Time for training: 17.549833846092223 minutes
+Training on 2 finished. Time for training: 18.053853674729666 minutes
+Training on 8 finished. Time for training: 18.42906730969747 minutes
+Training on 3 finished. Time for training: 19.66005022128423 minutes
+Training on 6 finished. Time for training: 19.688293655713398 minutes
+Training on 1 finished. Time for training: 20.010017196337383 minutes
+Training on 4 finished. Time for training: 20.89976743857066 minutes
+Training on 0 finished. Time for training: 21.061539606253305 minutes
+Training on 5 finished. Time for training: 21.301953597863516 minutes
+Training on 9 finished. Time for training: 21.386556514104207 minutes
+trained models for `exp_clustered_peptides` gathered, saved at: /home/lepikhovd/3D-Vac/src/4_train_models/CNN/I/classification/seq/trained_models/mlp_classification_blosum_with_allele_encoder_500_neurons_50_epochs_exp_clustered_peptides_64_batch_size.pt
