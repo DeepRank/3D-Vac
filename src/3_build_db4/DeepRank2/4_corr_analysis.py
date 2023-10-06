@@ -20,9 +20,9 @@ resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
 ##################################
 
-output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprank2/{resolution}/{run_day}'
 hdf5_files = glob.glob(os.path.join(output_folder, '*.hdf5'))
-df_path = f"{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}/residue_pandas.feather"
+df_path = f"{project_folder}data/{data}/features_output_folder/deeprank2/{resolution}/{run_day}/residue_pandas.feather"
 images_path = os.path.join(output_folder, 'images')
 
 # Loggers

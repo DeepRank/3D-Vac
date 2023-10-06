@@ -36,9 +36,9 @@ if (csv_target_col == 'allele_type') or (csv_target_col == 'cluster'):
 else:
     csv_file_cl_path = f'{project_folder}/data/external/processed/I/clusters/{csv_file_cl}'
 hdf5_target_path = hdf5_target_group + '/' + hdf5_target_cl
-folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprank2/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
-output_folder = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
+output_folder = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprank2/{resolution_data}/{run_day_data}'
 csv_data = pd.read_csv(csv_file_cl_path)
 if hdf5_target_cl == 'cl_peptide2_10set':
     csv_data.cluster = csv_data.cluster.apply(lambda x: -1 if x == ' ' else x)

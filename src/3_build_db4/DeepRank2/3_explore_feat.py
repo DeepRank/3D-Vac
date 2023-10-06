@@ -17,7 +17,7 @@ data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 target_dataset = 'binary'
 features = 'electrostatic'
-output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprank2/{resolution}/{run_day}'
 ##################################
 
 # Loggers

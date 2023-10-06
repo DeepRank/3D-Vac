@@ -4,8 +4,8 @@ import pandas as pd
 import glob
 import sys
 import logging
-from deeprankcore.query import QueryCollection
-from deeprankcore.utils.grid import GridSettings, MapMethod
+from deeprank2.query import QueryCollection
+from deeprank2.utils.grid import GridSettings, MapMethod
 
 
 ####### please modify here #######
@@ -35,12 +35,12 @@ grid_settings = None
 grid_map_method = None
 ##################################
 models_folder_path = f'{project_folder}data/{data}/features_input_folder/{models_folder_name}'
-output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprank2/{resolution}/{run_day}'
 
 if resolution == 'atomic':
-	from deeprankcore.query import ProteinProteinInterfaceAtomicQuery as PPIQuery
+	from deeprank2.query import ProteinProteinInterfaceAtomicQuery as PPIQuery
 else:
-	from deeprankcore.query import ProteinProteinInterfaceResidueQuery as PPIQuery
+	from deeprank2.query import ProteinProteinInterfaceResidueQuery as PPIQuery
 
 def generate_data():
 	if not os.path.exists(output_folder):
@@ -70,7 +70,7 @@ def generate_data():
 
 	if debug_missing_ids:
 		import ast
-		with open("/home/ccrocion/repositories/3D-Vac/src/3_build_db4/deeprankcore/missing_ids.txt") as f:
+		with open("/home/ccrocion/repositories/3D-Vac/src/3_build_db4/deeprank2/missing_ids.txt") as f:
 			csv_ids = ast.literal_eval(f.read())
 		_log.info(f'Len of missing IDs list: {len(csv_ids)}')
 		pdb_files = [os.path.join(models_folder_path + '/pdb', csv_id + '.pdb') for csv_id in csv_ids]
