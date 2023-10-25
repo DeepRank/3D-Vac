@@ -246,17 +246,13 @@ if __name__ == "__main__":
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')
-
+    
     if validate:
         dataset_val = GraphDataset(
             hdf5_path = input_data_path,
             subset = list(df_valid.entry),
-            target = target_dataset,
-            task = task,
-            node_features = node_features,
-            edge_features = edge_features,
             train = False,
-            dataset_train = dataset_train,
+            train_data = dataset_train,
             check_integrity = check_integrity
         )
         _log.info(f'Len df valid: {len(dataset_val)}')
@@ -266,12 +262,8 @@ if __name__ == "__main__":
         dataset_test = GraphDataset(
             hdf5_path = input_data_path,
             subset = list(df_test.entry),
-            target = target_dataset,
-            task = task,
-            node_features = node_features,
-            edge_features = edge_features,
             train = False,
-            dataset_train = dataset_train,
+            train_data = dataset_train,
             check_integrity = check_integrity
         )
         _log.info(f'Len df test: {len(dataset_test)}')

@@ -201,17 +201,15 @@ if __name__ == "__main__":
     dataset_val = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_valid.entry),
-        target = target_dataset,
-        task = task,
-        features = features,
+        train = False,
+        train_data = dataset_train,
         check_integrity = check_integrity
     )
     dataset_test = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_test.entry),
-        target = target_dataset,
-        task = task,
-        features = features,
+        train = False,
+        train_data = dataset_train,
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')
