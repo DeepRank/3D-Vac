@@ -10,11 +10,8 @@ import sys
 sys.path.append(path.abspath("."))
 sys.path.append(path.abspath("../"))
 sys.path.append(path.abspath("../../"))
-sys.path.append(path.abspath("../../../../"))
-sys.path.append(path.abspath("../../../../../"))
-sys.path.append(path.abspath("../../../../../../"))
-from CNN.SeqBased_models import MlpRegBaseline, train_f, evaluate
-from CNN.datasets import Class_Seq_Dataset, create_unique_csv # class and function to generate shuffled dataset
+from seq.SeqBased_models import MlpRegBaseline, train_f, evaluate
+from seq.datasets import Class_Seq_Dataset, create_unique_csv # class and function to generate shuffled dataset
 # import multiprocessing as mp
 from mpi4py import MPI
 from sklearn.model_selection import StratifiedKFold, KFold # used for normal cross validation
