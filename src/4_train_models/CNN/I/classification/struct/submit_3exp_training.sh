@@ -12,6 +12,7 @@
 
 # conda init bash
 # conda activate 3D-Vac
+source activate deeprank
 
 # #TEST
 # sbatch -o /projects/0/einf2380/data/training_logs/I/test_cnn_regression_%J.out \
@@ -51,28 +52,28 @@
 # /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_allele_clusters/clustered/0 \
 # 15 128 \
 
-# # CLASSIFICATION
-# ## Shuffled
-# sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_shuffled_%J.out \
-# -e /projects/0/einf2380/data/training_logs/I/cnn_classification_shuffled_%J.err \
-# --job-name=shuff_class \
-# train_single_fold.sh cnn_onefold.py shuffled_Cnn CnnClass4ConvKS3Lin128ChannExpand \
-# /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled/shuffled/0 \
-# 15 128 \
-# # Peptide clustered
-# sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_peptClust_%J.out \
-# -e /projects/0/einf2380/data/training_logs/I/cnn_classification_peptClust_%J.err \
-# --job-name=pept_class \
-# train_single_fold.sh cnn_onefold.py clustPept_Cnn CnnClass4ConvKS3Lin128ChannExpand \
-# /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quantitative_gibbs_clust_10_3/clustered/0 \
-# 15 128 \
-# ## Allele clustered
-# sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_alleleClust_%J.out \
-# -e /projects/0/einf2380/data/training_logs/I/cnn_classification_alleleClust_%J.err \
-# --job-name=alle_class \
-# train_single_fold.sh cnn_onefold.py clustAllele_Cnn CnnClass4ConvKS3Lin128ChannExpand \
-# /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_allele_clusters/clustered/0 \
-# 15 128 \
+# CLASSIFICATION
+## Shuffled
+sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_shuffled_%J.out \
+-e /projects/0/einf2380/data/training_logs/I/cnn_classification_shuffled_%J.err \
+--job-name=shuff_class \
+train_single_fold.sh cnn_onefold.py shuffled_Cnn CnnClass4ConvKS3Lin128ChannExpand \
+/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled/shuffled/0 \
+15 128 \
+# Peptide clustered
+sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_peptClust_%J.out \
+-e /projects/0/einf2380/data/training_logs/I/cnn_classification_peptClust_%J.err \
+--job-name=pept_class \
+train_single_fold.sh cnn_onefold.py clustPept_Cnn CnnClass4ConvKS3Lin128ChannExpand \
+/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quantitative_gibbs_clust_10_3/clustered/0 \
+15 128 \
+## Allele clustered
+sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_alleleClust_%J.out \
+-e /projects/0/einf2380/data/training_logs/I/cnn_classification_alleleClust_%J.err \
+--job-name=alle_class \
+train_single_fold.sh cnn_onefold.py clustAllele_Cnn CnnClass4ConvKS3Lin128ChannExpand \
+/projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_allele_clusters/clustered/0 \
+15 128 \
 
 ## Marieke's clustering
 sbatch -o /projects/0/einf2380/data/training_logs/I/cnn_classification_MarClust_%J.out \

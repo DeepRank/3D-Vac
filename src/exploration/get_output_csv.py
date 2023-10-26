@@ -18,7 +18,7 @@ import h5py
 
 # args = arg_parser.parse_args()
 
-def get_output_csv(input_path, keys_path, output_path):
+def get_output_csv(input_path, output_path):
     outputs_f = h5py.File(input_path)
     test_keys_f = h5py.File(keys_path + '/test.hdf5')
     valid_keys_f = h5py.File(keys_path + '/valid.hdf5')
