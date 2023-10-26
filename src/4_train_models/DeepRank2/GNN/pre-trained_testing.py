@@ -15,9 +15,9 @@ from deeprank2.utils.exporters import HDF5OutputExporter
 ## Query
 # path to the pdb(s) to be processed with deeprank2
 # note that all the pdbs contained in pdb_input_path will be processed
-pdb_input_path = 'test_data/pdb'
-pretrained_model_path = "test_data/exp_100k_std_transf_bs64_naivegnn1_wloss_all_data_0_231006.pth.tar"
-output_path = 'test_data/test1'
+pdb_input_path = '/home/dmarz/test_cases/final_folders/NOnetmhcpan'
+pretrained_model_path = "/projects/0/einf2380/data/pMHCI/trained_models/deeprank2/experiments/exp_100k_std_transf_bs64_naivegnn1_wloss_all_data_0_231006/model.pth.tar"
+output_path = '/home/dmarz/test_cases/outputs/NOnetmhcpan'
 resolution = 'residue' # either 'residue' or 'atomic'
 interface_distance_cutoff = 15  # max distance in Å between two interacting residues/atoms of two proteins
 chain_id1 = 'M'
@@ -52,7 +52,8 @@ if not os.path.exists(output_path):
 	os.makedirs(output_path)
 else:
 	if len(os.listdir(output_path)) > 0:
-		sys.exit(f'{output_path} already exists and is not empty, please remove the existing files or change output path!')
+		#sys.exit(f'{output_path} already exists and is not empty, please remove the existing files or change output path!')
+		print(f'WARNING: {output_path} already exists and is not empty')
 
 # Loggers
 _log = logging.getLogger('')

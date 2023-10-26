@@ -2,7 +2,7 @@ import argparse
 import os.path as path
 import os
 import sys
-sys.path.append(path.abspath("../../../../"))
+sys.path.append(path.abspath("../../../"))
 from DeepRank.CNN_models import *
 # import multiprocessing as mp
 # from mpi4py import MPI
