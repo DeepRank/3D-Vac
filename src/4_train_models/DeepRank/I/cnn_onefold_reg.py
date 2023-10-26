@@ -2,14 +2,13 @@ import argparse
 import os.path as path
 import os
 import sys
-sys.path.append(path.abspath("../../../../"))
+sys.path.append(path.abspath("../../../"))
 from DeepRank.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
 from DeepRank.CNN_models import *
 from DeepRank.NeuralNet import NeuralNet
 # import multiprocessing as mp
 from deeprank.learn import DataSet#, NeuralNet
 from deeprank.learn.modelGenerator import *
-import h5py
 
 # DEFINE CLI ARGUMENTS
 #---------------------
@@ -108,7 +107,7 @@ data_set = DataSet(train_database=train_db,
     select_feature = {'AtomicDensities_ind': 'all',
         "Feature_ind": ['Edesolv', 'anch', 'SkipGram*',
         'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
-    select_target = "BIN_CLASS",
+    select_target = "CONTINUOUS_NORM",
     normalize_features = False, #Change back to True
     normalize_targets = False,
     pair_chain_feature = np.add,
@@ -122,7 +121,7 @@ architecture='' #Useless, but it makes vscode not complain
 exec('architecture='+a.model)
 model = NeuralNet(data_set=data_set,
     model = architecture,
-    task = "class",
+    task = "reg",
     chain1 = "M",
     chain2 = "P",
     cuda = bool(a.with_cuda),
@@ -141,13 +140,10 @@ model.train(
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
     num_workers=18,
-    prefetch_factor=40,
+    prefetch_factor=20,
     save_fraction=1,
     pin_memory_cuda=False
 )
 
 # START TRAINING
 #---------------
-
-print('CLASSMETRICS:')
-print(model.classmetrics)

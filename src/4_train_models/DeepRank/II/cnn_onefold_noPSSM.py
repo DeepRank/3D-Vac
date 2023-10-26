@@ -3,11 +3,10 @@ import os.path as path
 import os
 import sys
 sys.path.append(path.abspath("../../../../"))
-from DeepRank.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-from DeepRank.CNN_models import *
-from DeepRank.NeuralNet import NeuralNet
+from CNN.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
+from CNN.CNN_models import *
 # import multiprocessing as mp
-from deeprank.learn import DataSet#, NeuralNet
+from deeprank.learn import DataSet, NeuralNet
 from deeprank.learn.modelGenerator import *
 
 # DEFINE CLI ARGUMENTS
@@ -22,11 +21,12 @@ arg_parser = argparse.ArgumentParser(
     will perform a shuffled cross validation, for a clustered please provide --cluster argument.",
 )
 
-arg_parser.add_argument("--data-path", "-d",
-    help="Path to shuffled and clustered folders containing subfolders named from 0 to 9 each with \
-    train.hdf5, valid.hdf5 and test.hdf5 files as the splits for each fold.",
-    required=True,
-)
+# arg_parser.add_argument("--splits-path", "-s",
+#     help="Path to shuffled and clustered folders containing subfolders named from 0 to 9 each with \
+#     train.hdf5, valid.hdf5 and test.hdf5 files as the splits for each fold. Default path \
+#     /projects/0/einf2380/data/pMHCII/features_output_folder/CNN/hla_drb1_0101_15mers/splits",
+#     default="/projects/0/einf2380/data/pMHCII/features_output_folder/CNN/hla_drb1_0101_15mers/splits"
+# )
 arg_parser.add_argument("--cluster", "-c",
     help="By providing this argument, will perform a scikit LeavOneGroupOut crossvalidation grouped by cluster, shuffled KFold otherwise.",
     default=0,
@@ -42,10 +42,6 @@ arg_parser.add_argument("--epochs", "-E",
     help="Number of times to iterate through the whole dataset. Default 10.",
     default=10,
     type=int
-)
-arg_parser.add_argument("--output-dir", "-o",
-    help="Name of the folder where 10 subfolders will be created for each cross validation. Required.",
-    required = True,
 )
 arg_parser.add_argument("--exp-name", "-x",
     help="Name of the folder where 10 subfolders will be created for each cross validation. Required.",
@@ -64,7 +60,8 @@ arg_parser.add_argument("--model", "-m",
 )
 arg_parser.add_argument("--task-id", "-t",
     help="Task id signaling which cross-validation fold this job is running",
-    default=None,
+    required=True,
+    type=int
 )
 
 a = arg_parser.parse_args()
@@ -79,19 +76,18 @@ sys.stdout = open(os.devnull, 'w')
 #----------
 
 
-# if the --cluster argument is provided, loads train, valid and test from the --splits-path/cluster/ folder
-if not a.task_id:
-    train_db = f"{a.data_path}/train.hdf5"
-    val_db = f"{a.data_path}/valid.hdf5"
-    test_db = f"{a.data_path}/test.hdf5"
-    
-    outdir = f'{a.output_dir}/{a.exp_name}/{a.model}/'
-else:
-    train_db = f"{a.data_path}/{a.task_id}/train.hdf5"
-    val_db = f"{a.data_path}/{a.task_id}/valid.hdf5"
-    test_db = f"{a.data_path}/{a.task_id}/test.hdf5"
-    
-    outdir = f'{a.output_dir}/{a.exp_name}/{a.model}/{a.task_id}'
+splits_path = f'/projects/0/einf2380/data/pMHCII/features_output_folder/CNN/hla_drb1_0101_15mers'#{a.exp_name}'
+# chose to load either clustered or shuffled data
+split_type = ('shuffled', 'clustered')[a.cluster]
+
+train_db = f"{splits_path}/{split_type}/{a.task_id}/train.hdf5"
+val_db = f"{splits_path}/{split_type}/{a.task_id}/valid.hdf5"
+test_db = f"{splits_path}/{split_type}/{a.task_id}/test.hdf5"
+
+# create output directory:
+output_dir = f'/projects/0/einf2380/data/pMHCII/trained_models/CNN/classification/{a.exp_name}/struct/{a.model}/{split_type}'
+
+outdir = f"{output_dir}/{a.task_id}"
 try:
     os.makedirs(outdir)
 except OSError as error:
@@ -104,13 +100,13 @@ data_set = DataSet(train_database=train_db,
     chain1 = "M",
     chain2 = "P",
     grid_info = (35,30,30),
-    select_feature = {'AtomicDensities_ind': 'all',
-        "Feature_ind": ['Edesolv', 'anch', 'SkipGram*',
+    select_feature = {#'AtomicDensities_ind': 'all',
+        "Feature_ind": ['Edesolv',
         'RCD_*', 'bsa', 'charge', 'coulomb', 'vdwaals']},
-    select_target = "CONTINUOUS_NORM",
-    normalize_features = False, #Change back to True
+    select_target = "BIN_CLASS",
+    normalize_features = True,
     normalize_targets = False,
-    pair_chain_feature = np.add,
+    pair_chain_feature = None,
     mapfly = False,
     tqdm = True,
     clip_features = False,
@@ -121,15 +117,14 @@ architecture='' #Useless, but it makes vscode not complain
 exec('architecture='+a.model)
 model = NeuralNet(data_set=data_set,
     model = architecture,
-    task = "reg",
+    task = "class",
     chain1 = "M",
     chain2 = "P",
     cuda = bool(a.with_cuda),
     ngpu = a.with_cuda,
     plot = True,
     save_classmetrics = True,
-    outdir = outdir,
-    optimizer='adam'
+    outdir = outdir
 )
 
 model.train(
@@ -139,10 +134,7 @@ model.train(
     save_model = "best",
     save_epoch = "all",
     hdf5 = "metrics.hdf5",
-    num_workers=18,
-    prefetch_factor=20,
-    save_fraction=1,
-    pin_memory_cuda=False
+    num_workers=12
 )
 
 # START TRAINING
