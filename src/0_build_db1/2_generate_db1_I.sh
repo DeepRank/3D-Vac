@@ -5,3 +5,7 @@ python generate_db1_I.py \
     --allele HLA-A*02:01 \
     --prefix BA \
     --measurement_type BA 
+
+# Inputs: MHCFlurry dataset csv filename in `data/external/unprocessed`.
+# Outputs: DB1 in 'path-to-destination.csv'.
+# Run `python src/0_build_db1/generate_db1_I.py --help` for more details on how to filter for specific allele and peptide length.

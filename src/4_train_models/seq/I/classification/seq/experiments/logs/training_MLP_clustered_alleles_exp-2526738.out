@@ -1,0 +1,6 @@
+CUDA available: False
+Device used: cpu
+Loading data for splitting...
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 2526738 ON fcn8 CANCELLED AT 2023-03-31T10:05:08 ***
+slurmstepd: error: *** STEP 2526738.0 ON fcn8 CANCELLED AT 2023-03-31T10:05:08 ***
