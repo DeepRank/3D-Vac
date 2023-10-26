@@ -4,13 +4,13 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task=18
-#SBATCH --time 20:00:00
+#SBATCH --time 30:00:00
 #removed -o /projects/0/einf2380/data/training_logs/I/cnn_class_AllMers-%J.out
 #removed -e /projects/0/einf2380/data/training_logs/I/cnn_class_AllMers-%J.err
 
 ## load modules
 conda init bash
-source activate 3D-Vac
+source activate deeprank
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:'/lib64'
 
 srun python -u $1 --with-cuda 1 \
