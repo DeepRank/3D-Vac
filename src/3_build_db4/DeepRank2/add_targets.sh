@@ -6,7 +6,7 @@
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 72
 #SBATCH --time 04:00:00
-#SBATCH -o /projects/0/einf2380/data/logs/deeprankcore/add_targets_job-%J.out
+#SBATCH -o /projects/0/einf2380/data/logs/deeprank2/add_targets_job-%J.out
 
-source activate deeprank_gpu
+source activate deeprank2_gpu
 python -u add_targets.py

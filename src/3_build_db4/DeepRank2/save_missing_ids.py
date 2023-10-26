@@ -14,7 +14,7 @@ data = 'pMHCI'
 resolution = 'residue' # either 'residue' or 'atomic'
 ###########
 
-output_folder = f'{project_folder}data/{data}/features_output_folder/deeprankcore/{resolution}/{run_day}'
+output_folder = f'{project_folder}data/{data}/features_output_folder/deeprank2/{resolution}/{run_day}'
 csv_file_path = f'{project_folder}data/external/processed/I/{csv_file_name}'
 models_folder_path = f'{project_folder}data/{data}/features_input_folder/{models_folder_name}'
 hdf5_files = glob.glob(os.path.join(output_folder, '*.hdf5'))

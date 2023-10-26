@@ -19,10 +19,10 @@ from sklearn.metrics import (
     f1_score,
     matthews_corrcoef)
 import torch
-from deeprankcore.trainer import Trainer
-from deeprankcore.utils.exporters import HDF5OutputExporter
-from deeprankcore.dataset import GridDataset
-from deeprankcore.neuralnets.cnn.model3d import CnnClassification
+from deeprank2.trainer import Trainer
+from deeprank2.utils.exporters import HDF5OutputExporter
+from deeprank2.dataset import GridDataset
+from deeprank2.neuralnets.cnn.model3d import CnnClassification
 from pmhc_cnn import CnnClass4ConvKS3Lin128ChannExpand
 
 
@@ -39,10 +39,10 @@ target_data = 'BA'
 resolution_data = 'residue' # either 'residue' or 'atomic'
 # project_folder = '/home/ccrocion/snellius_data_sample' # local resized df path
 project_folder = '/projects/0/einf2380'
-folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprankcore/{resolution_data}/{run_day_data}'
+folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder/deeprank2/{resolution_data}/{run_day_data}'
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
-exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprankcore/experiments/'
+exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprank2/experiments/'
 exp_name = 'exp_100k_cnn_bs128_CnnClass4ConvKS3Lin128ChannExpand_'
 exp_date = True # bool
 exp_suffix = ''
@@ -201,17 +201,15 @@ if __name__ == "__main__":
     dataset_val = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_valid.entry),
-        target = target_dataset,
-        task = task,
-        features = features,
+        train = False,
+        train_data = dataset_train,
         check_integrity = check_integrity
     )
     dataset_test = GridDataset(
         hdf5_path = input_data_path,
         subset = list(df_test.entry),
-        target = target_dataset,
-        task = task,
-        features = features,
+        train = False,
+        train_data = dataset_train,
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')

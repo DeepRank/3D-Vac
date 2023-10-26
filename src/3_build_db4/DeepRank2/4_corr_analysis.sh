@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=128
 #SBATCH --time=10:00:00
 #SBATCH --partition=fat
-#SBATCH -o /projects/0/einf2380/data/logs/deeprankcore/4_corr_analysis_job-%J.out
+#SBATCH -o /projects/0/einf2380/data/logs/deeprank2/4_corr_analysis_job-%J.out
 
-source activate deeprank_gpu
+source activate deeprank2_gpu
 
 python -u 4_corr_analysis.py
