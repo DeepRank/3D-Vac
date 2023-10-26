@@ -168,15 +168,25 @@ In general, the folders are ordered per step number (1, 2, etc.). Every folder c
 
 If you perform a new experiment, please use a new `.sh` script and write a comment in it explaining what it does (i.e. what it does differently from the other identical scripts, like "Generates db2 only for HLA-C").
 
-<<<<<<< HEAD
 ### Step 0: Preparing the binding affinity targets
 #### 0.1: Building DB1 for MHC-I based on MHCFlurry dataset
 DB1 is a text file containing pMHC-I (DB1-I) and pMHC-II (DB1-II) peptide sequences, MHC allele names and their experimental Binding Affinities (BAs).
 
-### Step 1: Generating pdb structures
-DB2 contains 3D models (output of Pandora, pdb structures) for: pMHC-I in DB1-I (DB2-I), and pMHC-II in DB1-II (DB2-II). DB1-I and DB1-II are used as input for Pandora. 
+### 0.2 (option 1) Cluster the peptides based on their sequence similarity
+```
+python src/1_build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
+```
+* Inputs: generated db1 in `data/external/processed`.
+* Output: a .pkl file in `data/external/processed` containing the clusters.
+* Run `python src/0_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
+* Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
 
-All the scripts needed to generate the 3D models are in this folder.
+### 0.2 (option 2) Cluster the peptides based on their sequence similarity
+* Download gibbs cluster software from https://services.healthtech.dtu.dk/services/GibbsCluster-2.0/
+* Change the path to the binary in `src/0_build_db1/generate_gibbs_clusters.sh` to the installed path. Run the script.
+* Provide the gibbs cluster output to the `src/0_build_db1/gibbs_cluster_parser.py` as a parameter to map each peptide of db1 to its cluster. See `src/0_build_db1/gibbs_cluster_parser.py --help` for more information.
+* Gibbs cluster binary provides sequence motifs in the output directory.
+
 
 ### Step 2: Generating db3
 DB3 is the collection of data needed to generate hdf5 files, namely selected 3D models and their PSSMs.
@@ -216,3 +226,20 @@ sbatch training.sh
 ### explore_best_models.ipynb
 * Plots metrics from CNN and MLP best models.
 * Open the notebook file for instructions.
+
+### Tools
+#### Gibbs cluster
+```
+python tools/gibbs_cluster_parser.py --help
+```
+* This tool is used to generate clusters using Gibbs sampling based on Shannon's entropy minimization. 
+* Can be found at https://services.healthtech.dtu.dk/services/GibbsCluster-2.0/
+* Clusters can be generated directly on the website or by downloading the binary. Optimal parameters for MHCI and MHCII can be checked on the website too.
+* Given some parameters for the gibbs cluster binary, each run generates a cluster set made of *g* number of clusters. Next lines list available scripts to explore data distribution, cluster quality of the newly generated cluster set and map clusters for each peptide in db1.
+* Once clusters are generated, peptides from db1 can be mapped to their respective cluster using the script in `tools/gibbs_cluster_parser.py`.
+* `/src/exploration/explore_gibbs_output.ipynb` can be used to evaluate the clustering quality (assess noisy clusters) and plot binders/non-binders distribution. 
+* `/src/exploration/explore_gibbs_kld.ipynb` calculates and plots Kullback-Leibler divergence (KLD score) between clusters (one2one and one2many). This script generates figures in `/reports/figures/gibbs-cluster` showing barplots of KLD scores for one2one or one2many cluster to cluster(s) comparison.
+
+### GNNs
+- Generate features graphs in the form of .hdf5 files. Run `src/features/pdb_to_hdf5_gnns.py`
+- Combine multiple .hdf5 files into one. Run `src/features/combine_hdf5.py`
