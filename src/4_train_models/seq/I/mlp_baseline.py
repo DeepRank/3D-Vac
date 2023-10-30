@@ -10,6 +10,7 @@ import sys
 sys.path.append(path.abspath("."))
 sys.path.append(path.abspath("../"))
 sys.path.append(path.abspath("../../"))
+sys.path.append(path.abspath("../../../../"))
 from seq.SeqBased_models import MlpRegBaseline, train_f, evaluate
 from seq.datasets import Class_Seq_Dataset, create_unique_csv # class and function to generate shuffled dataset
 # import multiprocessing as mp
@@ -114,6 +115,11 @@ arg_parser.add_argument("--task",
     choices=["classification", "regression"],
     default="classification"
 )
+arg_parser.add_argument("--no-clean",
+    help="If True, doesn't remove intermediate csv file",
+    default=False,
+    action="store_true"
+)
 
 a = arg_parser.parse_args()
 
@@ -186,7 +192,9 @@ if rank == 0:
             validation_idx,
             test_idx
         ]]*size
-        os.remove(csv_path)
+
+        if not a.no_clean:
+            os.remove(csv_path)
         
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
@@ -263,7 +271,7 @@ test_dataloader = DataLoader(test_subset, batch_size=batch)
 
 # instantiate the model class
 input_dimensions = dataset.input_shape
-model = MlpRegBaseline(outputs=(1,2)[a.task == "classification"], neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
+model = MlpRegBaseline(n_output_nodes=(1,2)[a.task == "classification"], neurons_per_layer= neurons_per_layer, input_shape=input_dimensions).to(device)
 optimizer = torch.optim.Adam(model.parameters())
 
 if rank==0:
@@ -282,21 +290,31 @@ train_accuracies, validation_accuracies, test_accuracies = [], [], []
 train_losses, validation_losses, test_losses = [], [], []
 train_tpr, validation_tpr, test_tpr = [], [], []
 train_tnr, validation_tnr, test_tnr = [], [], []
+#train_auc, validation_auc, test_auc = [], [], []
 
 start_training_time = time.time()
 for e in range(epochs):
     # calculate metrics:
     tr_accuracy, tr_tpr, tr_tnr, tr_losses = evaluate(train_dataloader, model, loss_fn, device, a.task)
-    train_accuracies.append(tr_accuracy);train_tpr.append(tr_tpr); train_tnr.append(tr_tnr);
-    train_losses.append(tr_losses); 
+    train_accuracies.append(tr_accuracy)
+    train_tpr.append(tr_tpr)
+    train_tnr.append(tr_tnr)
+    train_losses.append(tr_losses) 
+    #train_auc.append(tr_auc)
     
-    val_accuracy, val_tpr, val_tnr, val_losses = evaluate(validation_dataloader, model, loss_fn, device, a.task)
-    validation_accuracies.append(val_accuracy);validation_tpr.append(val_tpr)
-    validation_tnr.append(val_tnr); validation_losses.append(val_losses);
+    val_accuracy, val_tpr, val_tnr, val_losses  = evaluate(validation_dataloader, model, loss_fn, device, a.task)
+    validation_accuracies.append(val_accuracy)
+    validation_tpr.append(val_tpr)
+    validation_tnr.append(val_tnr)
+    validation_losses.append(val_losses)
+    #validation_auc.append(val_auc)
 
     t_accuracy, t_tpr, t_tnr, t_losses = evaluate(test_dataloader, model, loss_fn, device, a.task)
-    test_accuracies.append(t_accuracy);test_tpr.append(t_tpr); test_tnr.append(t_tnr); 
-    test_losses.append(t_losses);
+    test_accuracies.append(t_accuracy)
+    test_tpr.append(t_tpr)
+    test_tnr.append(t_tnr)
+    test_losses.append(t_losses)
+    #test_auc.append(t_auc)
 
     # update the best model if validation loss improves
     if a.task == "classification":
@@ -333,6 +351,10 @@ best_model["test_tnr"] = test_tnr
 best_model["train_losses"] = train_losses
 best_model["validation_losses"] = validation_losses
 best_model["test_losses"] = test_losses
+
+# best_model["train_auc"] = train_auc
+# best_model["validation_auc"] = validation_auc
+# best_model["test_auc"] = test_auc
 
 best_model["model"] = best_model["model"].state_dict()
 best_model["test_indices"] = split[2]

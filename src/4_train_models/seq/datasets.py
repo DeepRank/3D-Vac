@@ -11,20 +11,26 @@ import os
 # define the aminoacid alphabet and build the one-hot tensor:
 aminoacids = ('ACDEFGHIKLMNPQRSTVWYX')
 AA_eye = torch.eye(len(aminoacids), dtype=torch.float16)
+matrix = blosum.BLOSUM(62)
 
 # build the blosum62 tensor and its alphabet:
-mat = blosum.BLOSUM(62)
-blosum_t = [[]]
-blosum_aa = ["A"]
-for aa in mat.keys():
-    if aa[0] in aminoacids and aa[1] in aminoacids:
-        if len(blosum_t[-1]) < len(aminoacids):
-            blosum_t[-1].append(mat[aa])
-        else:
-            blosum_aa.append(aa[0])
-            blosum_t.append([mat[aa]])
-blosum_t = torch.tensor(blosum_t, dtype=torch.float16)
-blosum_aa = "".join(blosum_aa)
+# blosum_t = [[]]
+# blosum_aa = ["A"]
+# for aa in mat.keys():
+#     if aa in aminoacids: 
+#         for t in mat[aa]:
+#             if t in aminoacids:
+#                 if len(blosum_t[-1]) < len(aminoacids):
+#                     blosum_t[-1].append(mat[aa])
+#                 else:
+#                     blosum_aa.append(aa)
+#                     blosum_t.append([mat[aa]])
+# blosum_t = torch.tensor(blosum_t, dtype=torch.float16)
+# blosum_aa = "".join(blosum_aa)
+
+def seq_to_mat(res, matrix=matrix):
+    return list(matrix[res].values())
+    
 
 def length_agnostic_encode_p(p):
     """Build a length agnostic representation of peptide having a sequence length not greater than 15.
@@ -58,8 +64,8 @@ def allele_peptide2blosum(allele, peptide):
     Returns:
         List: Concatenated representation of the allele and peptide with shape (allele+peptide)*21
     """
-    peptide_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
-    allele_arr = [blosum_t[blosum_aa.index(res)].tolist() for res in allele]
+    peptide_arr = [seq_to_mat(res) for res in peptide]
+    allele_arr = [seq_to_mat(res) for res in allele]
     return allele_arr + peptide_arr
 
 def allele_peptide2onehot(allele, peptide):
@@ -96,7 +102,7 @@ def peptide2blosum(peptide):
     Returns:
         List: One hot representation of the peptide with shape peptide*21
     """
-    return [blosum_t[blosum_aa.index(res)].tolist() for res in peptide]
+    return [seq_to_mat(res) for res in peptide]
 
 class Class_Seq_Dataset(Dataset):
     def __init__(
@@ -119,14 +125,15 @@ class Class_Seq_Dataset(Dataset):
             cluster_column (string): Column of the csv file to use containing cluster mapping for samples. Only for clustered data.
             allele_to_pseudosoquence_csv_path (string): path to the mhcflurry csv file containing mapings for alleles to pseudosequences
         """
-        df = pd.read_csv(csv)
         self.task = task
-        self.df = df.loc[df.peptide.str.len() <= 15]
         self.threshold = threshold
         self.cluster_column = cluster_column
         allele_to_pseudoseq_df = pd.read_csv(allele_to_pseudosequence_csv_path)
         allele_to_pseudoseq = dict(zip(allele_to_pseudoseq_df.allele, allele_to_pseudoseq_df.sequence))
-        self.df = df.loc[df.allele.isin(list(allele_to_pseudoseq.keys()))]
+        
+        df = pd.read_csv(csv)
+        self.df = df.loc[df.peptide.str.len() <= 15]
+        self.df = self.df.loc[self.df.allele.isin(list(allele_to_pseudoseq.keys()))]
         self.pseudosequences = [allele_to_pseudoseq[a] for a in self.df.allele]
 
         self.labels, self.groups = self.load_class_seq_data()
