@@ -29,7 +29,7 @@ matrix = blosum.BLOSUM(62)
 # blosum_aa = "".join(blosum_aa)
 
 def seq_to_mat(res, matrix=matrix):
-    return list(matrix[res].values())
+    return list([matrix[res][x] for x in matrix[res] if x in aminoacids])
     
 
 def length_agnostic_encode_p(p):
