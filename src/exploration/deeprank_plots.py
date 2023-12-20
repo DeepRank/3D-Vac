@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import sys
 sys.path.append('/home/dmarz/3D-Vac/src/4_train_models')
-from CNN import classMetrics
+from DeepRank import classMetrics
 
 arg_parser = argparse.ArgumentParser(
     description = ""

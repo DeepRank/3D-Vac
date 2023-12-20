@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import pickle
+import pandas as pd
 
 import h5py
 import matplotlib
@@ -12,7 +13,6 @@ import matplotlib.lines as mlines
 import matplotlib.transforms as mtransforms
 import numpy as np
 from numpy import mean
-import pandas as pd
 import warnings
 from math import ceil
 
@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data as data_utils
-from torchsummary import summary
+from torchsummary import summary#, summary_string
 
 from deeprank.config import logger
 from deeprank.learn import DataSet, rankingMetrics#, classMetrics
@@ -262,6 +262,8 @@ class NeuralNet():
         # print('#*'*100)
         # print('Not printing torch summary because of errors..')
         sys.stdout.flush()
+        # with open('/home/dmarz/torchsummary.out', 'w') as summaryfile:
+        #     print(self.net,  file=summaryfile)
 
         # load parameters of pretrained model if provided
         if self.pretrained_model:
@@ -481,6 +483,7 @@ class NeuralNet():
         # load data
         index = list(range(self.data_set.__len__()))
         sampler = data_utils.sampler.SubsetRandomSampler(index)
+        #sampler = data_utils.sampler.SequentialSampler(index) ##TEST
         #sampler = torch.utils.data.distributed.DistributedSampler(self.data_set)
         loader = data_utils.DataLoader(self.data_set, sampler=sampler, batch_size=128)
 
@@ -682,10 +685,12 @@ class NeuralNet():
         train_sampler = data_utils.sampler.SubsetRandomSampler(index_train)
         valid_sampler = data_utils.sampler.SubsetRandomSampler(index_valid)
         test_sampler = data_utils.sampler.SubsetRandomSampler(index_test)
+        #test_sampler = data_utils.sampler.SequentialSampler(index_test) ##TEST
         
         # get if we test as well
         self._valid_ = len(valid_sampler.indices) > 0
         self._test_ = len(test_sampler.indices) > 0
+        #self._test_ = len(test_sampler) > 0 ##TEST
         
         # how often to measure the progress as a fraction of an epoch
         self.frac_measure = save_fraction

@@ -1,0 +1,42 @@
+*********************************************************************************************************** 
+* WARNING: This modules-environment is intended for users whose applications
+and locally compiled codes * 
+* depend on toolchains previously available on Cartesius in the 2020 software
+stack. Please * 
+* note that this modules-environment does not and WILL NOT include a complete
+software stack. * 
+* * 
+* If you have any question, please contact us via
+http://servicedesk.surfsara.nl. * 
+*********************************************************************************************************** 
+Device used: cuda:0
+Loading data...
+Data loaded, splitting into unique test datasets...
+Splitting into shuffled datasets..
+Traceback (most recent call last):
+  File "/gpfs/home6/dmarz/3D-Vac/src/4_train_models/CNN/II/classification/seq/mlp_baseline.py", line 190, in <module>
+    for train_idx, test_idx in kfold.split(dataset.peptides, dataset.labels):
+  File "/home/dmarz/anaconda3/envs/deeprank/lib/python3.10/site-packages/sklearn/model_selection/_split.py", line 751, in split
+    y = check_array(y, input_name="y", ensure_2d=False, dtype=None)
+  File "/home/dmarz/anaconda3/envs/deeprank/lib/python3.10/site-packages/sklearn/utils/validation.py", line 856, in check_array
+    array = np.asarray(array, order=order, dtype=dtype)
+  File "/home/dmarz/anaconda3/envs/deeprank/lib/python3.10/site-packages/torch/_tensor.py", line 757, in __array__
+    return self.numpy()
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 1593915.0 ON gcn28 CANCELLED AT 2022-09-27T10:52:02 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 1593915 ON gcn28 CANCELLED AT 2022-09-27T10:52:02 DUE TO TIME LIMIT ***
+
+JOB STATISTICS
+==============
+Job ID: 1593915
+Cluster: snellius
+User/Group: dmarz/dmarz
+State: TIMEOUT (exit code 0)
+Nodes: 1
+Cores per node: 18
+CPU Utilized: 3-18:03:41
+CPU Efficiency: 50.02% of 7-12:02:06 core-walltime
+Job Wall-clock time: 10:00:07
+Memory Utilized: 12.70 GB (estimated maximum)
+Memory Efficiency: 0.00% of 0.00 MB (0.00 MB/node)
