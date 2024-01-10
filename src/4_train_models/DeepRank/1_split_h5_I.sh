@@ -12,21 +12,22 @@
 
 source activate deeprank
 
-# python ./split_h5.py \
-# --csv-file /projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_all_hla_gibbs_clusters.csv \
-# --features-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/exp_nmers_all_HLA_quantitative_backup/ \
-# --output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/all_HLA_quant_shuffled_peptides_10fold \
-# --n-fold 10 \
-# --parallel 128
-
-
+#Shuffled
 python ./split_h5.py \
---csv-file /projects/0/einf2380/data/external/processed/I/Marieke_10C_BA_pMHCI_human_quantitative.csv \
+--csv-file /projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq.csv \
 --features-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/exp_nmers_all_HLA_quantitative/ \
---output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/split_HLA_quant_Marieke_clust \
+--output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_shuffled \
+--single-split \
+--parallel 64
+
+#Allele Clustered
+python ./split_h5.py \
+--csv-file /projects/0/einf2380/data/external/processed/I/clusters/BA_pMHCI_human_quantitative_only_eq_alleleclusters_pseudoseq.csv \
+--features-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/exp_nmers_all_HLA_quantitative/ \
+--output-path /projects/0/einf2380/data/pMHCI/features_output_folder/CNN/splits_HLA_quant_allele_clusters \
 --cluster \
 --cluster-column cluster \
---test-clusters 3 \
+--test-clusters 1 \
 --parallel 64
 #--train-clusters 0 2 3 4 5 6 7 8 9 \
 

@@ -33,7 +33,7 @@ arg_parser.add_argument("--prefix", "-i",
 )
 arg_parser.add_argument(
     "--peptide-length", "-p",
-    help="Length of peptides.",
+    help="Length of peptides. 0 means all the lengths will be used. Defaults to 0.",
     default=0,
     type=int
 )
@@ -43,7 +43,7 @@ arg_parser.add_argument(
     help="Name of the allele(s) to filter. \n \
         More than one allele have to be separated by spaces: -A HLA-A HLA-B. \n \
         The allele name can be resolved up the the last position (HLA-A*02:01) or only for a specie (HLA). \n \
-        If no allele is provided, every alleles will be returned.",
+        If no allele is provided, every allele will be returned.",
     nargs="+",
 )
 arg_parser.add_argument("--measurement-type", "-t",
@@ -69,7 +69,7 @@ a = arg_parser.parse_args()
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
 
 input_csv_df = pd.read_csv(a.source_csv, header=0)
-ids = input_csv_df['ID'].apply(lambda x: int(x.split('_')[1])).tolist()
+ids = input_csv_df['ID'].apply(lambda x: int(x.split('-')[1])).tolist()
 input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/3d_models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
 # filter based on user input

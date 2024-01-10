@@ -33,7 +33,7 @@ a = arg_parser.parse_args()
 
 input_csv_df = pd.read_csv(f"{a.source_csv}")
 ids = list(range(len(input_csv_df)))
-input_csv_df.insert(0, column="ID", value=[f"{a.prefix}_{id+1}" for id in ids]) # give an ID to each entry
+input_csv_df.insert(0, column="ID", value=[f"{a.prefix}-{id+1}" for id in ids]) # give an ID to each entry
 # PANDORA generated models location (provided as an argument for the modeling, among peptide and MHC allele):
 input_csv_df["db2_folder"] = [f"/projects/0/einf2380/data/pMHCI/models/{a.prefix}/{assign_outfolder(id+1)}" for id in ids]
 
