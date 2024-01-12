@@ -128,7 +128,7 @@ Taking inspiration from [Cookiecutter Data Science](https://drivendata.github.io
     │       └── hdf5_to_array.py
     │                                                 
     │
-    ├── 4_train_models                                *Note: still to be better organized*
+    ├── 5_train_models                                *Note: still to be better organized*
     │
     ├── tools
     │   ├── clip_C_domain_mhcII.py                    <- (obsolete) script to clip away the C-domain from all MHC-II generate models
