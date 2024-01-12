@@ -133,14 +133,14 @@ dmypy.json
 .DS_store
 
 # experiments folders
-/src/4_train_models/GNN/I/classification/struct/experiments
-/src/4_train_models/GNN/I/classification/struct/experiments_log.xlsx
+/src/5_train_models/GNN/I/classification/struct/experiments
+/src/5_train_models/GNN/I/classification/struct/experiments_log.xlsx
 /experiments
 experiments_log.xlsx
-/src/4_train_models/CNN/I/classification/seq/trained_models
+/src/5_train_models/CNN/I/classification/seq/trained_models
 
 # notebooks
-src/4_train_models/GNN/I/classification/struct/playground.ipynb
+src/5_train_models/GNN/I/classification/struct/playground.ipynb
 
 # slurm
 .out

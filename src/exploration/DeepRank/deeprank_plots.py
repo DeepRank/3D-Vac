@@ -9,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 
 import sys
-sys.path.append('/home/dmarz/3D-Vac/src/4_train_models')
+sys.path.append('/home/dmarz/3D-Vac/src/5_train_models')
 from DeepRank import classMetrics
 
 arg_parser = argparse.ArgumentParser(
