@@ -11,6 +11,8 @@ This repository hosts the code utilized in executing the experiments outlined in
 
 Feel free to explore and utilize the resources provided within this repository. If you have any questions or feedback, please don't hesitate to reach out.
 
+## Table of contents
+
 - [Personalized cancer vaccine design through 3D modelling boosted geometric learning (3D-Vac)](#personalized-cancer-vaccine-design-through-3d-modelling-boosted-geometric-learning-3d-vac)
   - [How to run the pipeline](#how-to-run-the-pipeline)
 
