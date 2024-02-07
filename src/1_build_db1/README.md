@@ -1,8 +1,12 @@
 ### Step 1: Preparing the binding affinity targets
+
 #### 1.1: Building DB1 for MHC-I based on MHCFlurry dataset
+
 DB1 is a text file containing pMHC-I (DB1-I) and pMHC-II (DB1-II) peptide sequences, MHC allele names and their experimental Binding Affinities (BAs).
 This step is composed of 1_generate_ids_file_BA.sh and 2_generate_db1_I.sh
+
 #### 1.2: Clustering the peptides based on their sequence similarity
+
 Data clustering is performed with cluster_peptides.py for the peptides and with get_mhci_alleles_clusters.ipynb for the MHC alleles.
 
 ```
