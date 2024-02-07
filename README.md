@@ -68,6 +68,8 @@ python src/1_build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 
 ### 2: Building DB2
 
+The relevant scripts can be found in `src/2_build_db2/`.
+
 **DB2**: Structural 3D models for the pMHC complexes in DB1. These data are output of PANDORA.
 - Location on TDB: TDB. This folder contains TBD .pdb models, output of PANDORA (best model for each data point).
 
