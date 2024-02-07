@@ -1,6 +1,6 @@
 # Personalized cancer vaccine design through 3D modelling boosted geometric learning (3D-Vac)
 
-Welcome to the repository for the collaborative project "Personalized Cancer Vaccine Design through 3D Modelling Boosted Geometric Learning," a joint effort between the eScience Center and Radboudumc, as part of the OEC 2021 initiative.
+Welcome to the repository for the collaborative project "Personalized Cancer Vaccine Design through 3D Modelling Boosted Geometric Learning," a joint effort between the [eScience Center](https://www.esciencecenter.nl/) and Radboudumc, as part of the OEC 2021 initiative.
 
 This repository hosts the code utilized in executing the experiments outlined in the paper "Improving Generalizability for MHC-I Binding Peptide Predictions through Structure-Based Geometric Deep Learning", available as a pre-print [here](https://www.biorxiv.org/content/10.1101/2023.12.04.569776v2.abstract).
 
