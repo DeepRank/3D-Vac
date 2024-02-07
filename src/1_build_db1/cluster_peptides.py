@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from glob import glob
 from random import choice
 import string
-import os
 
 arg_parser = argparse.ArgumentParser(description=" \
     Cluster peptides from a .csv file. \
