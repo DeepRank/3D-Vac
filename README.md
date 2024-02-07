@@ -13,28 +13,6 @@ Feel free to explore and utilize the resources provided within this repository. 
 
 - [Personalized cancer vaccine design through 3D modelling boosted geometric learning (3D-Vac)](#personalized-cancer-vaccine-design-through-3d-modelling-boosted-geometric-learning-3d-vac)
   - [How to run the pipeline](#how-to-run-the-pipeline)
-    - [1: Preparing the binding affinity targets](#1-preparing-the-binding-affinity-targets)
-      - [1.1: Building DB1 for MHC-I based on MHCFlurry dataset](#11-building-db1-for-mhc-i-based-on-mhcflurry-dataset)
-    - [1.2 (option 2) Cluster the peptides based on their sequence similarity](#12-option-2-cluster-the-peptides-based-on-their-sequence-similarity)
-      - [2\_build\_db2](#2_build_db2)
-    - [Step 2: Generating db3](#step-2-generating-db3)
-    - [Step 3: Generating db4](#step-3-generating-db4)
-      - [3\_build\_db3](#3_build_db3)
-      - [4\_build\_db4](#4_build_db4)
-    - [Step 4: Training MLP and CNN models](#step-4-training-mlp-and-cnn-models)
-    - [GNN folder](#gnn-folder)
-      - [5.1 Explore features through features\_exploration.ipynb](#51-explore-features-through-features_explorationipynb)
-      - [5.2 Train a network](#52-train-a-network)
-      - [5.3 Visualize results throught exp\_visualization.ipynb](#53-visualize-results-throught-exp_visualizationipynb)
-  - [Exploration](#exploration)
-    - [draw\_cluster\_motifs.ipynb](#draw_cluster_motifsipynb)
-    - [draw\_grid.py](#draw_gridpy)
-    - [explore\_class\_seq\_xvalidation.ipynb](#explore_class_seq_xvalidationipynb)
-    - [explore\_class\_struct\_xvalidaiton.ipynb](#explore_class_struct_xvalidaitonipynb)
-    - [explore\_best\_models.ipynb](#explore_best_modelsipynb)
-    - [Tools](#tools)
-      - [Gibbs cluster](#gibbs-cluster)
-    - [GNNs](#gnns)
 
 ## How to run the pipeline
 
