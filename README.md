@@ -23,6 +23,12 @@ Feel free to explore and utilize the resources provided within this repository. 
     - [3: DB3](#3-db3)
       - [3.1: Selecting the PANDORA-generated 3D-models](#31-selecting-the-pandora-generated-3d-models)
       - [3.2: Aligning structures](#32-aligning-structures)
+    - [4: DB4](#4-db4)
+      - [4.1: 3D-grids](#41-3d-grids)
+        - [4.1.1: Populating the features\_input\_folder](#411-populating-the-features_input_folder)
+        - [4.1.2: Generating the 3D-grids](#412-generating-the-3d-grids)
+      - [4.2: Graphs](#42-graphs)
+        - [4.2.1: Adding specific targets](#421-adding-specific-targets)
 
 ## How to run the pipeline
 
@@ -111,3 +117,61 @@ sbatch 4_align_pdb.sh
 ```
 * Aligns every structures to one template.
 * Add `--help` to see additional information.
+
+### 4: DB4
+
+- DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featurized complexes. DB3 and DB2 are used the generation of DB4.
+- It contains TBD data points, for both 3D-grids and graphs.
+
+#### 4.1: 3D-grids
+
+- Location on TDB: TDB.
+- The scripts for processing the PDB files of the pMHC complexes into 3D-grids can be found in `src/4_build_db4/DeepRank`.
+- [DeepRank](https://github.com/DeepRank/deeprank) software package was used for this scope. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters.
+
+##### 4.1.1: Populating the features_input_folder
+
+Run:
+
+```bash
+sbatch 1_populate_features_input_folder.sh
+```
+
+* The way DeepRank feature generator works for now requires all PSSM and PDB files to be in the same folder.
+* This script creates symlinks for every `db2_selected_models` PSSM and PDB files into the `feature_input_folder`.
+* Run `python populate_features_input_folder.py --help` for more information
+
+##### 4.1.2: Generating the 3D-grids
+
+After having successfully installed DeepRank, you can generate the 3D-grids and store them into HDF5 files by running:
+
+```bash
+sbatch 2_generate_features.sh
+```
+
+Note that the path to the CSV with the targets needs to be changed in `threshold_classification.py`, line 15.
+Also, in `src/4_build_db4/DeepRank` you can find additional features not present in DeepRank, like the anchor feature, the Desolvation Energy or the skipgram sequence encoding.
+
+#### 4.2: Graphs
+
+- Location on TDB: TDB.
+- The scripts for processing the PDB files of the pMHC complexes into graphs can be found in `src/4_build_db4/DeepRank2`.
+- [DeepRank2](https://github.com/DeepRank/deeprank2) software package was used for this scope. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters.
+
+After having successfully installed DeepRank2, you can generate the graphs and store them into HDF5 files by running:
+
+```bash
+sbatch 1_generate_features.sh
+```
+
+All the parameters are set at the beginning of `1_generate_features.py`.
+
+##### 4.2.1: Adding specific targets
+
+For adding targets into the generated HDF5 files (e.g., alleles' clusters) reading them in from CSV files, you can run: 
+
+```bash
+sbatch add_targets.sh
+```
+
+For more details about the other scripts in the folder, see [here](https://github.com/DeepRank/3D-Vac/blob/paper/src/4_build_db4/DeepRank2/README.md). 
