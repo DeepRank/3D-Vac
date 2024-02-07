@@ -19,6 +19,7 @@ Feel free to explore and utilize the resources provided within this repository. 
     - [1: Preparing the binding affinity targets](#1-preparing-the-binding-affinity-targets)
       - [1.1: Building DB1](#11-building-db1)
       - [1.2 Data clustering](#12-data-clustering)
+    - [2: Building DB2](#2-building-db2)
 
 ## How to run the pipeline
 
@@ -64,3 +65,18 @@ python src/1_build_db1/cluster_peptides --file BA_pMHCI.csv --clusters 10
 * Output: a .pkl file in `data/external/processed` containing the clusters.
 * Run `python src/1_build_db1/cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
 * Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
+
+### 2: Building DB2
+
+**DB2**: Structural 3D models for the pMHC complexes in DB1. These data are output of PANDORA.
+- Location on TDB: TDB. This folder contains TBD .pdb models, output of PANDORA (best model for each data point).
+
+Run:
+
+```bash
+1_build_db2.sh
+```
+
+It takes care of checking which models are missing, distributing computations accross the nodes and cleaning the incomplete outputs at the end.
+
+`modelling_job.py` is implicitly called and it's the actual script taking care of the modelling. To change specific modelling options, like anchors restraints standard deviation, number of models, C domain etc., modify this script.

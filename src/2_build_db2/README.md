@@ -1,6 +1,15 @@
-#### 2.1: Building DB2 from DB1
-DB2 contains 3D models (output of Pandora, pdb structures) for: pMHC-I in DB1-I (DB2-I), and pMHC-II in DB1-II (DB2-II). DB1-I and DB1-II are used as input for Pandora. 
-`build_db2_I.sh` is ther only script that needs to be run. It takes care of checking which models are missing, distributing computations accross the nodes and cleaning the incomplete outputs at the end.
+### 2: Building DB2
+
+**DB2**: Structural 3D models for the pMHC complexes in DB1. These data are output of PANDORA.
+- Location on TDB: TDB. This folder contains TBD .pdb models, output of PANDORA (best model for each data point).
+
+Run:
+
+```bash
+1_build_db2.sh
+```
+
+It takes care of checking which models are missing, distributing computations accross the nodes and cleaning the incomplete outputs at the end.
 
 `modelling_job.py` is implicitly called and it's the actual script taking care of the modelling. To change specific modelling options, like anchors restraints standard deviation, number of models, C domain etc., modify this script.
 
