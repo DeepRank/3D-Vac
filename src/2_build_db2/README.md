@@ -1,6 +1,6 @@
 More details about how to generate DB2 can be found [here](https://github.com/DeepRank/3D-Vac?tab=readme-ov-file#2-db2). 
 
-Output folder structure (after cleaning with clean_outputs.sh):
+Output folder structure (after cleaning with `clean_outputs.sh`):
 
 ```
 │── <target_id>_<template_id>
