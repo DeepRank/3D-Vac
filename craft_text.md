@@ -1,21 +1,3 @@
-### Step 3: Generating db4
-DB4 is the collection of HDF5 files with 3D-grids or grpahs containing the featurized complexes.
-
-#### 3_build_db3
-
-**DB3**: PSSMs for pMHC. These data are derived from BLAST database.
-  - Location on TDB: TDB. This folder contains 145665 .pssm files for MHCs and 145665 .pssm files for peptides.
-
-#### 4_build_db4
-
-**DB4**: Interface grids for CNNs (deeprank) or interface graphs for GNNs (deeprank2) in the form of hdf5 files. DB3 and DB2 are used the generation of DB4.
-- CNNs
-  - The HDF5 files containing interface grid information is generated using the first version (open source) of DeepRank.
-  - Location on TBD: TBD.
-- GNNs
-  - Location on TBD: TBD.
-
-
 ### Step 4: Training MLP and CNN models
 
 ### GNN folder
