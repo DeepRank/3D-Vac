@@ -1,7 +1,5 @@
 ### 1: Preparing the binding affinity targets
 
-The relevant scripts can be found in `src/1_build_db1/`.
-
 #### 1.1: Building DB1
 
 **DB1**: pMHC-I peptide sequences, MHC allele names and their experimental binding affinities (BAs). These data are input of [PANDORA](https://github.com/X-lab-3D/PANDORA).
