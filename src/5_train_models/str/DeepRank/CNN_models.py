@@ -10,7 +10,7 @@ class CnnClassificationBaseline(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -64,7 +64,7 @@ class CnnClassification4Conv(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -119,7 +119,7 @@ class CnnClass4ConvKS3XYZ(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -198,7 +198,7 @@ class CnnReg4ConvKS3XYZ(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -277,7 +277,7 @@ class CnnClass4ConvKS3Lin128(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -339,7 +339,7 @@ class CnnReg4ConvKS3Lin128(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -400,7 +400,7 @@ class CnnClass4ConvKS3Lin128SoftMax(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -463,7 +463,7 @@ class CnnReg4ConvKS3Lin128Sigmoid(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -525,7 +525,7 @@ class CnnClass4ConvKS3Lin128ChannExpand(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -589,7 +589,7 @@ class CnnReg4ConvKS3Lin128SigmoidChannExpand(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -651,7 +651,7 @@ class CnnClass4ConvKS3Lin128ChannExpandXYZ(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -732,7 +732,7 @@ class CnnReg4ConvKS3Lin128SigmoidChannExpandXYZ(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -811,7 +811,7 @@ class CnnClassResNet(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -894,7 +894,7 @@ class CnnRegResNet(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -956,7 +956,7 @@ class CnnClassGroupConv(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -1021,7 +1021,7 @@ class CnnRegGroupConv(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -1085,7 +1085,7 @@ class CnnClassGroupConv_4Conv(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -1154,7 +1154,7 @@ class CnnRegGroupConv_4Conv(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -1224,7 +1224,7 @@ class CnnClass4Conv_ChannExpand_PoolStart(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:
@@ -1286,7 +1286,7 @@ class CnnClass_HyperNet(nn.Module):
         """This class is the architecture for DeepRank's CNN framework.
         Made of one sequential convolutional layers array followed by
         one fully connected layers array.
-        Used in CNN/I/classification/struct/cnn_baseline.py as an argument
+        Used in cnn_baseline.py as an argument
         for the architecture class.
 
         Args:

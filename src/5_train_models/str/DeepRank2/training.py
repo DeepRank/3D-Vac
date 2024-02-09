@@ -21,9 +21,9 @@ from sklearn.metrics import (
 import torch
 from deeprank2.trainer import Trainer
 from deeprank2.utils.exporters import HDF5OutputExporter
-from deeprank2.dataset import GridDataset
-from deeprank2.neuralnets.cnn.model3d import CnnClassification
-from pmhc_cnn import CnnClass4ConvKS3Lin128ChannExpand
+from deeprank2.dataset import GraphDataset
+from deeprank2.neuralnets.gnn.naive_gnn import NaiveNetwork
+from pmhc_gnn import NaiveGNN1
 
 
 # initialize
@@ -32,7 +32,8 @@ torch.manual_seed(22)
 
 #################### To fill
 # Input data
-run_day_data = '230515' # 100k and 692 data points, grids + graphs
+# run_day_data = '230515' # 100k and 692 data points, grids + graphs
+run_day_data = '230530' # 100k and 692 data points, only graphs
 # Paths
 protein_class = 'I'
 target_data = 'BA'
@@ -43,39 +44,73 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprank2/experiments/'
-exp_name = 'exp_100k_cnn_bs128_CnnClass4ConvKS3Lin128ChannExpand_'
+exp_name = 'exp_100k_std_transf_bs64_naivegnn1_wloss_all_data_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
 target_group = 'target_values'
 target_dataset = 'binary'
 task = 'classif'
+features_transform = {
+    'bsa': {'transform': lambda t: np.log(t+1), 'standardize': True},
+    'res_depth': {'transform': lambda t:np.log(t+1), 'standardize': True},
+    'info_content':{'transform':lambda t:np.log(t+1), 'standardize': True},
+    'sasa': {'transform': lambda t:np.sqrt(t), 'standardize': True},
+    'electrostatic': {'transform': lambda t:np.cbrt(t), 'standardize': True},
+    'vanderwaals': {'transform': lambda t:np.cbrt(t), 'standardize': True},
+    'res_size': {'transform': None, 'standardize': True},
+    'res_charge': {'transform': None, 'standardize': True},
+    'hb_donors': {'transform': None, 'standardize': True},
+    'hb_acceptors':{'transform': None, 'standardize': True},
+    'hse': {'transform': None, 'standardize':True},
+    'irc_nonpolar_negative': {'transform': None, 'standardize': True},
+    'irc_nonpolar_nonpolar': {'transform': None, 'standardize': True},
+    'irc_nonpolar_polar': {'transform': None, 'standardize': True},
+    'irc_nonpolar_positive': {'transform': None, 'standardize': True},
+    'irc_polar_polar': {'transform': None, 'standardize': True},
+    'irc_polar_positive': {'transform': None, 'standardize': True},
+    'irc_total': {'transform': None, 'standardize': True},
+    'irc_negative_positive': {'transform': None, 'standardize': True},
+    'irc_positive_positive': {'transform': None, 'standardize': True},
+    'irc_polar_negative': {'transform': None, 'standardize': True},
+    'irc_negative_negative': {'transform': None, 'standardize': True},
+    'res_mass': {'transform': None, 'standardize': True},
+    'res_pI': {'transform': None, 'standardize': True},
+    'distance': {'transform': None, 'standardize': True},
+    'pssm': {'transform': None, 'standardize': True}}
+# Validation, testing (put both False for re-training with all data available)
+validate = True
+test = True
 # Clusters
 # If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None #'allele_type' # 'cl_allele'# None # 'allele_type'
+cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_peptide2_10set' # 'cl_allele' # 'allele_type' # None
 cluster_dataset_type = None # None # 'string'
-test_clusters = ['C']
+test_clusters = [3] # if validate and test are False, this is ignored
+## Test's clusters
+# cl_peptide1 (Gibbs): [3]
+# cl_peptide2 (5 clusters, Marieke): [4]
+# cl_peptide2_10set (10 clusters, Marieke): [3]
+# cl_allele: [1]
 # Dataset
-features = "all"
+node_features = "all"
+edge_features = "all"
 # Trainer
-net = CnnClass4ConvKS3Lin128ChannExpand
-batch_size = 128
-optimizer = 'SGD'
-# I modified it manually to give also the momentum as input (see below after Trainer init)
+net = NaiveGNN1
+batch_size = 64
+optimizer = torch.optim.Adam
 lr = 1e-3
-momentum = 0.9
-weight_decay = 0.001
-epochs = 30
-class_weights = False # weighted loss function
+weight_decay = 1e-05
+epochs = 70
+class_weights = True # weighted loss function
 cuda = True
 ngpu = 1
 num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 15 # change
+earlystop_patience = 20
 earlystop_maxgap = 0.06
-min_epoch = 14
+min_epoch = 45
 ####################
 
 
@@ -152,17 +187,23 @@ if __name__ == "__main__":
     
     df_summ = pd.DataFrame(data=summary)
 
-    if cluster_dataset is None:
-        # random split
-        df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
-        df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
-    else:
-        # use cluster for test, random split for train and valid
-        df_test = df_summ[df_summ.cluster.isin(test_clusters)]
-        df_train = df_summ[~df_summ.cluster.isin(test_clusters)]
-        df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+    if validate and test: 
 
-    df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
+        if cluster_dataset is None:
+            # random split
+            df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
+            df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+        else:
+            # use cluster for test, random split for train and valid
+            df_test = df_summ[df_summ.cluster.isin(test_clusters)]
+            df_train = df_summ[~df_summ.cluster.isin(test_clusters)]
+            df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+
+        df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
+    
+    else:
+        df_train = df_summ.copy()
+        df_summ['phase'] = 'train'
 
     df_summ.to_hdf(
         os.path.join(output_path, 'summary_data.hdf5'),
@@ -178,46 +219,62 @@ if __name__ == "__main__":
     _log.info(f'\t- Class 1: {len(df_train[df_train.target == 1])} samples, {round(100*len(df_train[df_train.target == 1])/len(df_train))}%')
     if cluster_dataset is not None:
         _log.info(f'Clusters present: {df_train.cluster.unique()}\n')
-    _log.info(f'Validation set: {len(df_valid)} samples, {round(100*len(df_valid)/len(df_summ))}%')
-    _log.info(f'\t- Class 0: {len(df_valid[df_valid.target == 0])} samples, {round(100*len(df_valid[df_valid.target == 0])/len(df_valid))}%')
-    _log.info(f'\t- Class 1: {len(df_valid[df_valid.target == 1])} samples, {round(100*len(df_valid[df_valid.target == 1])/len(df_valid))}%')
-    if cluster_dataset is not None:
-        _log.info(f'Clusters present: {df_valid.cluster.unique()}\n')
-    _log.info(f'Testing set: {len(df_test)} samples, {round(100*len(df_test)/len(df_summ))}%')
-    _log.info(f'\t- Class 0: {len(df_test[df_test.target == 0])} samples, {round(100*len(df_test[df_test.target == 0])/len(df_test))}%')
-    _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
-    if cluster_dataset is not None:
-        _log.info(f'Clusters present: {df_test.cluster.unique()}\n')
+    if validate:
+        _log.info(f'Validation set: {len(df_valid)} samples, {round(100*len(df_valid)/len(df_summ))}%')
+        _log.info(f'\t- Class 0: {len(df_valid[df_valid.target == 0])} samples, {round(100*len(df_valid[df_valid.target == 0])/len(df_valid))}%')
+        _log.info(f'\t- Class 1: {len(df_valid[df_valid.target == 1])} samples, {round(100*len(df_valid[df_valid.target == 1])/len(df_valid))}%')
+        if cluster_dataset is not None:
+            _log.info(f'Clusters present: {df_valid.cluster.unique()}\n')
+    if test:
+        _log.info(f'Testing set: {len(df_test)} samples, {round(100*len(df_test)/len(df_summ))}%')
+        _log.info(f'\t- Class 0: {len(df_test[df_test.target == 0])} samples, {round(100*len(df_test[df_test.target == 0])/len(df_test))}%')
+        _log.info(f'\t- Class 1: {len(df_test[df_test.target == 1])} samples, {round(100*len(df_test[df_test.target == 1])/len(df_test))}%')
+        if cluster_dataset is not None:
+            _log.info(f'Clusters present: {df_test.cluster.unique()}\n')
+
+    #################### GraphDataset
 
     _log.info(f'HDF5DataSet loading...\n')
-    dataset_train = GridDataset(
+    dataset_train = GraphDataset(
         hdf5_path = input_data_path,
         subset = list(df_train.entry),
         target = target_dataset,
         task = task,
-        features = features,
-        check_integrity = check_integrity
-    )
-    dataset_val = GridDataset(
-        hdf5_path = input_data_path,
-        subset = list(df_valid.entry),
-        train = False,
-        train_data = dataset_train,
-        check_integrity = check_integrity
-    )
-    dataset_test = GridDataset(
-        hdf5_path = input_data_path,
-        subset = list(df_test.entry),
-        train = False,
-        train_data = dataset_train,
+        node_features = node_features,
+        edge_features = edge_features,
+        features_transform = features_transform,
         check_integrity = check_integrity
     )
     _log.info(f'Len df train: {len(dataset_train)}')
-    _log.info(f'Len df valid: {len(dataset_val)}')
-    _log.info(f'Len df test: {len(dataset_test)}')
-    _log.info(f'Features: {dataset_train.features}')
+    
+    if validate:
+        dataset_val = GraphDataset(
+            hdf5_path = input_data_path,
+            subset = list(df_valid.entry),
+            train = False,
+            train_data = dataset_train,
+            check_integrity = check_integrity
+        )
+        _log.info(f'Len df valid: {len(dataset_val)}')
+    else:
+        dataset_val = None
+    if test:
+        dataset_test = GraphDataset(
+            hdf5_path = input_data_path,
+            subset = list(df_test.entry),
+            train = False,
+            train_data = dataset_train,
+            check_integrity = check_integrity
+        )
+        _log.info(f'Len df test: {len(dataset_test)}')
+    else:
+        dataset_test = None
+
+    _log.info(f'Node features: {dataset_train.node_features}')
+    _log.info(f'Edge features: {dataset_train.edge_features}')
     _log.info(f'Target: {dataset_train.target}')
     _log.info(f'Task: {dataset_train.task}')
+    _log.info(f'Standardize: {features_transform}')
     ####################
 
     #################### Trainer
@@ -234,8 +291,7 @@ if __name__ == "__main__":
         ngpu = ngpu,
         output_exporters = [HDF5OutputExporter(output_path)]
     )
-    trainer.optimizer = torch.optim.SGD(trainer.model.parameters(), lr, momentum, weight_decay)
-    _log.info(f'Optimizer used: {trainer.optimizer}')
+    trainer.configure_optimizers(optimizer, lr, weight_decay)
 
     if train_profiling:
         _log.info(f"Number of workers set to {num_workers}.")
@@ -244,7 +300,7 @@ if __name__ == "__main__":
         trainer.train(
             nepoch = epochs,
             batch_size = batch_size,
-            validate = True,
+            validate = validate,
             num_workers = num_workers,
             filename = os.path.join(exp_path, 'model.pth.tar'))
         pr.disable()
@@ -283,11 +339,13 @@ if __name__ == "__main__":
             earlystop_patience = earlystop_patience,
             earlystop_maxgap = earlystop_maxgap,
             min_epoch = min_epoch,
-            validate = True,
+            validate = validate,
             num_workers = num_workers,
             filename = os.path.join(exp_path, 'model.pth.tar'))
         _log.info(f"Batch size set to {trainer.batch_size_train}.")
-        trainer.test(batch_size = batch_size, num_workers = num_workers)
+
+        if test:
+            trainer.test(batch_size = batch_size, num_workers = num_workers)
 
         epoch = trainer.epoch_saved_model
         _log.info(f"Model saved at epoch {epoch}")
@@ -311,7 +369,8 @@ if __name__ == "__main__":
         exp_json['resolution'] = resolution_data
         exp_json['target_data'] = target_data
         exp_json['task'] = task
-        exp_json['features'] = features
+        exp_json['node_features'] = 'all'
+        exp_json['edge_features'] = 'all'
         exp_json['net'] = str(net)
         exp_json['optimizer'] = str(optimizer)
         exp_json['max_epochs'] = epochs
@@ -320,8 +379,10 @@ if __name__ == "__main__":
         exp_json['weight_decay'] = weight_decay
         exp_json['save_state'] = 'best'
         exp_json['train_datapoints'] = len(df_train)
-        exp_json['val_datapoints'] = len(df_valid)
-        exp_json['test_datapoints'] = len(df_test)
+        if validate:
+            exp_json['val_datapoints'] = len(df_valid)
+        if test:
+            exp_json['test_datapoints'] = len(df_test)
         exp_json['total_datapoints'] = len(df_summ)
         if cluster_dataset is not None:
             # exp_json['train_clusters'] = [train_clusters]
@@ -333,59 +394,66 @@ if __name__ == "__main__":
         exp_json['last_epoch'] = epochs # adjust if/when we add an early stop
 
         output_train = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='training')
-        output_test = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='testing')
-        output_df = pd.concat([output_train, output_test])
-
-        d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
-        thr_df = pd.DataFrame(data=d)
-        df_epoch = output_df[(output_df.epoch == epoch) | ((output_df.epoch == 0) & (output_df.phase == 'testing'))]
-
-        for phase in ['training', 'validation', 'testing']:
-            df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
-            y_true = df_epoch_phase.target
-            y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
-
-            thrs = np.linspace(0,1,100)
-            precision = []
-            recall = []
-            accuracy = []
-            f1 = []
-            mcc = []
-            
-            for thr in thrs:
-                y_pred = (y_score > thr)*1
-                precision.append(precision_score(y_true, y_pred, zero_division=0))
-                recall.append(recall_score(y_true, y_pred, zero_division=0))
-                accuracy.append(accuracy_score(y_true, y_pred))
-                f1.append(f1_score(y_true, y_pred, zero_division=0))
-                mcc.append(matthews_corrcoef(y_true, y_pred))
-
-            fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
-            auc_score = auc(fpr_roc, tpr_roc)
-            aucpr = average_precision_score(y_true, y_score)
-
-            phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
-            thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
-
-        # find max mcc of test set
-        test_df = thr_df.loc[thr_df.phase == 'testing']
-        test_mcc_idxmax = test_df.mcc.idxmax()
-        if thr_df.loc[test_mcc_idxmax].mcc > 0:
-            sel_thr = thr_df.loc[test_mcc_idxmax].thr
-        # use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
+        if test:
+            output_test = pd.read_hdf(os.path.join(output_path, 'output_exporter.hdf5'), key='testing')
+            output_df = pd.concat([output_train, output_test])
         else:
-            mcc_idxmax = thr_df.mcc.idxmax()
-            sel_thr = thr_df.loc[mcc_idxmax].thr
-            _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
+            output_df = output_train.copy()
+
+        if validate and test:
+
+            d = {'thr': [], 'precision': [], 'recall': [], 'accuracy': [], 'f1': [], 'mcc': [], 'auc': [], 'aucpr': [], 'phase': []}
+            thr_df = pd.DataFrame(data=d)
+            df_epoch = output_df[(output_df.epoch == epoch) | ((output_df.epoch == 0) & (output_df.phase == 'testing'))]
+
+            for phase in ['training', 'validation', 'testing']:
+                df_epoch_phase = df_epoch[(df_epoch.phase == phase)]
+                y_true = df_epoch_phase.target
+                y_score = np.array(df_epoch_phase.output.values.tolist())[:, 1]
+
+                thrs = np.linspace(0,1,100)
+                precision = []
+                recall = []
+                accuracy = []
+                f1 = []
+                mcc = []
+                
+                for thr in thrs:
+                    y_pred = (y_score > thr)*1
+                    precision.append(precision_score(y_true, y_pred, zero_division=0))
+                    recall.append(recall_score(y_true, y_pred, zero_division=0))
+                    accuracy.append(accuracy_score(y_true, y_pred))
+                    f1.append(f1_score(y_true, y_pred, zero_division=0))
+                    mcc.append(matthews_corrcoef(y_true, y_pred))
+
+                fpr_roc, tpr_roc, thr_roc = roc_curve(y_true, y_score)
+                auc_score = auc(fpr_roc, tpr_roc)
+                aucpr = average_precision_score(y_true, y_score)
+
+                phase_df = pd.DataFrame({'thr': thrs, 'precision': precision, 'recall': recall, 'accuracy': accuracy, 'f1': f1, 'mcc': mcc, 'auc': auc_score, 'aucpr': aucpr, 'phase': phase})
+                thr_df = pd.concat([thr_df, phase_df], ignore_index=True)
+
+            # find max mcc of test set
+            test_df = thr_df.loc[thr_df.phase == 'testing']
+            test_mcc_idxmax = test_df.mcc.idxmax()
+            if thr_df.loc[test_mcc_idxmax].mcc > 0:
+                sel_thr = thr_df.loc[test_mcc_idxmax].thr
+            # use max mcc of all data if max of test set is 0 (usually only on small local test experiments)
+            else:
+                mcc_idxmax = thr_df.mcc.idxmax()
+                sel_thr = thr_df.loc[mcc_idxmax].thr
+                _log.info("WARNING: Maximum mcc of test set is 0. Instead, maximum mcc of all data will be used for determining optimal threshold.\n")
+
+            for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
+                for phase in ['training', 'validation', 'testing']:
+                    exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
 
         ## store output
         exp_json['training_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'training')].loss.mean()
-        exp_json['validation_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'validation')].loss.mean()
-        exp_json['testing_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'testing')].loss.mean()
-        for score in ['mcc', 'auc', 'aucpr', 'f1', 'accuracy', 'precision', 'recall']:
-            for phase in ['training', 'validation', 'testing']:
-                exp_json[f'{phase}_{score}'] = round(float(thr_df[(thr_df.thr == sel_thr) & (thr_df.phase == phase)][score]), 3)
-
+        if validate: 
+            exp_json['validation_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'validation')].loss.mean()
+        if test:
+            exp_json['testing_loss'] = output_df[(output_df.epoch == epoch) & (output_df.phase == 'testing')].loss.mean()
 
         # Output to excel file
         exp_json['end_time'] = datetime.now().strftime("%d/%b/%Y_%H:%M:%S")

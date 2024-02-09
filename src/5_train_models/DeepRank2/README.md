@@ -1,8 +1,0 @@
-This folder contains scripts for training graphs (or grids) using [deeprank2](https://github.com/DeepRank/deeprank2) package. The HDF5 files containing the data used for training (and testing) refer to the ones generated with the scripts in `src/4_build_db4/DeepRank2/`. The scripts `training.py` have a corresponding .sh script that can be submitted to the job scheduler for launching the .py script taking advantage of parallelization and/or multiple processors. Paths specifically refer to our shared cluster on Snellius. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about the classes/methods used parameters. 
-
-- `CNN/` folder
-   - `training.py`: script for training and testing a convolutional neural network (CNN) with 3D-grids processed data. A summary of the datasets' splits is saved in `summary_data.hdf5`, as well as the trained model (`model.pth.tar`) and the results (e.g., predictions, losses, see `HDF5OutputExporter(output_path)`). A master experiments' file is also updated by appending the main paths and results for an individual experiment (`exp_basepath + '_experiments_log.xlsx`).
-   - `pmhc_cnn.py`: PyTorch-defined CNN architecture. 
-- `GNN/` folder
-   - `training.py`: script for training and testing a graph neural network (GNN) with graphs processed data. A summary of the datasets' splits is saved in `summary_data.hdf5`, as well as the trained model (`model.pth.tar`) and the results (e.g., predictions, losses, see `HDF5OutputExporter(output_path)`). A master experiments' file is also updated by appending the main paths and results for an individual experiment (`exp_basepath + '_experiments_log.xlsx`).
-   - `pmhc_gnn.py`: PyTorch-defined GNN architectures. 
