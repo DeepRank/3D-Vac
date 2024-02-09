@@ -33,6 +33,9 @@ Feel free to explore and utilize the resources provided within this repository. 
         - [5.2.2: GNN](#522-gnn)
         - [5.2.3: EGNN](#523-egnn)
         - [5.2.4: SSL](#524-ssl)
+      - [6: Test case](#6-test-case)
+      - [Exploration](#exploration)
+      - [Tools](#tools)
 
 ## How to run the pipeline
 
@@ -153,3 +156,25 @@ TBD
 ##### 5.2.4: SSL
 
 TBD
+
+#### 6: Test case
+
+We compared one of our structure-based methods, the GNN, to two SOTA software on a real-case scenario: an HBV vaccine design study. The scripts for featurize the sequences and test our pre-trained GNN can be found in `src/6_test_cases`.
+
+- `generate_pdb_test_case.py` for generating the PDB files.
+- `pre-trained_testing.py` for processing the PDB files into featurized graphs, running the pre-trained GNN on the generated data, and making predictions. 
+
+#### Exploration
+
+The folder `src/exploration` contains scripts for exploring data used in the 3D-Vac project's experiments. 
+
+- `data_metafeatures_exploration.ipynb`: general exploration of the data used in the experiments (~100000 data points) from the point of view of targets, peptides' length, alleles, and clusters distribution. 
+- `DeepRank2` folder
+   - `exp_visualization.ipynb`: notebook for exploring and plotting deeprank2 GNNs/CNNs' results (e.g., loss vs epochs, AUC, MCC), for a single experiment.
+   - `exps_comparison.ipynb`: notebook for comparing multiple deeprank2 experiments in terms of loss curves and metrics (e.g., AUC).
+- `DeepRank` folder 
+  - TBD
+- `deeprank_deeprank2_comparison.ipynb`: notebook for comparing deeprank and deeprank2 experiments with sequence-based methods (i.e., re-trained MHCFlurry and MLP).
+- TBD
+
+#### Tools
