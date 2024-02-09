@@ -23,7 +23,7 @@ from deeprank2.trainer import Trainer
 from deeprank2.utils.exporters import HDF5OutputExporter
 from deeprank2.dataset import GraphDataset
 from deeprank2.neuralnets.gnn.naive_gnn import NaiveNetwork
-from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03, NaiveGNN1
+from pmhc_gnn import NaiveGNN1
 
 
 # initialize

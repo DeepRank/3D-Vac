@@ -25,10 +25,14 @@ Feel free to explore and utilize the resources provided within this repository. 
       - [4.1: 3D-grids](#41-3d-grids)
       - [4.2: Graphs](#42-graphs)
     - [5: Training](#5-training)
-      - [5.1: CNN](#51-cnn)
-      - [5.2: GNN](#52-gnn)
-      - [5.3: EGNN](#53-egnn)
-      - [5.4: SSL](#54-ssl)
+      - [5.1: Sequence-based methods](#51-sequence-based-methods)
+        - [5.1.1: MLP](#511-mlp)
+        - [5.1.2: MHCFlurry](#512-mhcflurry)
+      - [5.2: Structure-based methods](#52-structure-based-methods)
+        - [5.2.1: CNN](#521-cnn)
+        - [5.2.2: GNN](#522-gnn)
+        - [5.2.3: EGNN](#523-egnn)
+        - [5.2.4: SSL](#524-ssl)
 
 ## How to run the pipeline
 
@@ -100,25 +104,52 @@ DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featu
 
 ### 5: Training
 
-#### 5.1: CNN
+#### 5.1: Sequence-based methods
 
-[DeepRank](https://github.com/DeepRank/deeprank) software package was used for this scope. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The pre-trained model and outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/DeepRank`.
+##### 5.1.1: MLP
+
+- To perform 10 fold cross-validated MLP training on shuffled and clustered dataset, run: `python src/5_train_models/seq/mlp_baseline.py -o mlp_test`.
+  - Add `--help` for more info.
+  - Add `--cluster` for clustered dataset.
+
+##### 5.1.2: MHCFlurry
+
+TBD
+
+#### 5.2: Structure-based methods
+
+##### 5.2.1: CNN
+
+[DeepRank](https://github.com/DeepRank/deeprank) software package was used for this scope. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The pre-trained CNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank`.
 
 - First split DB4 (the 3D-grids) into train, validation and test 10 times for shuffled and clustered CNN dataset: `sbatch 1_split_h5.sh`.
   - To generate the clustered dataset, add `--cluster` argument.
   - Add `--help` for more information.
 - Then you can train the CNN on shuffled, peptide-clustered and allele-clustered sets by running: `sbatch 2_submit_2exp_training.sh`.
   - Note that we included only the alleles' clustering experiments only in the paper. 
+  - The architecture used in the paper is the one described by the class `CnnClass4ConvKS3Lin128ChannExpand` in `CNN_models.py`.
 - Generate metrics for the best CNN model with: `sbatch 3_submit_performances.sh`. 
   - This script runs cnn_performances.py, which is a custom made script had to be written to obtain metrics from DeepRank's best model.
   - This step generates metrics on test dataset (clustered and shuffled) from the best model.
   - Add `--help` for more info.
   - Add `--cluster` to generate metrics for the clustered model
 
-#### 5.2: GNN
+##### 5.2.2: GNN
 
-#### 5.3: EGNN
+[DeepRank2](https://github.com/DeepRank/deeprank2) software package was used for this scope. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The pre-trained GNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank2`.
 
-#### 5.4: SSL
+- For training and testing one of the data configurations, and for generating the metrics edit `training.py` and run `sbatch training.sh` script.
+  - The HDF5 files containing the data used for training (and testing) refer to the ones generated with the scripts in `src/4_build_db4/DeepRank2/`. 
+  - `pmhc_gnn.py` file contains PyTorch-defined GNN architectures. The architecture used in the paper is the one described by the class `NaiveGNN1` in `pmhc_gnn.py`.
+  - A summary of the datasets' splits is saved in `summary_data.hdf5`, as well as the trained model (`model.pth.tar`) and the results (e.g., predictions, losses, see `HDF5OutputExporter(output_path)`).
+  - A master experiments' file is also updated by appending the main paths and results for an individual experiment (`exp_basepath + '_experiments_log.xlsx`).
+
+##### 5.2.3: EGNN
+
+[PyTorch](https://pytorch.org/) and [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/) software packages were used for this scope. Please refer to their documentation for in-depth details about how to install the packages, and their classes/methods used parameters. The pre-trained EGNN model and the outputs can be found TBD. The scripts for training the EGNN can be found in `src/5_train_models/str/EGNN`.
+
+TBD
+
+##### 5.2.4: SSL
 
 TBD
