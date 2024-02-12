@@ -16,24 +16,25 @@ Feel free to explore and utilize the resources provided within this repository. 
 - [Personalized cancer vaccine design through 3D modelling boosted geometric learning (3D-Vac)](#personalized-cancer-vaccine-design-through-3d-modelling-boosted-geometric-learning-3d-vac)
   - [Table of contents](#table-of-contents)
   - [How to run the pipeline](#how-to-run-the-pipeline)
-    - [1: DB1](#1-db1)
-    - [2: DB2](#2-db2)
-    - [3: DB3](#3-db3)
-      - [3.1: Selecting the PANDORA-generated 3D-models](#31-selecting-the-pandora-generated-3d-models)
-      - [3.2: Aligning structures](#32-aligning-structures)
-    - [4: DB4](#4-db4)
-      - [4.1: 3D-grids](#41-3d-grids)
-      - [4.2: Graphs](#42-graphs)
-    - [5: Training](#5-training)
-      - [5.1: Sequence-based methods](#51-sequence-based-methods)
-        - [5.1.1: MLP](#511-mlp)
-        - [5.1.2: MHCFlurry](#512-mhcflurry)
-      - [5.2: Structure-based methods](#52-structure-based-methods)
-        - [5.2.1: CNN](#521-cnn)
-        - [5.2.2: GNN](#522-gnn)
-        - [5.2.3: EGNN](#523-egnn)
-        - [5.2.4: SSL](#524-ssl)
-      - [6: Test case](#6-test-case)
+    - [DB1](#db1)
+    - [DB2](#db2)
+    - [DB3](#db3)
+      - [Selecting the PANDORA-generated 3D-models](#selecting-the-pandora-generated-3d-models)
+      - [Aligning structures](#aligning-structures)
+    - [DB4](#db4)
+      - [3D-grids](#3d-grids)
+      - [Graphs](#graphs)
+    - [Training](#training)
+      - [Sequence-based methods](#sequence-based-methods)
+        - [MLP](#mlp)
+        - [MHCFlurry](#mhcflurry)
+      - [Structure-based methods](#structure-based-methods)
+        - [CNN](#cnn)
+        - [GNN](#gnn)
+        - [PyTorch](#pytorch)
+          - [EGNN](#egnn)
+          - [3D-SSL](#3d-ssl)
+      - [Test case](#test-case)
       - [Exploration](#exploration)
       - [Tools](#tools)
 
@@ -45,7 +46,7 @@ For optimal performance, we recommend utilizing adequate resources, preferably G
 
 Note that you will need to change all the paths in the scripts with your data's paths.
 
-### 1: DB1
+### DB1
 
 DB1 contains pMHC-I peptide sequences, MHC allele names and their experimental binding affinities (BAs). These data are input of [PANDORA](https://github.com/X-lab-3D/PANDORA). It contains TBD data points, quantitative measurements only, from [MHCFlurry 2.0 S3 dataset](https://data.mendeley.com/datasets/zx3kjzc3yx/3). DB1 can be found TBD. The scripts for generating DB1 can be found in `src/1_build_db1/`.
 
@@ -57,7 +58,7 @@ DB1 contains pMHC-I peptide sequences, MHC allele names and their experimental b
   - Run `python cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
   - Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
 
-### 2: DB2
+### DB2
 
 DB2 contains structural 3D models for the pMHC complexes in DB1. These data are output of PANDORA. It contains TBD PDB models, output of PANDORA. DB2 can be found TBD. The scripts for generating DB2 can be found in `src/2_build_db2/`.
 
@@ -65,28 +66,28 @@ DB2 contains structural 3D models for the pMHC complexes in DB1. These data are 
   - It takes care of checking which models are missing, distributing computations accross the nodes and cleaning the incomplete outputs at the end. `modelling_job.py` is implicitly called and it's the actual script taking care of the modelling. To change specific modelling options, like anchors restraints standard deviation, number of models, C domain etc., modify this script.
   - More details about the ouput folder structure can be found [here](https://github.com/DeepRank/3D-Vac/blob/paper/src/2_build_db2/README.md). 
 
-### 3: DB3
+### DB3
 
 DB3 contains the selected 3D models and their PSSMs. Note that PSSM features have not been used in the final version of the project, but you can find details about how to compute them [here](https://github.com/DeepRank/3D-Vac/blob/paper/src/3_build_db3/README.md). It contains TBD PDB models, output of PANDORA (best model only for each data point). DB3 can be found on TBD. The scripts for generating DB3 can be found in `src/3_build_db3/`.
 
-#### 3.1: Selecting the PANDORA-generated 3D-models
+#### Selecting the PANDORA-generated 3D-models
 
 - For selecting the PANDORA-generated 3D-models, run: `sbatch 1_copy_3Dmodels_from_db2.sh`
   - PANDORA generates 20 PDB structures per cases. They are ranked based on the global energy of the complex. The first 5 PDB in this ranking contain the most plausible structures.
   - For now, only the first structure is being used. The script `copy_3Dmodels_from_db2.py` is written in a way that it will be possible to select more than 1 structure in the future.
   - Run `python copy_3Dmodels_from_db2.py --help` for more information on how the script works.
 
-#### 3.2: Aligning structures
+#### Aligning structures
 
 - For aligning the structures, run: `sbatch 4_align_pdb.sh`.
   - It aligns every structures to one template.
   - Add `--help` to see additional information.
 
-### 4: DB4
+### DB4
 
 DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featurized complexes. DB3 and DB2 are used the generation of DB4. It contains TBD data points, for both 3D-grids and graphs.
 
-#### 4.1: 3D-grids
+#### 3D-grids
 
 [DeepRank](https://github.com/DeepRank/deeprank) software package was used for generating and featurizing 3D-grids. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The 3D-grids HDF5 files generated via DeepRank can be found TBD. The scripts for processing the PDB files of the pMHC complexes into 3D-grids can be found in `src/4_build_db4/DeepRank`. 
 
@@ -97,7 +98,7 @@ DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featu
   - Note that the path to the CSV with the targets needs to be changed in `threshold_classification.py`, line 15.
   - In `src/4_build_db4/DeepRank` you can find additional features not present in DeepRank, like the anchor feature, the Desolvation Energy or the skipgram sequence encoding.
 
-#### 4.2: Graphs
+#### Graphs
 
 [DeepRank2](https://github.com/DeepRank/deeprank2) software package was used for generating and featurizing graphs. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The graphs HDF5 files generated via DeepRank2 can be found TDB. The scripts for processing the PDB files of the pMHC complexes into graphs can be found in `src/4_build_db4/DeepRank2`.
 
@@ -105,25 +106,25 @@ DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featu
 - For adding targets into the generated HDF5 files (e.g., alleles' clusters) reading them in from CSV files, you can run: `sbatch add_targets.sh`.
 - For more details about the other scripts in the folder, see [here](https://github.com/DeepRank/3D-Vac/blob/paper/src/4_build_db4/DeepRank2/README.md). 
 
-### 5: Training
+### Training
 
-#### 5.1: Sequence-based methods
+#### Sequence-based methods
 
-##### 5.1.1: MLP
+##### MLP
 
 - To perform 10 fold cross-validated MLP training on shuffled and clustered dataset, run: `python src/5_train_models/seq/mlp_baseline.py -o mlp_test`.
   - Add `--help` for more info.
   - Add `--cluster` for clustered dataset.
 
-##### 5.1.2: MHCFlurry
+##### MHCFlurry
 
 TBD
 
-#### 5.2: Structure-based methods
+#### Structure-based methods
 
-##### 5.2.1: CNN
+##### CNN
 
-[DeepRank](https://github.com/DeepRank/deeprank) software package was used for this scope. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The pre-trained CNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank`.
+[DeepRank](https://github.com/DeepRank/deeprank) software package was used for this scope. Please refer to [deeprank documentation](https://deeprank.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The training and testing data are the ones described in the [DB4, 3D-grids section](#3d-grids). The pre-trained CNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank`.
 
 - First split DB4 (the 3D-grids) into train, validation and test 10 times for shuffled and clustered CNN dataset: `sbatch 1_split_h5.sh`.
   - To generate the clustered dataset, add `--cluster` argument.
@@ -137,9 +138,9 @@ TBD
   - Add `--help` for more info.
   - Add `--cluster` to generate metrics for the clustered model
 
-##### 5.2.2: GNN
+##### GNN
 
-[DeepRank2](https://github.com/DeepRank/deeprank2) software package was used for this scope. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The pre-trained GNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank2`.
+[DeepRank2](https://github.com/DeepRank/deeprank2) software package was used for this scope. Please refer to [deeprank2 documentation](https://deeprank2.readthedocs.io/en/latest/?badge=latest) for in-depth details about how to install the package, and its classes/methods used parameters. The training and testing data are the ones described in the [DB4, graphs section](#graphs). The pre-trained GNN model and the outputs can be found TBD. The scripts for training the CNN can be found in `src/5_train_models/str/DeepRank2`.
 
 - For training and testing one of the data configurations, and for generating the metrics edit `training.py` and run `sbatch training.sh` script.
   - The HDF5 files containing the data used for training (and testing) refer to the ones generated with the scripts in `src/4_build_db4/DeepRank2/`. 
@@ -147,17 +148,27 @@ TBD
   - A summary of the datasets' splits is saved in `summary_data.hdf5`, as well as the trained model (`model.pth.tar`) and the results (e.g., predictions, losses, see `HDF5OutputExporter(output_path)`).
   - A master experiments' file is also updated by appending the main paths and results for an individual experiment (`exp_basepath + '_experiments_log.xlsx`).
 
-##### 5.2.3: EGNN
+##### PyTorch
 
-[PyTorch](https://pytorch.org/) and [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/) software packages were used for this scope. Please refer to their documentation for in-depth details about how to install the packages, and their classes/methods used parameters. The pre-trained EGNN model and the outputs can be found TBD. The scripts for training the EGNN can be found in `src/5_train_models/str/EGNN`.
+For the EGNN and the 3D-SSL methods, [PyTorch](https://pytorch.org/) and [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/) software packages were used. Please refer to their documentation for in-depth details about how to install the packages, and their classes/methods used parameters. The scripts for training both the EGNN and the 3D-SSL can be found in `src/5_train_models/str/PyTorch`.
 
-TBD
+###### EGNN
 
-##### 5.2.4: SSL
+The training data, the pre-trained EGNN model and the outputs can be found TBD.
 
-TBD
+- Install and activate the conda env from `env.yml`.
+- Make sure that the processed data is extracted in the directory.
+- Run `train.py`to run the supervised training.
 
-#### 6: Test case
+###### 3D-SSL
+
+The training data, the pre-trained 3D-SSL model and the outputs can be found TBD.
+
+- Install and activate the conda env from `env.yml`.
+- Make sure that the processed data is extracted in the directory.
+- Run `train_ssl.py`to run the supervised training.
+
+#### Test case
 
 We compared one of our structure-based methods, the GNN, to two SOTA software on a real-case scenario: an HBV vaccine design study. The scripts for featurize the sequences and test our pre-trained GNN can be found in `src/6_test_cases`.
 
