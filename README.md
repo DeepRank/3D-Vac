@@ -117,7 +117,7 @@ DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featu
 
 ##### MHCFlurry
 
-TBD
+Please refer to [the official MHCFlurry repository](https://github.com/openvax/mhcflurry) for re-training it with DB1.
 
 #### Structure-based methods
 
