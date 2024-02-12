@@ -56,7 +56,6 @@ DB1 contains pMHC-I peptide sequences, MHC allele names and their experimental b
   - Inputs: generated DB1 in `data/external/processed`.
   - Output: a .pkl file in `data/external/processed` containing the clusters.
   - Run `python cluster_peptides --help` for more details on which matrix to use and have info on the format of the pkl file.
-  - Visualize the cluster sequence logo as well as the proportion of positive/negative with the `exploration/draw_clusters.ipynb` script.
 
 ### DB2
 
@@ -184,7 +183,8 @@ The folder `src/exploration` contains scripts for exploring data used in the 3D-
    - `exp_visualization.ipynb`: notebook for exploring and plotting deeprank2 GNNs/CNNs' results (e.g., loss vs epochs, AUC, MCC), for a single experiment.
    - `exps_comparison.ipynb`: notebook for comparing multiple deeprank2 experiments in terms of loss curves and metrics (e.g., AUC).
 - `DeepRank` folder 
-  - TBD
+  - `explore_auc_per_allele.ipynb`
+  - `get_output_csv.py`
 - `deeprank_deeprank2_comparison.ipynb`: notebook for comparing deeprank and deeprank2 experiments with sequence-based methods (i.e., re-trained MHCFlurry and MLP).
 - TBD
 
