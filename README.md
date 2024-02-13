@@ -178,14 +178,16 @@ We compared one of our structure-based methods, the GNN, to two SOTA software on
 
 The folder `src/exploration` contains scripts for exploring data used in the 3D-Vac project's experiments. 
 
-- `data_metafeatures_exploration.ipynb`: general exploration of the data used in the experiments (~100000 data points) from the point of view of targets, peptides' length, alleles, and clusters distribution. 
+- `data_metafeatures_exploration.ipynb`: general exploration of the data used in the experiments (~100000 data points) from the point of view of targets, peptides' length, alleles, and clusters distribution.
+- `data_overview.ipynb`: for plotting piecharts of the binders/non-binders for pMHC-I and pMHC-II data (from MHCflurry 2.0 and NetMHCIIpan 4.0, respectively).
 - `DeepRank2` folder
    - `exp_visualization.ipynb`: notebook for exploring and plotting deeprank2 GNNs/CNNs' results (e.g., loss vs epochs, AUC, MCC), for a single experiment.
    - `exps_comparison.ipynb`: notebook for comparing multiple deeprank2 experiments in terms of loss curves and metrics (e.g., AUC).
 - `DeepRank` folder 
-  - `explore_auc_per_allele.ipynb`
-  - `get_output_csv.py`
+  - `explore_auc_per_allele.ipynb`: notebook for exploring models performance (AUC) per each allele in the allele-clustered test set. Also plots barplots for the paper's Figures 2, 3 and Suppl. Fig. 1.
+  - `get_output_csv.py`: for collecting in a csv the CNN outputs on the test sets for metrics evaluation.
 - `deeprank_deeprank2_comparison.ipynb`: notebook for comparing deeprank and deeprank2 experiments with sequence-based methods (i.e., re-trained MHCFlurry and MLP).
-- TBD
+- `dendrograms.ipynb`: for plotting the dendrograms for the paper's Figure 1 (B, C and D), showing the allelele pseudosequence clustering and the train/test separation.
+- `get_paper_csvs.ipynb`: for collecting the training data, test data and models outputs into csvs for the zenodo data release (TBD).
 
 #### Tools
