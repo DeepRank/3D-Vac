@@ -34,8 +34,8 @@ Feel free to explore and utilize the resources provided within this repository. 
         - [PyTorch](#pytorch)
           - [EGNN](#egnn)
           - [3D-SSL](#3d-ssl)
-      - [Test case](#test-case)
-      - [Exploration](#exploration)
+    - [Test case](#test-case)
+    - [Exploration](#exploration)
 
 ## How to run the pipeline
 
@@ -166,14 +166,14 @@ The training data, the pre-trained 3D-SSL model and the outputs can be found TBD
 - Make sure that the processed data is extracted in the directory.
 - Run `train_ssl.py`to run the supervised training.
 
-#### Test case
+### Test case
 
 We compared one of our structure-based methods, the GNN, to two SOTA software on a real-case scenario: an HBV vaccine design study. The scripts for featurize the sequences and test our pre-trained GNN can be found in `src/6_test_cases`.
 
 - `generate_pdb_test_case.py` for generating the PDB files.
 - `pre-trained_testing.py` for processing the PDB files into featurized graphs, running the pre-trained GNN on the generated data, and making predictions. 
 
-#### Exploration
+### Exploration
 
 The folder `src/exploration` contains scripts for exploring data used in the 3D-Vac project's experiments. 
 
