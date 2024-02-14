@@ -36,7 +36,6 @@ Feel free to explore and utilize the resources provided within this repository. 
           - [3D-SSL](#3d-ssl)
       - [Test case](#test-case)
       - [Exploration](#exploration)
-      - [Tools](#tools)
 
 ## How to run the pipeline
 
@@ -189,5 +188,3 @@ The folder `src/exploration` contains scripts for exploring data used in the 3D-
 - `deeprank_deeprank2_comparison.ipynb`: notebook for comparing deeprank and deeprank2 experiments with sequence-based methods (i.e., re-trained MHCFlurry and MLP).
 - `dendrograms.ipynb`: for plotting the dendrograms for the paper's Figure 1 (B, C and D), showing the allelele pseudosequence clustering and the train/test separation.
 - `get_paper_csvs.ipynb`: for collecting the training data, test data and models outputs into csvs for the zenodo data release (TBD).
-
-#### Tools
