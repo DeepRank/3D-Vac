@@ -94,7 +94,7 @@ DB4 is the collection of HDF5 files with 3D-grids or graphs containing the featu
   - Run `python populate_features_input_folder.py --help` for more information
 - Then, after having successfully installed DeepRank, you can generate the 3D-grids and store them into HDF5 files by running: `sbatch 2_generate_features.sh`.
   - Note that the path to the CSV with the targets needs to be changed in `threshold_classification.py`, line 15.
-  - In `src/4_build_db4/DeepRank` you can find additional features not present in DeepRank, like the anchor feature, the Desolvation Energy or the skipgram sequence encoding.
+  - In `src/4_build_db4/DeepRank` you can find features not present in DeepRank (`anchor_feature.py`, `edesolv_feature.py`) which were added to DB4 (3D-grids) as well.
 
 #### Graphs
 
