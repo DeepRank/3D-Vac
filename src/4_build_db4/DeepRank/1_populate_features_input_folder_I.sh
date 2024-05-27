@@ -5,10 +5,11 @@
 #SBATCH --cpus-per-task=128
 #SBATCH --time 01:00:00
 #SBATCH -o /projects/0/einf2380/data/modelling_logs/I/populate_input_folder.out
+#SBATCH -e /projects/0/einf2380/data/modelling_logs/I/populate_input_folder.err
 
 # Load modules:
-module load 2021
-module load foss/2021a
+module load 2022
+module load foss/2022a
 
 # Activate conda env:
 source activate deeprank
