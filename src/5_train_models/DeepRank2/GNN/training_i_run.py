@@ -34,6 +34,8 @@ torch.manual_seed(22)
 # Input data
 # run_day_data = '230515' # 100k and 692 data points, grids + graphs
 run_day_data = '230530' # 100k and 692 data points, only graphs
+# Run number (for statistical significance)
+n_run = 1
 # Paths
 protein_class = 'I'
 target_data = 'BA'
@@ -44,7 +46,7 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprank2/experiments/'
-exp_name = 'exp_100k_std_transf_bs64_naivegnn1_wloss_'
+exp_name = f'exp_100k_std_transf_bs64_naivegnn1_wloss_n_run_{n_run}_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -186,21 +188,30 @@ if __name__ == "__main__":
             _log.info(f'Error in opening {fname}, please check the file.')
     
     df_summ = pd.DataFrame(data=summary)
+    df_summ['ID'] = df_summ['entry'].str.extract(r'(BA-\d+)')
 
     if validate and test: 
 
         if cluster_dataset is None:
-            # random split
-            df_train, df_test = train_test_split(df_summ, test_size=0.1, stratify=df_summ.target, random_state=42)
-            df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+            # random split, shuffled configuration
+            train_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/{n_run}/train.csv")
+            valid_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/{n_run}/validation.csv")
+            test_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/test.csv")
         else:
             # use cluster for test, random split for train and valid
             df_test = df_summ[df_summ.cluster.isin(test_clusters)]
             df_train = df_summ[~df_summ.cluster.isin(test_clusters)]
             df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
 
-        df_summ['phase'] = ['test' if entry in df_test.entry.values else 'valid' if entry in df_valid.entry.values else 'train' for entry in df_summ.entry]
-    
+        df_summ['phase'] = [
+            'test' if idd in test_ids.ID.values
+            else 'valid' if idd in valid_ids.ID.values
+            else 'train' if idd in train_ids.ID.values
+            else 'None' for idd in df_summ.ID]
+        df_train = df_summ[df_summ['phase'] == 'train']
+        df_valid = df_summ[df_summ['phase'] == 'valid']
+        df_test = df_summ[df_summ['phase'] == 'test']
+
     else:
         df_train = df_summ.copy()
         df_summ['phase'] = 'train'
