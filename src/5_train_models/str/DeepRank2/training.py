@@ -29,6 +29,7 @@ from pmhc_gnn import NaiveGNN1
 # initialize
 starttime = datetime.now()
 torch.manual_seed(22)
+torch.cuda.manual_seed(22)
 
 #################### To fill
 # Input data

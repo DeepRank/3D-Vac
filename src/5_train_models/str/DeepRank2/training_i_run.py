@@ -28,7 +28,6 @@ from pmhc_gnn import PMHCI_Network01, PMHCI_Network02, PMHCI_Network03, NaiveGNN
 
 # initialize
 starttime = datetime.now()
-torch.manual_seed(22)
 
 #################### To fill
 # Input data
@@ -36,6 +35,8 @@ torch.manual_seed(22)
 run_day_data = '230530' # 100k and 692 data points, only graphs
 # Run number (for statistical significance)
 n_run = 1
+torch.manual_seed(n_run)
+torch.cuda.manual_seed(n_run)
 # Paths
 protein_class = 'I'
 target_data = 'BA'
@@ -110,9 +111,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 20
+earlystop_patience = 34
 earlystop_maxgap = 0.06
-min_epoch = 45
+min_epoch = 34
 ####################
 
 
