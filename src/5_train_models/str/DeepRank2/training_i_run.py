@@ -103,6 +103,7 @@ batch_size = 64
 optimizer = torch.optim.Adam
 lr = 1e-3
 weight_decay = 0
+best_model = True # If False, the last model tried is selected
 epochs = 70
 class_weights = True # weighted loss function
 cuda = True
@@ -111,9 +112,9 @@ num_workers = 16
 train_profiling = False
 check_integrity = True
 # early stopping
-earlystop_patience = 34
+earlystop_patience = 20
 earlystop_maxgap = 0.06
-min_epoch = 34
+min_epoch = 45
 ####################
 
 
@@ -351,6 +352,7 @@ if __name__ == "__main__":
             min_epoch = min_epoch,
             validate = validate,
             num_workers = num_workers,
+            best_model = best_model,
             filename = os.path.join(exp_path, 'model.pth.tar'))
         _log.info(f"Batch size set to {trainer.batch_size_train}.")
 
