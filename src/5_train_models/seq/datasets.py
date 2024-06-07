@@ -268,7 +268,7 @@ def custom_norm(ds): # custom normalization
 def custom_denorm(ds):
     return ds
 
-def create_unique_csv(train_csv, test_csv, model_name):
+def create_unique_csv(train_csv, valid_csv, test_csv, model_name):
     """Concatenates train_csv (containing validation as well) with the test_csv into one csv which can be
     loaded into the Class_Seq_Dataset. This csv will have an added `test` column indicating which sample
     is used for train and validation (test == 0) and which is used for test (test == 1).
@@ -285,10 +285,12 @@ def create_unique_csv(train_csv, test_csv, model_name):
     rand_str = "".join(random.sample(aa, 5))
     tvt_csv_path = f"train_validation_test_cases_{model_name}-{rand_str}.csv"
     test_df = pd.read_csv(test_csv)
-    test_df["test"] = 1
-    train_validation_df = pd.read_csv(train_csv)
-    train_validation_df["test"] = 0
-    concatenated_csv = pd.concat([train_validation_df, test_df], ignore_index=True).to_csv(tvt_csv_path, index=False)
+    test_df["phase"] = 'test'
+    train_df = pd.read_csv(train_csv)
+    train_df["phase"] = 'train'
+    valid_df = pd.read_csv(valid_csv)
+    valid_df["phase"] = 'valid'
+    concatenated_csv = pd.concat([train_df, valid_df, test_df], ignore_index=True).to_csv(tvt_csv_path, index=False)
     csv_path = os.path.abspath(tvt_csv_path) 
     return csv_path
 
