@@ -4,8 +4,8 @@ import os
 import sys
 sys.path.append(path.abspath("../../"))
 #from DeepRank.I.classification.seq import data_path # path to the data folder relative to the location of the __init__.py file
-from DeepRank.CNN_models import *
-from DeepRank.NeuralNet import NeuralNet
+from CNN_models import *
+from NeuralNet import NeuralNet
 # import multiprocessing as mp
 from deeprank.learn import DataSet#, NeuralNet
 from deeprank.learn.modelGenerator import *
@@ -143,7 +143,8 @@ model.train(
     num_workers=18,
     prefetch_factor=40,
     save_fraction=1,
-    pin_memory_cuda=False
+    pin_memory_cuda=False,
+    early_stop=3,
 )
 
 # START TRAINING

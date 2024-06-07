@@ -15,9 +15,9 @@ source activate deeprank
 
 srun python -u $1 --with-cuda 1 \
     --exp-name $2 \
-    --model $3 \
-    --data-path $4 \
-    -E $5 --batch $6 \
+    --model $3 --task-id $4\
+    --data-path $5 \
+    -E $6 --batch $7 \
     --output-dir /projects/0/einf2380/data/pMHCI/trained_models/CNN \
 
 # srun python -u cnn_onefold.py --with-cuda 1 \

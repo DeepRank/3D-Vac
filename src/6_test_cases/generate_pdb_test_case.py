@@ -4,16 +4,16 @@ import glob
 import shutil
 
 
-in_csv = '/home/dmarz/3D-Vac/src/5_test_cases/to_model.csv'
-work_folder = '/home/dmarz/test_cases/work_folders/'
-wrapper_id = 'NOnetmhcpan'
+in_csv = '/home/dmarz/3D-Vac/src/6_test_cases/hbv_test_cases.csv'
+work_folder = '/home/dmarz/test_cases/work_folders'
+wrapper_id = 'hbv_testcase'
 final_folder = f'/home/dmarz/test_cases/final_folders/{wrapper_id}'
-num_cores = 64
+num_cores = 1
 
 db = Database.load()
 
 wrap = Wrapper.Wrapper(in_csv, db, MHC_class='I', 
-                    IDs_col=0,peptides_col=1, allele_name_col=2,
+                    IDs_col=0,peptides_col=1, allele_name_col=2,anchors_col=3,
                     collective_output_dir=work_folder, archive=False,
                     benchmark=False, verbose=True, delimiter=',',
                     header=True, num_cores=num_cores, use_netmhcpan=False,
@@ -22,7 +22,7 @@ wrap = Wrapper.Wrapper(in_csv, db, MHC_class='I',
 
 
 
-for folder in glob.glob(f'{work_folder}{wrapper_id}/*'):
+for folder in glob.glob(f'{work_folder}/{wrapper_id}/*'):
     try:
         with open(f'{folder}/molpdf_DOPE.tsv', 'r') as scorefile:
             best_model = [line.replace('\n','').split('\t')[0] for line in scorefile][0]

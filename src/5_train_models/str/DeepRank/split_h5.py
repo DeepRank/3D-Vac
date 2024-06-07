@@ -311,7 +311,7 @@ if __name__ == '__main__':
         train_df = pd.read_csv(a.train_csv)
         val_df = pd.read_csv(a.val_csv)
         test_df = pd.read_csv(a.test_csv)
-        all_ids = train_df.ID.tolist() + test_df.ID.tolist()
+        all_ids = train_df.ID.tolist() + val_df.ID.tolist() + test_df.ID.tolist()
         
 
     #Fill in the nan values (empty fileds belonging to trashbin clusters) with n_clusters + 1 

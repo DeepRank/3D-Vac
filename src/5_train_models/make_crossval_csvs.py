@@ -36,7 +36,7 @@ def read_caseIDS_from_hfile(hfile, ids):
 ids_csv = '/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq.csv'
 df = pd.read_csv(ids_csv)
 df['label'] = np.where(df['measurement_value'] < 500, 1.0, 0.0)
-full_dataset = df[['ID', 'label']]
+full_dataset = df[['ID', 'label', 'peptide', 'allele']]
 all_ids = df.ID.tolist()
 
 if parse_hdf5:
@@ -62,8 +62,11 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y,
                                                     test_size=0.10,
                                                     random_state=42)
 
-train_df = pd.DataFrame({'ID': X_train, 'label':Y_train})
-test_df = pd.DataFrame({'ID': X_test, 'label':Y_test})
+
+#train_df = pd.DataFrame({'ID': X_train, 'label':Y_train})
+train_df = dataset[dataset['ID'].isin(X_train)].set_index('ID').loc[X_train].reset_index()
+#test_df = pd.DataFrame({'ID': X_test, 'label':Y_test})
+test_df = dataset[dataset['ID'].isin(X_test)].set_index('ID').loc[X_test].reset_index()
 test_df.to_csv(f'{csvs_path}/Shuffled/test.csv', index=False)
 
 #seeds = [3, 18, 31, 42, 65]
@@ -78,10 +81,12 @@ for fold in range(1,6):
                                                     test_size=0.15,
                                                     random_state=fold)
     
-    fold_train_df = pd.DataFrame({'ID': fold_X_train, 'label':fold_Y_train})
+    #fold_train_df = pd.DataFrame({'ID': fold_X_train, 'label':fold_Y_train})
+    fold_train_df = dataset[dataset['ID'].isin(fold_X_train)].set_index('ID').loc[fold_X_train].reset_index()
     fold_train_df.to_csv(f'{csvs_path}/Shuffled/{fold}/train.csv', index=False)
     
-    fold_val_df = pd.DataFrame({'ID': fold_X_val, 'label':fold_Y_val})
+    #fold_val_df = pd.DataFrame({'ID': fold_X_val, 'label':fold_Y_val})
+    fold_val_df = dataset[dataset['ID'].isin(fold_X_val)].set_index('ID').loc[fold_X_val].reset_index()
     fold_val_df.to_csv(f'{csvs_path}/Shuffled/{fold}/validation.csv', index=False)
     
 #%% Make the AlleleClustered folds
@@ -104,10 +109,12 @@ for fold in range(1,6):
                                                     test_size=0.15,
                                                     random_state=fold)
     
-    fold_train_df = pd.DataFrame({'ID': fold_X_train, 'label':fold_Y_train})
+    #fold_train_df = pd.DataFrame({'ID': fold_X_train, 'label':fold_Y_train})
+    fold_train_df = dataset[dataset['ID'].isin(fold_X_train)].set_index('ID').loc[fold_X_train].reset_index()
     fold_train_df.to_csv(f'{csvs_path}/AlleleClustered/{fold}/train.csv', index=False)
     
-    fold_val_df = pd.DataFrame({'ID': fold_X_val, 'label':fold_Y_val})
+    #fold_val_df = pd.DataFrame({'ID': fold_X_val, 'label':fold_Y_val})
+    fold_val_df = dataset[dataset['ID'].isin(fold_X_val)].set_index('ID').loc[fold_X_val].reset_index()
     fold_val_df.to_csv(f'{csvs_path}/AlleleClustered/{fold}/validation.csv', index=False)
 
 #%% Check
@@ -146,3 +153,10 @@ check_overlapping_ids(pd.read_csv(path %(1, 'validation')), pd.read_csv(path %(1
 check_pos_neg_ratio(pd.read_csv(path %(1, 'validation')))
 check_pos_neg_ratio(pd.read_csv(path %(1, 'train')))
 
+
+path = '/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/%i/%s.csv'
+check_overlapping_ids(pd.read_csv(path %(1, 'validation')), pd.read_csv(path %(3, 'validation')))
+check_overlapping_ids(pd.read_csv(path %(1, 'validation')), pd.read_csv(path %(1, 'train')))
+
+check_pos_neg_ratio(pd.read_csv(path %(1, 'validation')))
+check_pos_neg_ratio(pd.read_csv(path %(1, 'train')))
