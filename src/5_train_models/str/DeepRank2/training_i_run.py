@@ -47,7 +47,7 @@ folder_data = f'{project_folder}/data/pMHC{protein_class}/features_output_folder
 input_data_path = glob.glob(os.path.join(folder_data, '*.hdf5'))
 # Experiment naming
 exp_basepath = f'{project_folder}/data/pMHC{protein_class}/trained_models/deeprank2/experiments/'
-exp_name = f'exp_100k_std_transf_bs64_naivegnn1_wloss_n_run_{n_run}_'
+exp_name = f'exp_100k_std_transf_bs64_naivegnn1_wloss_cl_allele_run_{n_run}_'
 exp_date = True # bool
 exp_suffix = ''
 # Target/s
@@ -85,15 +85,8 @@ features_transform = {
 validate = True
 test = True
 # Clusters
-# If cluster_dataset is None, sets are randomly splitted
-cluster_dataset = None # 'cl_peptide' # 'cl_peptide2' # 'cl_peptide2_10set' # 'cl_allele' # 'allele_type' # None
-cluster_dataset_type = None # None # 'string'
-test_clusters = [3] # if validate and test are False, this is ignored
-## Test's clusters
-# cl_peptide1 (Gibbs): [3]
-# cl_peptide2 (5 clusters, Marieke): [4]
-# cl_peptide2_10set (10 clusters, Marieke): [3]
-# cl_allele: [1]
+# If cluster_dataset is None, shuffled configuration is used
+cluster_dataset = 'cl_allele' # 'cl_allele'
 # Dataset
 node_features = "all"
 edge_features = "all"
@@ -178,10 +171,7 @@ if __name__ == "__main__":
                     summary['target'].append(target_value)
 
                     if cluster_dataset is not None:
-                        if cluster_dataset_type == 'string':
-                            cluster_value = hdf5[mol][target_group][cluster_dataset].asstr()[()]
-                        else:
-                            cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
+                        cluster_value = float(hdf5[mol][target_group][cluster_dataset][()])
 
                         summary['cluster'].append(cluster_value)
 
@@ -194,16 +184,14 @@ if __name__ == "__main__":
 
     if validate and test: 
 
-        if cluster_dataset is None:
-            # random split, shuffled configuration
-            train_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/{n_run}/train.csv")
-            valid_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/{n_run}/validation.csv")
-            test_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/Shuffled/test.csv")
+        if cluster_dataset is not None:
+            config = 'AlleleClustered'
         else:
-            # use cluster for test, random split for train and valid
-            df_test = df_summ[df_summ.cluster.isin(test_clusters)]
-            df_train = df_summ[~df_summ.cluster.isin(test_clusters)]
-            df_train, df_valid = train_test_split(df_train, test_size=0.2, stratify=df_train.target, random_state=42)
+            config = 'Shuffled'
+        # random split, shuffled configuration
+        train_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/{config}/{n_run}/train.csv")
+        valid_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/{config}/{n_run}/validation.csv")
+        test_ids = pd.read_csv(f"/projects/0/einf2380/data/external/processed/I/CrossValidations/{config}/test.csv")
 
         df_summ['phase'] = [
             'test' if idd in test_ids.ID.values
@@ -396,10 +384,6 @@ if __name__ == "__main__":
         if test:
             exp_json['test_datapoints'] = len(df_test)
         exp_json['total_datapoints'] = len(df_summ)
-        if cluster_dataset is not None:
-            # exp_json['train_clusters'] = [train_clusters]
-            # exp_json['val_clusters'] = [val_clusters]
-            exp_json['test_clusters'] = [test_clusters]
 
         ## load output and retrieve metrics
         exp_json['saved_epoch'] = epoch
