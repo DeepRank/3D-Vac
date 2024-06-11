@@ -36,7 +36,7 @@ def read_caseIDS_from_hfile(hfile, ids):
 ids_csv = '/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq.csv'
 df = pd.read_csv(ids_csv)
 df['label'] = np.where(df['measurement_value'] < 500, 1.0, 0.0)
-full_dataset = df[['ID', 'label', 'peptide', 'allele']]
+full_dataset = df[['ID', 'label', 'peptide', 'allele', 'measurement_value']]
 all_ids = df.ID.tolist()
 
 if parse_hdf5:
@@ -53,6 +53,7 @@ if parse_hdf5:
 
 else:
     dataset = pd.read_csv(f'{csvs_path}/full_dataset.csv')
+    
 #%% Make the shuffled folds
 
 X = dataset['ID']
@@ -91,12 +92,15 @@ for fold in range(1,6):
     
 #%% Make the AlleleClustered folds
 
-AlleleClustered_test = pd.read_csv('/projects/0/einf2380/data/external/processed/I/experiments/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_test.csv')
 
-test_df = dataset[dataset['ID'].isin(AlleleClustered_test['ID'])]
+#AlleleClustered_test = pd.read_csv('/projects/0/einf2380/data/external/processed/I/experiments/BA_pMHCI_human_quantitative_only_eq_pseudoseq_clustered_test.csv')
+AlleleClustered_test = pd.read_csv('/projects/0/einf2380/data/external/processed/I/BA_pMHCI_human_quantitative_only_eq_alleleclusters.csv')
+
+test_ids = AlleleClustered_test[AlleleClustered_test['allele_clustering']==1]['ID']
+test_df = dataset[dataset['ID'].isin(test_ids)]
 test_df.to_csv(f'{csvs_path}/AlleleClustered/test.csv', index=False)
 
-train_df = dataset[~dataset['ID'].isin(AlleleClustered_test['ID'])]
+train_df = dataset[~dataset['ID'].isin(test_ids)]
 
 for fold in range(1,6):
     try:
