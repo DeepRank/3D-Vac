@@ -144,7 +144,7 @@ model.train(
     prefetch_factor=40,
     save_fraction=1,
     pin_memory_cuda=False,
-    early_stop=3,
+    early_stop=5,
 )
 
 # START TRAINING

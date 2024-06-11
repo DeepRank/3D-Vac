@@ -873,13 +873,15 @@ class NeuralNet():
 
             elif save_epoch == 'all':
                 self._export_epoch_hdf5(epoch, self.data)
-
-            sys.stdout.flush()
             
             # check if early stop is needed
             if self._early_stop(epoch):
                 logger.info(f"Early stop at n epochs: {epoch}\n Validation loss has not improved for {self.early_stop_delta} epochs")
+                sys.stdout.flush()
                 break
+        
+            sys.stdout.flush()
+            
             
 
         # make variable 'exec_epoch', if early stop was executed the x axis (with n epochs) for plots will still be acurate
@@ -1310,7 +1312,7 @@ class NeuralNet():
 
         return inputs, targets
     
-    def _early_stop(self, epoch, patience=5, max_gap=0.06, min_epoch=10):
+    def _early_stop(self, epoch, patience=5, max_gap=0.03, min_epoch=10):
         """check if training should early stop based on progression of validation loss
         
             patience (int): How many epochs to wait after the last time validation loss improved.
@@ -1322,18 +1324,19 @@ class NeuralNet():
         """
         current_loss = self.losses['valid'][-1]
         best_loss = self.min_error['valid']
-        counter = 0
+        if not hasattr(self, 'earlystop_counter'):
+            self.earlystop_counter = 0
         
         if best_loss is None:
             best_loss = current_loss
             self.best_epoch = epoch
-        elif current_loss < best_loss - max_gap:
+        elif current_loss < (best_loss - max_gap):
             best_loss = current_loss
             self.best_epoch = epoch
-            counter = 0
+            self.earlystop_counter = 0
         else:
-            counter += 1
-            if counter >= patience:
+            self.earlystop_counter += 1
+            if self.earlystop_counter >= patience:
                 self.early_stop = True
 
         if epoch <= min_epoch:
