@@ -142,12 +142,14 @@ class Class_Seq_Dataset(Dataset):
 
         if encoder == "blosum_with_allele":
             self.peptides = torch.tensor([allele_peptide2blosum(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
-        if encoder == "sparse_with_allele":
+        elif encoder == "sparse_with_allele":
             self.peptides = torch.tensor([allele_peptide2onehot(a, p) for a, p in zip(self.pseudosequences, self.csv_peptides)])
-        if encoder == "blosum":
+        elif encoder == "blosum":
             self.peptides = torch.tensor([peptide2blosum(p) for p in self.csv_peptides])
-        if encoder == "sparse":
+        elif encoder == "sparse":
             self.peptides = torch.tensor([peptide2onehot(p) for p in self.csv_peptides])
+        else:
+            raise Exception(f'Unrecognized encoder: {encoder}')
         self.input_shape = (self.peptides.shape[1], self.peptides.shape[2])
 
         # convert NaN trash cluster to 0:
@@ -178,8 +180,11 @@ class Class_Seq_Dataset(Dataset):
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
         if self.task == "classification":
-            labels = [(0,1)[value < self.threshold] for value in self.df["measurement_value"]]
-            labels = torch.tensor(labels, dtype=torch.long)
+            if "measurement_value" in self.df.columns:
+                labels = [(0,1)[value < self.threshold] for value in self.df["measurement_value"]]
+            else:
+                labels = self.df['label']
+                labels = torch.tensor(labels, dtype=torch.long)
 
             # binder or non binder if the mean value of redundant peptides less than the threshold:
             # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]

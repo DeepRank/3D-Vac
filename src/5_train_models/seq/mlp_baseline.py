@@ -190,12 +190,14 @@ if rank == 0:
         # a.test_csv into one csv. `test` column tells which
         # case is test (1) or which is used for train and validation (0)
         
-        test_idx = pd.read_csv(a.test_csv)['ID'].tolist()
-        #test_idx = dataset.df.loc[dataset.df.test == 1].index
+        #test_idx = pd.read_csv(a.test_csv)['ID'].tolist()
+        test_idx = dataset.df.loc[dataset.df.phase == 'test'].index
         
         if type(a.train_csv) == str and type(a.valid_csv) == str:
-            train_idx = pd.read_csv(a.train_csv)['ID'].tolist()
-            valid_idx = pd.read_csv(a.valid_csv)['ID'].tolist()
+            #train_idx = pd.read_csv(a.train_csv)['ID'].tolist()
+            train_idx = dataset.df.loc[dataset.df.phase == 'train'].index
+            #validation_idx = pd.read_csv(a.valid_csv)['ID'].tolist()
+            validation_idx = dataset.df.loc[dataset.df.phase == 'valid'].index
             
         else:
             train_val_idx = dataset.df.loc[dataset.df.test == 0].index
@@ -210,8 +212,8 @@ if rank == 0:
             test_idx
         ]]*size
 
-        if not a.no_clean:
-            os.remove(csv_path)
+        #if not a.no_clean:
+        #    os.remove(csv_path)
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
     # -------------------------------------------
@@ -315,7 +317,7 @@ for e in range(epochs):
     train_accuracies.append(tr_accuracy)
     train_tpr.append(tr_tpr)
     train_tnr.append(tr_tnr)
-    train_losses.append(tr_losses) 
+    train_losses.append(tr_losses)
     #train_auc.append(tr_auc)
     
     val_accuracy, val_tpr, val_tnr, val_losses  = evaluate(validation_dataloader, model, loss_fn, device, a.task)
