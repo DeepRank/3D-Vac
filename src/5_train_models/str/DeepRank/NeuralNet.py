@@ -883,7 +883,6 @@ class NeuralNet():
             sys.stdout.flush()
             
             
-
         # make variable 'exec_epoch', if early stop was executed the x axis (with n epochs) for plots will still be acurate
         self.exec_epochs = epoch+1
         # plot the losses
@@ -1312,7 +1311,7 @@ class NeuralNet():
 
         return inputs, targets
     
-    def _early_stop(self, epoch, patience=5, max_gap=0.03, min_epoch=10):
+    def _early_stop(self, epoch, patience=3, max_gap=0.005, min_epoch=10):
         """check if training should early stop based on progression of validation loss
         
             patience (int): How many epochs to wait after the last time validation loss improved.

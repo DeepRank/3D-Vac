@@ -3,7 +3,7 @@ import torch
 import blosum
 import pandas as pd
 import random
-from mhcflurry.regression_target import from_ic50, to_ic50
+from SeqBased_models import from_ic50, to_ic50
 import numpy
 import time
 import os
@@ -273,7 +273,7 @@ def custom_norm(ds): # custom normalization
 def custom_denorm(ds):
     return ds
 
-def create_unique_csv(train_csv, valid_csv, test_csv, model_name):
+def create_unique_csv(train_csv, valid_csv, test_csv, model_name, experiment=False):
     """Concatenates train_csv (containing validation as well) with the test_csv into one csv which can be
     loaded into the Class_Seq_Dataset. This csv will have an added `test` column indicating which sample
     is used for train and validation (test == 0) and which is used for test (test == 1).
@@ -286,14 +286,18 @@ def create_unique_csv(train_csv, valid_csv, test_csv, model_name):
     Returns:
         _type_: _description_
     """
-    aa = list("ABCDEFGHIJKLMOPQRSTUV0123456789")
-    rand_str = "".join(random.sample(aa, 5))
-    tvt_csv_path = f"train_validation_test_cases_{model_name}-{rand_str}.csv"
+    if not experiment:
+        aa = list("ABCDEFGHIJKLMOPQRSTUV0123456789")
+        experiment = "".join(random.sample(aa, 5))
+    tvt_csv_path = f"train_validation_test_cases_{model_name}-{experiment}.csv"
     test_df = pd.read_csv(test_csv)
+    test_df = test_df.loc[test_df.peptide.str.len() <= 15]
     test_df["phase"] = 'test'
     train_df = pd.read_csv(train_csv)
+    train_df = train_df.loc[train_df.peptide.str.len() <= 15]
     train_df["phase"] = 'train'
     valid_df = pd.read_csv(valid_csv)
+    valid_df = valid_df.loc[valid_df.peptide.str.len() <= 15]
     valid_df["phase"] = 'valid'
     concatenated_csv = pd.concat([train_df, valid_df, test_df], ignore_index=True).to_csv(tvt_csv_path, index=False)
     csv_path = os.path.abspath(tvt_csv_path) 

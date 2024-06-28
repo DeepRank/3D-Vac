@@ -170,7 +170,7 @@ if rank == 0:
     if type(a.csv_file)==str:
         csv_path = path.abspath(a.csv_file)
     if type(a.test_csv) == str:
-        #create a unique csv file
+        #create a unique csv file, including only peptides up to 15-mers
         csv_path = create_unique_csv(a.train_csv, a.valid_csv, a.test_csv, a.model_name)
 
     dataset = Class_Seq_Dataset(
@@ -349,6 +349,7 @@ for e in range(epochs):
             best_model["best_epoch"] = e
     # train the model over one epoch
     train_f(train_dataloader, model, loss_fn, optimizer, device)
+    print(f"Epoch {e} done")
 end_training_time = time.time()
 training_time = (end_training_time - start_training_time)/60
 print(f"Training on {rank} finished. Time for training: {training_time} minutes")
