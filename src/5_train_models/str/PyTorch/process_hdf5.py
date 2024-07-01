@@ -1,5 +1,5 @@
 """
-This file is the code to parse the h5py PANDORA dataset.
+This file contains code to parse the h5py DeepRank PANDORA dataset.
 
 parse_h5py_pMHC_dataset will process one h5py file into a list of torch_geometric.data.Data objects
 
@@ -19,9 +19,6 @@ data_list = torch.load('pandora_pMHC_residue_level.pt')
 
 loader = DataLoader(data_list, batch_size=1, shuffle=True) etc. 
 """
-
-
-from .utils import filter_element_dictionaries, res_ids2idx
 
 import os
 import re
@@ -90,16 +87,22 @@ def filter_element_dictionaries(elements=None, exclude_elements=None):
     return _el2idx, _el2mass
 
 
-def parse_h5py_pMHC_complex(h5py_pdb, one_hot=True, residue_level=False, radius_pocket=10, elements=['C', 'N', 'O', 'S', 'P'], exclude_elements=['H']):
+def parse_h5py_pMHC_complex(h5py_pdb, hdf5=True, one_hot=True, residue_level=False, radius_pocket=10, elements=['C', 'N', 'O', 'S', 'P'], exclude_elements=['H']):
     el2idx, el2mass = filter_element_dictionaries(elements=elements, exclude_elements=exclude_elements)
 
     pos_M, pos_P, x_M, x_P, mass_M, mass_P, res_M, res_P = None, None, None, None, None, None, None, None
 
     for line in h5py_pdb:
-        line = line.decode('utf-8').split()
+        if hdf5: #If the file is an hdf5
+            line = line.decode('utf-8').split()
+        else: #If the file is a pdb
+            pass
 
-        if line[0] != 'ATOM':
+        if line[0].startswith('END'):
+            break
+        elif line[0] != 'ATOM':
             continue
+        
 
         atom_type = line[2].upper() # type of atom within the residue (CA, CB, etc.)
         element = line[-1].upper() # atom element

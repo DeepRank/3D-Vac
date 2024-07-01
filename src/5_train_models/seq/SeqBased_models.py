@@ -1,12 +1,45 @@
 from torch import nn
 import torch
-from mhcflurry.regression_target import to_ic50
 import numpy as np
 from sklearn import metrics
 import pickle
 
 # FUNCTIONS AND USEFUL STUFF
 #----------------------------
+
+def from_ic50(ic50, max_ic50=50000.0):
+    """ Originally from mhcflurry2.0 regression_target module
+    Convert ic50s to regression targets in the range [0.0, 1.0].
+    
+    Parameters
+    ----------
+    ic50 : numpy.array of float
+
+    Returns
+    -------
+    numpy.array of float
+
+    """
+    x = 1.0 - (np.log(np.maximum(ic50, 1e-12)) / np.log(max_ic50))
+    return np.minimum(
+        1.0,
+        np.maximum(0.0, x))
+
+
+def to_ic50(x, max_ic50=50000.0):
+    """ Originally from mhcflurry2.0 regression_target module
+    Convert regression targets in the range [0.0, 1.0] to ic50s in the range
+    [0, 50000.0].
+    
+    Parameters
+    ----------
+    x : numpy.array of float
+
+    Returns
+    -------
+    numpy.array of float
+    """
+    return max_ic50 ** (1.0 - x)
 
 # define the train function
 def train_f(dataloader, model, loss_fn, optimizer, device):
@@ -55,7 +88,7 @@ def evaluate(dataloader, model, loss_fn, device, task="classification"):
     Returns:
         _type_: _description_
     """
-    logits = torch.empty(0)
+    logits = torch.empty(0).to(device)
     #logits = []
     pred = []
     targets = []
@@ -72,9 +105,8 @@ def evaluate(dataloader, model, loss_fn, device, task="classification"):
             #logits.extend(mb_logits)
             logits = torch.cat((logits, mb_logits), dim=0)
             targets.extend([float(x) for x in y.tolist()])
-            loss = loss_fn(model(X), y)
+            loss = loss_fn(mb_logits, y)
             losses.append(loss.float())
-
 
             if task == "regression":
                 ic50_logits = to_ic50(np.array(mb_logits))
@@ -164,7 +196,7 @@ class MlpRegBaseline(nn.Module):
         # conv_out = self.conv_layer(x)
         x = self.linear(x)
         if self.n_output_nodes == 1:
-            s = nn.Sigmoid()
-            x = s(x)
+            #s = nn.Sigmoid()
+            x = torch.sigmoid(x)
             x = x.squeeze(1)
         return x

@@ -134,3 +134,8 @@ dmypy.json
 
 # slurm
 .out
+.err
+
+# data and reports 
+data/
+reports/

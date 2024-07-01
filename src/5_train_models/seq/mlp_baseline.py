@@ -46,10 +46,18 @@ arg_parser.add_argument("--allele-to-pseudosequence-csv",
 arg_parser.add_argument("--csv-file", "-f",
     help="Name of the csv file in data/external/processed containing the cluster column. \n \
         Works as a train and validation set if provided with --test-csv.",
-    default="/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_j_4.csv"
+    default=False, #"/home/daqop/mountpoint_snellius/3D-Vac/data/external/processed/all_hla_j_4.csv"
 )
 arg_parser.add_argument("--test-csv",
     help="Path to csv containing test cases.",
+    default=False
+)
+arg_parser.add_argument("--train-csv",
+    help="Path to csv containing training cases.",
+    default=False
+)
+arg_parser.add_argument("--valid-csv",
+    help="Path to csv containing validation cases.",
     default=False
 )
 arg_parser.add_argument("--trained-models-path", "-p",
@@ -159,10 +167,11 @@ if rank == 0:
     print(f"CUDA available: {torch.cuda.is_available()}")
     print(f"Device used: {device}")
     print("Loading data for splitting...")
-    csv_path = path.abspath(a.csv_file)
+    if type(a.csv_file)==str:
+        csv_path = path.abspath(a.csv_file)
     if type(a.test_csv) == str:
-        #create a unique csv file
-        csv_path = create_unique_csv(a.csv_file, a.test_csv, a.model_name)
+        #create a unique csv file, including only peptides up to 15-mers
+        csv_path = create_unique_csv(a.train_csv, a.valid_csv, a.test_csv, a.model_name)
 
     dataset = Class_Seq_Dataset(
         csv_path,
@@ -180,12 +189,22 @@ if rank == 0:
         # create_unique_csv concatenates the a.csv_path with 
         # a.test_csv into one csv. `test` column tells which
         # case is test (1) or which is used for train and validation (0)
-        train_val_idx = dataset.df.loc[dataset.df.test == 0].index
-        test_idx = dataset.df.loc[dataset.df.test == 1].index
-        if a.task == "classification":
-            train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9, stratify=dataset.labels[train_val_idx]) #2/9*0,9=0.2
+        
+        #test_idx = pd.read_csv(a.test_csv)['ID'].tolist()
+        test_idx = dataset.df.loc[dataset.df.phase == 'test'].index
+        
+        if type(a.train_csv) == str and type(a.valid_csv) == str:
+            #train_idx = pd.read_csv(a.train_csv)['ID'].tolist()
+            train_idx = dataset.df.loc[dataset.df.phase == 'train'].index
+            #validation_idx = pd.read_csv(a.valid_csv)['ID'].tolist()
+            validation_idx = dataset.df.loc[dataset.df.phase == 'valid'].index
+            
         else:
-            train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9) #2/9*0,9=0.2
+            train_val_idx = dataset.df.loc[dataset.df.test == 0].index
+            if a.task == "classification":
+                train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9, stratify=dataset.labels[train_val_idx]) #2/9*0,9=0.2
+            else:
+                train_idx,validation_idx = train_test_split(train_val_idx, test_size=2/9) #2/9*0,9=0.2
         
         datasets = [[
             train_idx,
@@ -193,9 +212,8 @@ if rank == 0:
             test_idx
         ]]*size
 
-        if not a.no_clean:
-            os.remove(csv_path)
-        
+        #if not a.no_clean:
+        #    os.remove(csv_path)
 
     # SEPARATE TRAIN VALIDATION AND TEST DATASETS
     # -------------------------------------------
@@ -299,7 +317,7 @@ for e in range(epochs):
     train_accuracies.append(tr_accuracy)
     train_tpr.append(tr_tpr)
     train_tnr.append(tr_tnr)
-    train_losses.append(tr_losses) 
+    train_losses.append(tr_losses)
     #train_auc.append(tr_auc)
     
     val_accuracy, val_tpr, val_tnr, val_losses  = evaluate(validation_dataloader, model, loss_fn, device, a.task)
@@ -331,6 +349,7 @@ for e in range(epochs):
             best_model["best_epoch"] = e
     # train the model over one epoch
     train_f(train_dataloader, model, loss_fn, optimizer, device)
+    print(f"Epoch {e} done")
 end_training_time = time.time()
 training_time = (end_training_time - start_training_time)/60
 print(f"Training on {rank} finished. Time for training: {training_time} minutes")
