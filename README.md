@@ -4,6 +4,8 @@ Welcome to the repository for the collaborative project "Personalized Cancer Vac
 
 This repository hosts the code utilized in executing the experiments outlined in the paper "Improving Generalizability for MHC-I Binding Peptide Predictions through Structure-Based Geometric Deep Learning", available as a pre-print [here](https://www.biorxiv.org/content/10.1101/2023.12.04.569776v2.abstract).
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13820276.svg)](https://doi.org/10.5281/zenodo.13820276)
+
 *Key Notes*
 
 - The 3D pMHC-I models were generated employing [PANDORA](https://github.com/X-lab-3D/PANDORA).
