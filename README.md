@@ -10,7 +10,7 @@ This repository hosts the code utilized in executing the experiments outlined in
 
 - The 3D pMHC-I models were generated employing [PANDORA](https://github.com/X-lab-3D/PANDORA).
 - Implementation and execution of CNN and GNN models were accomplished using the [DeepRank](https://github.com/DeepRank/deeprank) and [DeepRank2](https://github.com/DeepRank/deeprank2) packages, respectively.
-- The links to the data will be updated asap.
+- You can find the data used [here](https://zenodo.org/records/14223679).
 
 Feel free to explore and utilize the resources provided within this repository. If you have any questions or feedback, please don't hesitate to reach out.
 
