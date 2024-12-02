@@ -136,7 +136,7 @@ class Class_Seq_Dataset(Dataset):
         self.df = self.df.loc[self.df.allele.isin(list(allele_to_pseudoseq.keys()))]
         self.pseudosequences = [allele_to_pseudoseq[a] for a in self.df.allele]
 
-        self.labels, self.groups = self.load_class_seq_data()
+        self.load_class_seq_data()
 
         self.csv_peptides = [length_agnostic_encode_p(p) for p in self.df.peptide.tolist()]
 
@@ -157,7 +157,7 @@ class Class_Seq_Dataset(Dataset):
         # self.groups = torch.nan_to_num(self.groups)
         
     def __getitem__(self, idx):
-        return self.peptides[idx], self.labels[idx]
+        return self.peptides[idx], self.labels[idx] #self.continuous_labels[idx] #
 
     def __len__(self):
         return len(self.peptides)
@@ -179,23 +179,15 @@ class Class_Seq_Dataset(Dataset):
 
         # binder or non binder if the value of the peptide is less than the threshold (redundant peptides will have
         # different values)
-        if self.task == "classification":
-            if "measurement_value" in self.df.columns:
-                labels = [(0,1)[value < self.threshold] for value in self.df["measurement_value"]]
-            else:
-                labels = self.df['label']
-                labels = torch.tensor(labels, dtype=torch.long)
+        self.measurements = self.df['measurement_value']
+        self.continuous_labels = torch.tensor(from_ic50(self.measurements), dtype=torch.float32)
+        self.labels = torch.tensor(self.df['label'], dtype=torch.float32)
 
-            # binder or non binder if the mean value of redundant peptides less than the threshold:
-            # labels = [(0.,1.,)[ self.df[self.df["peptide"] == peptide]["measurement_value"].mean() < self.threshold ] for peptide in csv_peptides]
-        else:
-            labels = self.load_reg_data()
 
         # peptides grouped by clusters for the clustered classification
-        groups = []
+        self.groups = []
         if self.cluster_column != None:
-            groups = torch.tensor(self.df[self.cluster_column].tolist(), dtype=torch.float16)# used for LeaveOneGroupOut sklearn function when doing the clustered classification
-        return labels, groups
+            self.groups = torch.tensor(self.df[self.cluster_column].tolist(), dtype=torch.float16)# used for LeaveOneGroupOut sklearn function when doing the clustered classification
 
     def load_reg_data(self):
         """Converts measurement_value into float values between 0 and 1 using MHCflurry 2.0 ic50 conversion.

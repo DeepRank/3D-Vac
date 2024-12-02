@@ -104,7 +104,7 @@ class GraphLevelPredictionHead(nn.Module):
         self.pred = LinearHead(layer_dims, nonlinearity, normalization)
         self.dropout = dropout
 
-        if pool_type not in ['mean', 'sum', 'peptide_sum']:
+        if pool_type not in ['mean', 'sum', 'peptide_sum', 'none']:
             raise ValueError(f"Unsupported pool type: {pool_type}")
 
     def forward(self, backbone_output, data=None):
@@ -120,5 +120,7 @@ class GraphLevelPredictionHead(nn.Module):
                 p_embedding = F.dropout(p_embedding, p=self.dropout, training=self.training)
             out = self.pred(p_embedding)
             return global_add_pool(out, data.batch[data.entity == 1])
+        elif self.pool_type == "none":
+            out = embedding
 
         return self.pred(out)

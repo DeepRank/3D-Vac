@@ -28,7 +28,7 @@ from deeprank.config import logger
 from deeprank.learn import DataSet, rankingMetrics#, classMetrics
 from torch.autograd import Variable
 
-from . import classMetrics
+import classMetrics
 from copy import deepcopy
 
 matplotlib.use('agg')
@@ -395,7 +395,11 @@ class NeuralNet():
 
         # hdf5 support
         self.fname = os.path.join(self.outdir, hdf5)
-        self.f5 = h5py.File(self.fname, 'w')
+        try:
+            self.f5 = h5py.File(self.fname, 'w')
+        except BlockingIOError as e:
+            print(e)
+            raise Exception(f'HDF5 lock issue with file {self.fname}. Use h5clear --status filename.h5 to reset the file status if needed')
 
         # divide the set in train+ valid and test
         if divide_trainset is not None:
@@ -869,15 +873,16 @@ class NeuralNet():
 
             elif save_epoch == 'all':
                 self._export_epoch_hdf5(epoch, self.data)
-
-            sys.stdout.flush()
             
             # check if early stop is needed
-            if self._early_stop():
-                print(f"Early stop at n epochs: {epoch}\n Validation loss has not improved for {self.early_stop_delta} epochs")
+            if self._early_stop(epoch):
+                logger.info(f"Early stop at n epochs: {epoch}\n Validation loss has not improved for {self.early_stop_delta} epochs")
+                sys.stdout.flush()
                 break
+        
+            sys.stdout.flush()
             
-
+            
         # make variable 'exec_epoch', if early stop was executed the x axis (with n epochs) for plots will still be acurate
         self.exec_epochs = epoch+1
         # plot the losses
@@ -1306,24 +1311,49 @@ class NeuralNet():
 
         return inputs, targets
     
-    def _early_stop(self):
+    def _early_stop(self, epoch, patience=3, max_gap=0.005, min_epoch=10):
         """check if training should early stop based on progression of validation loss
-
+        
+            patience (int): How many epochs to wait after the last time validation loss improved.
+            max_gap (float): The minimum change in the monitored quantity to qualify as an improvement.
+            min_epoch (int): The minimum number of epochs to run before checking for early stopping.
+            
         Returns:
             bool: true if training should stop else false 
         """
+        current_loss = self.losses['valid'][-1]
         best_loss = self.min_error['valid']
+        if not hasattr(self, 'earlystop_counter'):
+            self.earlystop_counter = 0
         
-        # if current loss is worse than best loss measured so far
-        if self.losses['valid'][-1] > best_loss:
-            index_best = np.where(np.array(self.losses['valid']) == best_loss)[0][-1]
-            index_current = len(self.losses['valid'])-1
-            # loss is measured every frac_measure*epoch and delta loss is expressed in full epochs
-            if np.floor((index_current - index_best)*self.frac_measure) >= self.early_stop_delta:
+        if best_loss is None:
+            best_loss = current_loss
+            self.best_epoch = epoch
+        elif current_loss < (best_loss - max_gap):
+            best_loss = current_loss
+            self.best_epoch = epoch
+            self.earlystop_counter = 0
+        else:
+            self.earlystop_counter += 1
+            if self.earlystop_counter >= patience:
+                self.early_stop = True
+
+        if epoch <= min_epoch:
+            self.early_stop = False
+            
+        return self.early_stop
+        # best_loss = self.min_error['valid']
+        
+        # # if current loss is worse than best loss measured so far
+        # if self.losses['valid'][-1] > best_loss:
+        #     index_best = np.where(np.array(self.losses['valid']) == best_loss)[0][-1]
+        #     index_current = len(self.losses['valid'])-1
+        #     # loss is measured every frac_measure*epoch and delta loss is expressed in full epochs
+        #     if np.floor((index_current - index_best)*self.frac_measure) >= self.early_stop_delta:
                 
-                format_index_best = "{:.2f}".format(index_best*self.frac_measure)
-                print(f'best model was saved at {format_index_best} epochs')
-                return True
+        #         format_index_best = "{:.2f}".format(index_best*self.frac_measure)
+        #         print(f'best model was saved at {format_index_best} epochs')
+        #         return True
             
     def _save_outputs_targets(self, data):
         # transform the output back

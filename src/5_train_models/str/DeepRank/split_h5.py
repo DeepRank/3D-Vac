@@ -126,6 +126,14 @@ arg_parser.add_argument("--test-csv",
     help="Path to the CSV containing test cases. Should be used with --trainval-csv",
     default=None
 )
+arg_parser.add_argument("--train-csv",
+    help="Path to the CSV only the training cases. To be used with --test-csv and --val-csv to specify all the sets from csvs.",
+    default=None,
+)
+arg_parser.add_argument("--val-csv",
+    help="Path to the CSV only the validation cases. To be used with --test-csv and --val-csv to specify all the sets from csvs.",
+    default=None,
+)
 
 a = arg_parser.parse_args()
 
@@ -299,6 +307,12 @@ if __name__ == '__main__':
         train_df = pd.read_csv(a.trainval_csv)
         test_df = pd.read_csv(a.test_csv)
         all_ids = train_df.ID.tolist() + test_df.ID.tolist()
+    elif type(a.train_csv) == str and type(a.val_csv) == str and type(a.test_csv) == str:
+        train_df = pd.read_csv(a.train_csv)
+        val_df = pd.read_csv(a.val_csv)
+        test_df = pd.read_csv(a.test_csv)
+        all_ids = train_df.ID.tolist() + val_df.ID.tolist() + test_df.ID.tolist()
+        
 
     #Fill in the nan values (empty fileds belonging to trashbin clusters) with n_clusters + 1 
     # if a.cluster:
@@ -327,7 +341,7 @@ if __name__ == '__main__':
         if not os.path.isdir(output_h5_path + f"/{split_type}/"):
             os.makedirs(output_h5_path + f"/{split_type}/")
             
-    if a.cluster == False and not a.trainval_csv and not a.testval_csv:
+    if a.cluster == False and not a.trainval_csv and not a.test_csv:
         all_cases = np.array(list(symlinks.keys()))
         labels = np.array(labels)
         indices = np.array(range(len(labels)))
@@ -368,6 +382,27 @@ if __name__ == '__main__':
         
         """)
         save_train_valid(train_cases, validation_cases, test_cases, symlinks, a.features_path, output_h5_path,
+            f"train.hdf5",
+            f"valid.hdf5",
+            f"test.hdf5"
+        )
+    
+    elif type(a.train_csv) == str and type(a.val_csv) == str and type(a.test_csv) == str:
+        train_cases_df = pd.read_csv(a.train_csv)
+        val_cases_df = pd.read_csv(a.val_csv)
+        test_cases_df = pd.read_csv(a.test_csv)
+
+        train_cases = train_cases_df.ID
+        val_cases = val_cases_df.ID
+        test_cases = test_cases_df.ID
+
+        print(f"""
+        ### SAVING TRAINING SPLITS FROM TRAIN FILE {a.train_csv},
+        ### VALIDATION FROM {a.val_csv}
+        ### TESTING SPLITS FROM CSV FILE {a.test_csv}
+        
+        """)
+        save_train_valid(train_cases, val_cases, test_cases, symlinks, a.features_path, output_h5_path,
             f"train.hdf5",
             f"valid.hdf5",
             f"test.hdf5"
